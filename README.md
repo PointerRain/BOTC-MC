@@ -46,9 +46,17 @@ What happens next (usually automatic):
 - It downloads dependencies and indexes the project (may take a few minutes).
 - If IntelliJ needs anything (e.g., a JDK choice), it will prompt you. Accept the defaults or pick your installed JDK.
 
+Recommended IntelliJ plugins
+- Minecraft Development (adds Minecraft/Fabric project support and helpful inspections)
+  - File > Settings > Plugins > Marketplace
+  - Search for "Minecraft Development"
+  - Click Install, then Restart IDE if prompted
+- Git and Gradle plugins are bundled and usually enabled by default
+- Optional: GitHub (Pull Requests and Issues) plugin for reviewing PRs inside IntelliJ
+
 Optional checks (only if asked by IntelliJ):
 - Gradle JVM: File > Settings > Build, Execution, Deployment > Build Tools > Gradle > Gradle JVM. If prompted, select your installed JDK.
-- Plugins: File > Settings > Plugins. Git and Gradle are bundled and usually enabled by default.
+- Plugins: File > Settings > Plugins. Ensure Git/Gradle are enabled.
 
 Open the Gradle tool window:
 - View > Tool Windows > Gradle. You’ll run tasks like runServer and build from here. Use its search box to find tasks quickly.
