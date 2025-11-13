@@ -1,0 +1,8 @@
+{
+  "type": "botc:botc_example",
+  "greeting": "Hello, World!",
+
+  "name": "Hello World Example!",
+  "description": ["Look at my cool game!", "It greets you when you join."],
+  "icon": "minecraft:apple"
+}

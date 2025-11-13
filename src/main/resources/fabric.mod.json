@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "botc",
+  "version": "${version}",
+
+  "name": "BOTC In Minecraft",
+  "description": "",
+  "authors": [],
+  "contact": {},
+
+  "license": "All-Rights-Reserved",
+  "icon": "assets/botc/icon.png",
+
+  "environment": "server",
+  "entrypoints": {
+    "main": ["golden.botcmc.BOTCMinecraft"]
+  },
+
+  "mixins": [
+    "botc.mixins.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
