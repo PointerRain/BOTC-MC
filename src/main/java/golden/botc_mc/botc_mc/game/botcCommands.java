@@ -34,25 +34,40 @@ public final class botcCommands {
                 return 1;
             }));
 
-            root.then(literal("set").then(CommandManager.argument("key", StringArgumentType.word())
-                    .then(CommandManager.argument("value", IntegerArgumentType.integer())
-                            .executes(ctx -> {
-                                String key = StringArgumentType.getString(ctx, "key");
-                                int value = IntegerArgumentType.getInteger(ctx, "value");
-                                try {
-                                    botcSettingsManager.setInt(key, value);
-                                    botcSettingsManager.save();
-                                    ctx.getSource().sendFeedback(() -> Text.literal("Set " + key + "=" + value), false);
-                                    // also send the player a confirmation message with the exact staged value
-                                    if (ctx.getSource().getEntity() instanceof ServerPlayerEntity player) {
-                                        player.sendMessage(Text.literal("Staged: " + key + " = " + value), false);
-                                    }
-                                    return 1;
-                                } catch (IllegalArgumentException | IOException ex) {
-                                    ctx.getSource().sendError(Text.literal("Failed to set: " + ex.getMessage()));
-                                    return 0;
+            // /botc set <key> <value>
+            root.then(
+                literal("set")
+                    .then(
+                        CommandManager.argument("key", StringArgumentType.word())
+                            .suggests((context, builder) -> {
+                                // suggest all available keys
+                                for (String k : botcSettingsManager.keys()) {
+                                    builder.suggest(k);
                                 }
-                            }))));
+                                return builder.buildFuture();
+                            })
+                            .then(
+                                CommandManager.argument("value", IntegerArgumentType.integer())
+                                    .executes(ctx -> {
+                                        String key = StringArgumentType.getString(ctx, "key");
+                                        int value = IntegerArgumentType.getInteger(ctx, "value");
+                                        try {
+                                            botcSettingsManager.setInt(key, value);
+                                            botcSettingsManager.save();
+                                            ctx.getSource().sendFeedback(() -> Text.literal("Set " + key + "=" + value), false);
+                                            // also send the player a confirmation message with the exact staged value
+                                            if (ctx.getSource().getEntity() instanceof ServerPlayerEntity player) {
+                                                player.sendMessage(Text.literal("Staged: " + key + " = " + value), false);
+                                            }
+                                            return 1;
+                                        } catch (IllegalArgumentException | IOException ex) {
+                                            ctx.getSource().sendError(Text.literal("Failed to set: " + ex.getMessage()));
+                                            return 0;
+                                        }
+                                    })
+                            )
+                    )
+            );
 
             dispatcher.register(root);
         });
