@@ -19,4 +19,9 @@ public record botcConfig(botcMapConfig mapConfig,
     public static final Codec<botcConfig> CODEC = MAP_CODEC.codec();
 
     public int timeLimitSecs() { return this.timeLimitSecs; }
+
+    // utility factory to simplify programmatic construction from helpers
+    public static botcConfig of(botcMapConfig mapConfig, int players, int timeLimitSecs, botcPhaseDurations phaseDurations) {
+        return new botcConfig(mapConfig, players, timeLimitSecs, phaseDurations);
+    }
 }
