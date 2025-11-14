@@ -2,7 +2,6 @@ package golden.botc_mc.botc_mc.game;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.Vec3d;
 import xyz.nucleoid.plasmid.api.game.GameCloseReason;
 import xyz.nucleoid.plasmid.api.game.GameSpace;
@@ -21,6 +20,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.world.GameMode;
 import golden.botc_mc.botc_mc.game.map.botcMap;
+import golden.botc_mc.botc_mc.game.state.BotcGameState;
 import xyz.nucleoid.stimuli.event.EventResult;
 import xyz.nucleoid.stimuli.event.player.PlayerDamageEvent;
 import xyz.nucleoid.stimuli.event.player.PlayerDeathEvent;
@@ -100,6 +100,10 @@ public class botcActive {
             this.spawnSpectator(spectator);
         }
 
+        this.stageManager.attachContext(this.gameSpace, this.config);
+        // Inform the stage manager if players existed when the activity opened so it doesn't
+        // immediately close the game due to a transient empty state during startup.
+        this.stageManager.markPlayersPresent(!this.gameSpace.getPlayers().participants().isEmpty());
         this.stageManager.onOpen(this.world.getTime(), this.config);
         // TODO setup logic
     }
@@ -145,22 +149,24 @@ public class botcActive {
 
         botcStageManager.IdleTickResult result = this.stageManager.tick(time, gameSpace);
 
-        // Replace switch-style handling with explicit comparisons to avoid unresolved symbol issues
-        if (result == botcStageManager.IdleTickResult.CONTINUE_TICK) {
-            // continue
-        } else if (result == botcStageManager.IdleTickResult.TICK_FINISHED) {
-            return;
-        } else if (result == botcStageManager.IdleTickResult.GAME_FINISHED) {
-            this.broadcastWin(this.checkWinResult());
-            return;
-        } else if (result == botcStageManager.IdleTickResult.GAME_CLOSED) {
-            this.gameSpace.close(GameCloseReason.FINISHED);
-            return;
+        switch (result) {
+            case CONTINUE_TICK -> { /* keep ticking */ }
+            case TICK_FINISHED -> { return; }
+            case GAME_FINISHED -> {
+                this.broadcastWin(this.checkWinResult());
+                return;
+            }
+            case GAME_CLOSED -> {
+                this.gameSpace.close(GameCloseReason.FINISHED);
+                return;
+            }
         }
 
-        this.timerBar.update(this.stageManager.finishTime - time, this.config.timeLimitSecs() * 20);
+        long remaining = this.stageManager.getStateTicksRemaining();
+        long total = this.stageManager.getStateDuration();
+        this.timerBar.updatePhase(this.stageManager.getCurrentState(), remaining, total);
 
-        // TODO tick logic
+        // TODO tick logic per state
     }
 
     private void broadcastWin(WinResult result) {
@@ -216,4 +222,3 @@ public class botcActive {
         }
     }
 }
-

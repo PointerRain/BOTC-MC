@@ -10,5 +10,11 @@
     "min": 1,
     "max": 100
   },
-  "time_limit_secs": 60
+  "time_limit_secs": 60,
+  "phase_durations": {
+    "day_discussion_secs": 120,
+    "nomination_secs": 45,
+    "execution_secs": 20,
+    "night_secs": 60
+  }
 }
