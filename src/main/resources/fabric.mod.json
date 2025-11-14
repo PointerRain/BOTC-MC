@@ -1,28 +1,23 @@
 {
   "schemaVersion": 1,
-  "id": "botc",
+  "id": "botc-mc",
   "version": "${version}",
-
-  "name": "BOTC In Minecraft",
-  "description": "",
-  "authors": [],
-  "contact": {},
-
-  "license": "All-Rights-Reserved",
-  "icon": "assets/botc/icon.png",
-
-  "environment": "server",
-  "entrypoints": {
-    "main": ["golden.botcmc.BOTCMinecraft"]
-  },
-
-  "mixins": [
-    "botc.mixins.json"
+  "name": "BoTC Minecraft",
+  "description": "Blood on the Clock Tower Minigame for Minecraft Fabric",
+  "authors": [
+    "Golden"
   ],
-
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "golden.botc_mc.botc_mc.botc"
+    ]
+  },
   "depends": {
-    "fabricloader": ">=${loader_version}",
-    "fabric": "*",
-    "minecraft": "${minecraft_version}"
+    "fabricloader": ">=0.16.9",
+    "fabric-api": "*",
+    "minecraft": ">=1.21.4",
+    "plasmid": ">=0.6.2"
   }
 }

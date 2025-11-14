@@ -1,8 +1,21 @@
 pluginManagement {
+    // Use the desired Loom version directly here to avoid calling unavailable methods during settings evaluation
+    // The `loom_version` property is kept in gradle.properties for reference, but the plugin version must be visible
+    // during settings evaluation.
+    plugins {
+        id 'fabric-loom' version '1.13-SNAPSHOT'
+    }
+
     repositories {
+        jcenter()
         maven {
             name = 'Fabric'
             url = 'https://maven.fabricmc.net/'
+        }
+        // Sonatype snapshots repository (needed for SNAPSHOT versions)
+        maven {
+            name = 'sonatype-oss-snapshots'
+            url = 'https://s01.oss.sonatype.org/content/repositories/snapshots/'
         }
         gradlePluginPortal()
     }
