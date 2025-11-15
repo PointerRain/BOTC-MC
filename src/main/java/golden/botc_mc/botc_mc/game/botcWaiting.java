@@ -38,8 +38,7 @@ public class botcWaiting {
         botcMap map = generator.build();
 
         RuntimeWorldConfig worldConfig = new RuntimeWorldConfig()
-                // Map generator API mismatch: `asGenerator` returns a ChunkGenerator stub. Cast to avoid compilation errors.
-                .setGenerator((net.minecraft.world.gen.chunk.ChunkGenerator) map.asGenerator(context.server()));
+                .setGenerator(map.asGenerator(context.server()));
 
         return context.openWithWorld(worldConfig, (game, world) -> {
             botcWaiting waiting = new botcWaiting(game.getGameSpace(), world, map, context.config());

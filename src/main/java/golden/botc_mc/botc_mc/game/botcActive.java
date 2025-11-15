@@ -1,9 +1,17 @@
 package golden.botc_mc.botc_mc.game;
 
+import golden.botc_mc.botc_mc.botc;
+import golden.botc_mc.botc_mc.game.map.botcMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import net.minecraft.util.ActionResult;
+import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundEvents;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.GameMode;
 import xyz.nucleoid.plasmid.api.game.GameCloseReason;
 import xyz.nucleoid.plasmid.api.game.GameSpace;
 import xyz.nucleoid.plasmid.api.game.common.GlobalWidgets;
@@ -13,19 +21,11 @@ import xyz.nucleoid.plasmid.api.game.player.JoinOffer;
 import xyz.nucleoid.plasmid.api.game.player.PlayerSet;
 import xyz.nucleoid.plasmid.api.game.rule.GameRuleType;
 import xyz.nucleoid.plasmid.api.util.PlayerRef;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.world.GameMode;
-import golden.botc_mc.botc_mc.game.map.botcMap;
 import xyz.nucleoid.stimuli.event.EventResult;
 import xyz.nucleoid.stimuli.event.player.PlayerDamageEvent;
 import xyz.nucleoid.stimuli.event.player.PlayerDeathEvent;
 
-import java.util.*;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class botcActive {
@@ -35,6 +35,7 @@ public class botcActive {
     private final botcMap gameMap;
 
     private final Object2ObjectMap<PlayerRef, botcPlayer> participants;
+
     private final botcSpawnLogic spawnLogic;
     private final botcStageManager stageManager;
     private final boolean ignoreWinState;
@@ -50,7 +51,7 @@ public class botcActive {
         this.world = world;
 
         for (PlayerRef player : participants) {
-            this.participants.put(player, new botcPlayer());
+            this.participants.put(player, new botcPlayer(player.getEntity(gameSpace)));
         }
 
         this.stageManager = new botcStageManager();
@@ -102,10 +103,16 @@ public class botcActive {
 
         this.stageManager.onOpen(this.world.getTime(), this.config);
         // TODO setup logic
+
+        // Register this active game
+        botc.addGame(this);
     }
 
     private void onClose() {
         // TODO teardown logic
+
+        // Unregister this active game
+        botc.removeGame(this);
     }
 
     private void addPlayer(ServerPlayerEntity player) {
@@ -116,6 +123,10 @@ public class botcActive {
 
     private void removePlayer(ServerPlayerEntity player) {
         this.participants.remove(PlayerRef.of(player));
+    }
+
+    public botcPlayer getPlayer(ServerPlayerEntity player) {
+        return this.participants.get(PlayerRef.of(player));
     }
 
     private EventResult onPlayerDamage(ServerPlayerEntity player, DamageSource source, float amount) {
@@ -189,6 +200,52 @@ public class botcActive {
         // TODO win result logic
         return WinResult.no();
     }
+
+    /**
+     * Kills the given botcPlayer.
+     * @param botcPlayer the botcPlayer to kill
+     * @return true if the player was killed, false if the player was already dead or null
+     */
+    public boolean kill(botcPlayer botcPlayer) {
+        if (botcPlayer == null || botcPlayer.isDead()) {
+            return false;
+        }
+        return botcPlayer.kill();
+    }
+
+    /**
+     * Kills the given player.
+     * @param player the player to kill
+     * @return true if the player was killed, false if the player was already dead or null
+     * @see botcActive#kill(botcPlayer)
+     */
+    public boolean kill(ServerPlayerEntity player) {
+        return kill(this.getPlayer(player));
+    }
+
+    /**
+     * Revives the given botcPlayer.
+     * @param botcPlayer the botcPlayer to revive
+     * @return true if the player was revived, false if the player was not dead or null
+     */
+    public boolean revive(botcPlayer botcPlayer) {
+        if (botcPlayer == null || !botcPlayer.isDead()) {
+            return false;
+        }
+        botcPlayer.revive();
+        return true;
+    }
+
+    /**
+     * Revives the given player.
+     * @param player the player to revive
+     * @return true if the player was revived, false if the player was not dead or null
+     * @see botcActive#revive(botcPlayer)
+     */
+    public boolean revive(ServerPlayerEntity player) {
+        return revive(this.getPlayer(player));
+    }
+
 
     static class WinResult {
         final ServerPlayerEntity winningPlayer;
