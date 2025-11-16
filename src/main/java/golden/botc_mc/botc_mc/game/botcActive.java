@@ -2,7 +2,6 @@ package golden.botc_mc.botc_mc.game;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.Vec3d;
 import xyz.nucleoid.plasmid.api.game.GameCloseReason;
 import xyz.nucleoid.plasmid.api.game.GameSpace;
@@ -21,6 +20,8 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.world.GameMode;
 import golden.botc_mc.botc_mc.game.map.botcMap;
+import golden.botc_mc.botc_mc.game.state.BotcGameState;
+import golden.botc_mc.botc_mc.game.state.GameLifecycleStatus;
 import xyz.nucleoid.stimuli.event.EventResult;
 import xyz.nucleoid.stimuli.event.player.PlayerDamageEvent;
 import xyz.nucleoid.stimuli.event.player.PlayerDeathEvent;
@@ -40,6 +41,8 @@ public class botcActive {
     private final boolean ignoreWinState;
     private final botcTimerBar timerBar;
     private final ServerWorld world;
+
+    private GameLifecycleStatus lifecycleStatus = GameLifecycleStatus.STOPPED;
 
     private botcActive(GameSpace gameSpace, ServerWorld world, botcMap map, GlobalWidgets widgets, botcConfig config, Set<PlayerRef> participants) {
         this.gameSpace = gameSpace;
@@ -100,7 +103,11 @@ public class botcActive {
             this.spawnSpectator(spectator);
         }
 
+        this.stageManager.attachContext(this.gameSpace, this.config);
+        this.stageManager.markPlayersPresent(!this.gameSpace.getPlayers().participants().isEmpty());
         this.stageManager.onOpen(this.world.getTime(), this.config);
+        this.lifecycleStatus = GameLifecycleStatus.STARTING;
+        onLifecycleStateChanged();
         // TODO setup logic
     }
 
@@ -145,22 +152,34 @@ public class botcActive {
 
         botcStageManager.IdleTickResult result = this.stageManager.tick(time, gameSpace);
 
-        // Replace switch-style handling with explicit comparisons to avoid unresolved symbol issues
-        if (result == botcStageManager.IdleTickResult.CONTINUE_TICK) {
-            // continue
-        } else if (result == botcStageManager.IdleTickResult.TICK_FINISHED) {
-            return;
-        } else if (result == botcStageManager.IdleTickResult.GAME_FINISHED) {
-            this.broadcastWin(this.checkWinResult());
-            return;
-        } else if (result == botcStageManager.IdleTickResult.GAME_CLOSED) {
-            this.gameSpace.close(GameCloseReason.FINISHED);
-            return;
+        GameLifecycleStatus currentLifecycle = this.stageManager.getLifecycleStatus();
+        if (currentLifecycle != this.lifecycleStatus) {
+            this.lifecycleStatus = currentLifecycle;
+            onLifecycleStateChanged();
         }
 
-        this.timerBar.update(this.stageManager.finishTime - time, this.config.timeLimitSecs() * 20);
+        switch (result) {
+            case CONTINUE_TICK -> { /* keep ticking */ }
+            case TICK_FINISHED -> { return; }
+            case GAME_FINISHED -> {
+                this.lifecycleStatus = GameLifecycleStatus.STOPPING;
+                onLifecycleStateChanged();
+                this.broadcastWin(this.checkWinResult());
+                return;
+            }
+            case GAME_CLOSED -> {
+                this.lifecycleStatus = GameLifecycleStatus.STOPPED;
+                onLifecycleStateChanged();
+                this.gameSpace.close(GameCloseReason.FINISHED);
+                return;
+            }
+        }
 
-        // TODO tick logic
+        long remaining = this.stageManager.getStateTicksRemaining();
+        long total = this.stageManager.getStateDuration();
+        this.timerBar.updatePhase(this.stageManager.getCurrentState(), remaining, total);
+
+        // TODO tick logic per state
     }
 
     private void broadcastWin(WinResult result) {
@@ -190,6 +209,29 @@ public class botcActive {
         return WinResult.no();
     }
 
+    private void onLifecycleStateChanged() {
+        // Hook for handling lifecycle specific logic
+        switch (this.lifecycleStatus) {
+            case STARTING -> {
+                handleGameStarting();
+            }
+            case RUNNING -> {
+                // TODO: running-state logic
+            }
+            case STOPPING -> {
+                // TODO: cleanup logic
+            }
+            case STOPPED -> {
+                // TODO: final shutdown logic
+            }
+        }
+    }
+
+    private void handleGameStarting() {
+        // Place any setup logic that should run exactly once when the game begins.
+        // Examples: distribute starting items, trigger countdown titles, play sounds, etc.
+    }
+
     static class WinResult {
         final ServerPlayerEntity winningPlayer;
         final boolean win;
@@ -216,4 +258,3 @@ public class botcActive {
         }
     }
 }
-

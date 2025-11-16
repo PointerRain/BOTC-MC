@@ -1,11 +1,14 @@
 package golden.botc_mc.botc_mc.game;
 
 import com.google.common.collect.ImmutableSet;
+import golden.botc_mc.botc_mc.game.state.BotcGameState;
+import golden.botc_mc.botc_mc.game.state.BotcStateContext;
+import golden.botc_mc.botc_mc.game.state.BotcStateMachine;
+import golden.botc_mc.botc_mc.game.state.GameLifecycleStatus;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.entity.player.PlayerPosition;
 import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvent;
 import net.minecraft.text.Text;
 import xyz.nucleoid.plasmid.api.game.GameSpace;
 import xyz.nucleoid.plasmid.api.game.player.PlayerSet;
@@ -24,14 +27,77 @@ public class botcStageManager {
     private long startTime = -1;
     private final Object2ObjectMap<ServerPlayerEntity, FrozenPlayer> frozen;
     private boolean setSpectator = false;
+    private final BotcStateMachine stateMachine;
+    private BotcStateContext stateContext;
+    private botcPhaseDurations configuredDurations = botcPhaseDurations.defaults();
+    // track whether any players have been present since the game opened
+    private boolean hadPlayers = false;
+    private GameLifecycleStatus lifecycleStatus = GameLifecycleStatus.STOPPED;
 
     public botcStageManager() {
         this.frozen = new Object2ObjectOpenHashMap<>();
+        this.stateMachine = new BotcStateMachine(botcPhaseDurations.defaults());
+        this.stateMachine.onStateChanged(this::handleStateChanged);
     }
 
     public void onOpen(long time, botcConfig config) {
         this.startTime = time - (time % 20) + (4 * 20) + 19;
-        this.finishTime = this.startTime + (config.timeLimitSecs() * 20);
+        this.finishTime = this.startTime + (config.timeLimitSecs() * 20L);
+        this.stateMachine.start(time, this.stateContext);
+        this.lifecycleStatus = GameLifecycleStatus.STOPPED;
+    }
+
+    public void attachContext(GameSpace space, botcConfig config) {
+        this.stateContext = new BotcStateContext(space);
+        this.configureStates(config.phaseDurations());
+    }
+
+    /**
+     * Signal the manager that players were present when the game opened. Call this from the
+     * activity right after players are spawned so the manager won't consider an empty player
+     * set (which can exist transiently) as a reason to close the game immediately.
+     */
+    public void markPlayersPresent(boolean present) {
+        if (present) this.hadPlayers = true;
+    }
+
+    private void configureStates(botcPhaseDurations durations) {
+        this.configuredDurations = durations;
+        this.stateMachine.setDurations(durations);
+
+        this.stateMachine.setDefaultTransition(BotcGameState.LOBBY, BotcGameState.PRE_DAY);
+        this.stateMachine.setDefaultTransition(BotcGameState.PRE_DAY, BotcGameState.DAY_DISCUSSION);
+        this.stateMachine.setDefaultTransition(BotcGameState.DAY_DISCUSSION, BotcGameState.NOMINATION);
+        this.stateMachine.setDefaultTransition(BotcGameState.NOMINATION, BotcGameState.EXECUTION);
+        this.stateMachine.setDefaultTransition(BotcGameState.EXECUTION, BotcGameState.NIGHT);
+        this.stateMachine.setDefaultTransition(BotcGameState.NIGHT, BotcGameState.DAY_DISCUSSION);
+        this.stateMachine.setDefaultTransition(BotcGameState.END, BotcGameState.END);
+
+        this.stateMachine.onEnter(BotcGameState.LOBBY, ctx -> ctx.broadcast(Text.literal("Waiting for storyteller...")));
+        this.stateMachine.onEnter(BotcGameState.PRE_DAY, ctx -> ctx.broadcast(Text.literal("Day is about to begin!")));
+        this.stateMachine.onEnter(BotcGameState.DAY_DISCUSSION, ctx -> ctx.broadcast(Text.literal("Day discussion has started.")));
+        this.stateMachine.onEnter(BotcGameState.NOMINATION, ctx -> ctx.broadcast(Text.literal("Nomination window open.")));
+        this.stateMachine.onEnter(BotcGameState.EXECUTION, ctx -> ctx.broadcast(Text.literal("Execution vote resolving...")));
+        this.stateMachine.onEnter(BotcGameState.NIGHT, ctx -> ctx.broadcast(Text.literal("Night phase: storytellers resolving actions.")));
+        this.stateMachine.onEnter(BotcGameState.END, ctx -> ctx.broadcast(Text.literal("Game closing.")));
+    }
+
+    public BotcGameState getCurrentState() {
+        return this.stateMachine.getCurrentState();
+    }
+
+    public GameLifecycleStatus getLifecycleStatus() {
+        return this.lifecycleStatus;
+    }
+
+    public long getStateDuration() {
+        return this.configuredDurations.durationTicks(this.stateMachine.getCurrentState());
+    }
+
+    public long getStateTicksRemaining() {
+        long duration = this.getStateDuration();
+        long elapsed = this.stateMachine.getTicksInState();
+        return Math.max(0, duration - elapsed);
     }
 
     public IdleTickResult tick(long time, GameSpace space) {
@@ -50,7 +116,8 @@ public class botcStageManager {
         }
 
         // Game has just finished. Transition to the waiting-before-close state.
-        if (time > this.finishTime || space.getPlayers().isEmpty()) {
+        // Only treat an empty player set as a finish condition after the game has started.
+        if (time > this.finishTime || (time >= this.startTime && space.getPlayers().isEmpty() && this.hadPlayers)) {
             if (!this.setSpectator) {
                 this.setSpectator = true;
                 for (ServerPlayerEntity player : space.getPlayers()) {
@@ -59,11 +126,33 @@ public class botcStageManager {
             }
 
             this.closeTime = time + (5 * 20);
-
+            this.lifecycleStatus = GameLifecycleStatus.STOPPING;
+            // server-side debug log to help diagnose immediate close issues
+            System.out.println("[BOTC] startTime=" + this.startTime + " finishTime=" + this.finishTime + " closeTime=" + this.closeTime + " now=" + time + " players=" + space.getPlayers().participants().size() + " hadPlayers=" + this.hadPlayers);
+            if (this.stateContext != null) {
+                String reason = space.getPlayers().isEmpty() ? "No players remain; closing game." : "Game time finished; closing game.";
+                this.stateContext.broadcast(Text.literal(reason));
+            }
             return IdleTickResult.GAME_FINISHED;
         }
 
+        // update hadPlayers when someone exists in the space
+        if (!space.getPlayers().isEmpty()) {
+            this.hadPlayers = true;
+        }
+
+        this.stateMachine.tick(time, this.stateContext);
         return IdleTickResult.CONTINUE_TICK;
+    }
+
+    private void handleStateChanged(BotcGameState newState) {
+        switch (newState) {
+            case LOBBY -> this.lifecycleStatus = GameLifecycleStatus.STOPPED;
+            case PRE_DAY -> this.lifecycleStatus = GameLifecycleStatus.STARTING;
+            case DAY_DISCUSSION, NOMINATION, EXECUTION, NIGHT -> this.lifecycleStatus = GameLifecycleStatus.RUNNING;
+            case END -> this.lifecycleStatus = GameLifecycleStatus.STOPPING;
+            default -> this.lifecycleStatus = GameLifecycleStatus.STOPPED;
+        }
     }
 
     private void tickStartWaiting(long time, GameSpace space) {
@@ -108,13 +197,10 @@ public class botcStageManager {
         public Vec3d lastPos;
     }
 
-    public static class IdleTickResult {
-        public static final IdleTickResult CONTINUE_TICK = new IdleTickResult();
-        public static final IdleTickResult TICK_FINISHED = new IdleTickResult();
-        public static final IdleTickResult GAME_FINISHED = new IdleTickResult();
-        public static final IdleTickResult GAME_CLOSED = new IdleTickResult();
-
-        // stub
+    public enum IdleTickResult {
+        CONTINUE_TICK,
+        TICK_FINISHED,
+        GAME_FINISHED,
+        GAME_CLOSED
     }
 }
-

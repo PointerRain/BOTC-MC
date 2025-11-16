@@ -33,8 +33,12 @@ public class botcWaiting {
     }
 
     public static GameOpenProcedure open(GameOpenContext<botcConfig> context) {
-        botcConfig config = context.config();
-        botcMapGenerator generator = new botcMapGenerator(config.mapConfig());
+        // Load server-side settings and merge with the datapack-provided config. Server-side
+        // values (run/config/botc.properties) override the datapack when present.
+        botcSettings settings = botcSettings.load();
+        botcConfig effectiveConfig = settings.applyTo(context.config());
+
+        botcMapGenerator generator = new botcMapGenerator(effectiveConfig.mapConfig());
         botcMap map = generator.build();
 
         RuntimeWorldConfig worldConfig = new RuntimeWorldConfig()
@@ -42,7 +46,8 @@ public class botcWaiting {
                 .setGenerator((net.minecraft.world.gen.chunk.ChunkGenerator) map.asGenerator(context.server()));
 
         return context.openWithWorld(worldConfig, (game, world) -> {
-            botcWaiting waiting = new botcWaiting(game.getGameSpace(), world, map, context.config());
+            // Use the effective config (merged from settings + datapack) for the activity
+            botcWaiting waiting = new botcWaiting(game.getGameSpace(), world, map, effectiveConfig);
 
             // GameWaitingLobby.addTo requires a WaitingLobbyConfig; original code passed an int. Leave commented until real API usage is implemented.
             // GameWaitingLobby.addTo(game, config.players());
@@ -75,4 +80,3 @@ public class botcWaiting {
         this.spawnLogic.spawnPlayer(player);
     }
 }
-
