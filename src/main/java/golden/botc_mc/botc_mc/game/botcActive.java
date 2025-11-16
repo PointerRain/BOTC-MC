@@ -26,6 +26,11 @@ import xyz.nucleoid.stimuli.event.EventResult;
 import xyz.nucleoid.stimuli.event.player.PlayerDamageEvent;
 import xyz.nucleoid.stimuli.event.player.PlayerDeathEvent;
 
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.mob.CreeperEntity;
+import net.minecraft.util.math.BlockPos;
+import java.util.Random;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -43,6 +48,9 @@ public class botcActive {
     private final ServerWorld world;
 
     private GameLifecycleStatus lifecycleStatus = GameLifecycleStatus.STOPPED;
+    private boolean startingClusterSpawned = false;
+
+    private static final Random BOTC_RANDOM = new Random();
 
     private botcActive(GameSpace gameSpace, ServerWorld world, botcMap map, GlobalWidgets widgets, botcConfig config, Set<PlayerRef> participants) {
         this.gameSpace = gameSpace;
@@ -106,8 +114,9 @@ public class botcActive {
         this.stageManager.attachContext(this.gameSpace, this.config);
         this.stageManager.markPlayersPresent(!this.gameSpace.getPlayers().participants().isEmpty());
         this.stageManager.onOpen(this.world.getTime(), this.config);
-        this.lifecycleStatus = GameLifecycleStatus.STARTING;
-        onLifecycleStateChanged();
+        // Option A: Removed manual lifecycle STARTING assignment and callback here to avoid double invocation.
+        // Lifecycle transition and game-start logic will be triggered during the first tick() when the
+        // stageManager updates lifecycle state to STARTING.
         // TODO setup logic
     }
 
@@ -228,8 +237,63 @@ public class botcActive {
     }
 
     private void handleGameStarting() {
+        if (startingClusterSpawned) {
+            return; // Already executed starting logic
+        }
+        startingClusterSpawned = true;
         // Place any setup logic that should run exactly once when the game begins.
         // Examples: distribute starting items, trigger countdown titles, play sounds, etc.
+        // Spawning a cluster of creepers that burst outward and ignite.
+        spawnCreeperCluster(1000);
+    }
+
+    private void spawnCreeperCluster(int count) {
+        if (count <= 0) return;
+        BlockPos center = this.world.getSpawnPos();
+        double baseX = center.getX() + 0.5;
+        double baseY = center.getY() + 1.0; // spawn slightly above ground
+        double baseZ = center.getZ() + 0.5;
+
+        int spawned = 0;
+        // NOTE: Spawning 1000 entities in one tick can lag. Consider batching if needed.
+        for (int i = 0; i < count; i++) {
+            // Previous code used EntityType.CREEPER.create(world) which no longer matches available signatures.
+            CreeperEntity creeper = new CreeperEntity(EntityType.CREEPER, this.world);
+            // Safety check
+            if (creeper == null) continue;
+
+            double angle = (2.0 * Math.PI * i / count) + BOTC_RANDOM.nextDouble() * 0.05;
+            double speed = 0.35 + BOTC_RANDOM.nextDouble() * 0.25;
+            double vx = Math.cos(angle) * speed;
+            double vz = Math.sin(angle) * speed;
+            double vy = 0.35 + BOTC_RANDOM.nextDouble() * 0.15;
+
+            creeper.refreshPositionAndAngles(baseX, baseY, baseZ, (float) (angle * 57.29578f), 0.0f);
+            creeper.setVelocity(vx, vy, vz);
+
+            try {
+                var ignite = CreeperEntity.class.getMethod("ignite");
+                ignite.invoke(creeper);
+            } catch (ReflectiveOperationException ignored) {
+                // Ignored: ignite method not accessible in current mappings.
+            }
+            try {
+                var m = CreeperEntity.class.getMethod("setFuseTime", int.class);
+                m.invoke(creeper, 20 + BOTC_RANDOM.nextInt(40));
+            } catch (ReflectiveOperationException ignored) {
+                try {
+                    var m2 = CreeperEntity.class.getMethod("setFuse", int.class);
+                    m2.invoke(creeper, 20 + BOTC_RANDOM.nextInt(40));
+                } catch (ReflectiveOperationException ignored2) {
+                    // Fuse customization not available.
+                }
+            }
+
+            if (this.world.spawnEntity(creeper)) {
+                spawned++;
+            }
+        }
+        this.gameSpace.getPlayers().sendMessage(Text.literal("Spawned " + spawned + " creepers!"));
     }
 
     static class WinResult {
