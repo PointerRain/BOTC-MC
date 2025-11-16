@@ -1,6 +1,10 @@
 package golden.botc_mc.botc_mc.game;
 
 import com.google.common.collect.ImmutableSet;
+import golden.botc_mc.botc_mc.game.state.BotcGameState;
+import golden.botc_mc.botc_mc.game.state.BotcStateContext;
+import golden.botc_mc.botc_mc.game.state.BotcStateMachine;
+import golden.botc_mc.botc_mc.game.state.GameLifecycleStatus;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.entity.player.PlayerPosition;
@@ -14,9 +18,6 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.GameMode;
-import golden.botc_mc.botc_mc.game.state.BotcGameState;
-import golden.botc_mc.botc_mc.game.state.BotcStateContext;
-import golden.botc_mc.botc_mc.game.state.BotcStateMachine;
 
 import java.util.Set;
 
@@ -31,16 +32,19 @@ public class botcStageManager {
     private botcPhaseDurations configuredDurations = botcPhaseDurations.defaults();
     // track whether any players have been present since the game opened
     private boolean hadPlayers = false;
+    private GameLifecycleStatus lifecycleStatus = GameLifecycleStatus.STOPPED;
 
     public botcStageManager() {
         this.frozen = new Object2ObjectOpenHashMap<>();
         this.stateMachine = new BotcStateMachine(botcPhaseDurations.defaults());
+        this.stateMachine.onStateChanged(this::handleStateChanged);
     }
 
     public void onOpen(long time, botcConfig config) {
         this.startTime = time - (time % 20) + (4 * 20) + 19;
         this.finishTime = this.startTime + (config.timeLimitSecs() * 20L);
         this.stateMachine.start(time, this.stateContext);
+        this.lifecycleStatus = GameLifecycleStatus.STOPPED;
     }
 
     public void attachContext(GameSpace space, botcConfig config) {
@@ -82,6 +86,10 @@ public class botcStageManager {
         return this.stateMachine.getCurrentState();
     }
 
+    public GameLifecycleStatus getLifecycleStatus() {
+        return this.lifecycleStatus;
+    }
+
     public long getStateDuration() {
         return this.configuredDurations.durationTicks(this.stateMachine.getCurrentState());
     }
@@ -118,6 +126,7 @@ public class botcStageManager {
             }
 
             this.closeTime = time + (5 * 20);
+            this.lifecycleStatus = GameLifecycleStatus.STOPPING;
             // server-side debug log to help diagnose immediate close issues
             System.out.println("[BOTC] startTime=" + this.startTime + " finishTime=" + this.finishTime + " closeTime=" + this.closeTime + " now=" + time + " players=" + space.getPlayers().participants().size() + " hadPlayers=" + this.hadPlayers);
             if (this.stateContext != null) {
@@ -134,6 +143,16 @@ public class botcStageManager {
 
         this.stateMachine.tick(time, this.stateContext);
         return IdleTickResult.CONTINUE_TICK;
+    }
+
+    private void handleStateChanged(BotcGameState newState) {
+        switch (newState) {
+            case LOBBY -> this.lifecycleStatus = GameLifecycleStatus.STOPPED;
+            case PRE_DAY -> this.lifecycleStatus = GameLifecycleStatus.STARTING;
+            case DAY_DISCUSSION, NOMINATION, EXECUTION, NIGHT -> this.lifecycleStatus = GameLifecycleStatus.RUNNING;
+            case END -> this.lifecycleStatus = GameLifecycleStatus.STOPPING;
+            default -> this.lifecycleStatus = GameLifecycleStatus.STOPPED;
+        }
     }
 
     private void tickStartWaiting(long time, GameSpace space) {

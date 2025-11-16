@@ -10,6 +10,7 @@ import xyz.nucleoid.plasmid.api.game.player.PlayerSet;
  */
 public final class BotcStateContext {
     private final GameSpace space;
+    private GameLifecycleStatus lifecycleStatus = GameLifecycleStatus.STOPPED;
 
     public BotcStateContext(GameSpace space) {
         this.space = space;
@@ -23,6 +24,14 @@ public final class BotcStateContext {
         return this.space.getPlayers();
     }
 
+    public void setLifecycleStatus(GameLifecycleStatus status) {
+        this.lifecycleStatus = status;
+    }
+
+    public GameLifecycleStatus getLifecycleStatus() {
+        return this.lifecycleStatus;
+    }
+
     public void broadcast(net.minecraft.text.Text message) {
         this.players().sendMessage(message);
     }
@@ -31,4 +40,3 @@ public final class BotcStateContext {
         return this.players();
     }
 }
-

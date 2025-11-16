@@ -3,7 +3,9 @@ package golden.botc_mc.botc_mc.game.state;
 import golden.botc_mc.botc_mc.game.botcPhaseDurations;
 import net.minecraft.text.Text;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -17,6 +19,7 @@ public final class BotcStateMachine {
     private final Map<BotcGameState, Consumer<BotcStateContext>> exitActions;
     private final Map<BotcGameState, BotcGameState> defaultTransitions;
     private botcPhaseDurations durations;
+    private final List<Consumer<BotcGameState>> stateListeners;
 
     private BotcGameState currentState;
     private long stateEnteredTick;
@@ -27,6 +30,7 @@ public final class BotcStateMachine {
         this.entryActions = new EnumMap<>(BotcGameState.class);
         this.exitActions = new EnumMap<>(BotcGameState.class);
         this.defaultTransitions = new EnumMap<>(BotcGameState.class);
+        this.stateListeners = new ArrayList<>();
         this.currentState = BotcGameState.LOBBY;
     }
 
@@ -44,6 +48,12 @@ public final class BotcStateMachine {
 
     public void onExit(BotcGameState state, Consumer<BotcStateContext> action) {
         this.exitActions.put(state, action);
+    }
+
+    public void onStateChanged(Consumer<BotcGameState> listener) {
+        if (listener != null) {
+            this.stateListeners.add(listener);
+        }
     }
 
     public void setDefaultTransition(BotcGameState from, BotcGameState to) {
@@ -111,6 +121,13 @@ public final class BotcStateMachine {
             entry.accept(context);
         } else if (context != null) {
             context.broadcast(Text.literal("Entering "+ this.currentState.name()));
+        }
+        this.notifyStateListeners();
+    }
+
+    private void notifyStateListeners() {
+        for (Consumer<BotcGameState> listener : this.stateListeners) {
+            listener.accept(this.currentState);
         }
     }
 }

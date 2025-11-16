@@ -21,6 +21,7 @@ import net.minecraft.util.Formatting;
 import net.minecraft.world.GameMode;
 import golden.botc_mc.botc_mc.game.map.botcMap;
 import golden.botc_mc.botc_mc.game.state.BotcGameState;
+import golden.botc_mc.botc_mc.game.state.GameLifecycleStatus;
 import xyz.nucleoid.stimuli.event.EventResult;
 import xyz.nucleoid.stimuli.event.player.PlayerDamageEvent;
 import xyz.nucleoid.stimuli.event.player.PlayerDeathEvent;
@@ -40,6 +41,8 @@ public class botcActive {
     private final boolean ignoreWinState;
     private final botcTimerBar timerBar;
     private final ServerWorld world;
+
+    private GameLifecycleStatus lifecycleStatus = GameLifecycleStatus.STOPPED;
 
     private botcActive(GameSpace gameSpace, ServerWorld world, botcMap map, GlobalWidgets widgets, botcConfig config, Set<PlayerRef> participants) {
         this.gameSpace = gameSpace;
@@ -101,10 +104,10 @@ public class botcActive {
         }
 
         this.stageManager.attachContext(this.gameSpace, this.config);
-        // Inform the stage manager if players existed when the activity opened so it doesn't
-        // immediately close the game due to a transient empty state during startup.
         this.stageManager.markPlayersPresent(!this.gameSpace.getPlayers().participants().isEmpty());
         this.stageManager.onOpen(this.world.getTime(), this.config);
+        this.lifecycleStatus = GameLifecycleStatus.STARTING;
+        onLifecycleStateChanged();
         // TODO setup logic
     }
 
@@ -149,14 +152,24 @@ public class botcActive {
 
         botcStageManager.IdleTickResult result = this.stageManager.tick(time, gameSpace);
 
+        GameLifecycleStatus currentLifecycle = this.stageManager.getLifecycleStatus();
+        if (currentLifecycle != this.lifecycleStatus) {
+            this.lifecycleStatus = currentLifecycle;
+            onLifecycleStateChanged();
+        }
+
         switch (result) {
             case CONTINUE_TICK -> { /* keep ticking */ }
             case TICK_FINISHED -> { return; }
             case GAME_FINISHED -> {
+                this.lifecycleStatus = GameLifecycleStatus.STOPPING;
+                onLifecycleStateChanged();
                 this.broadcastWin(this.checkWinResult());
                 return;
             }
             case GAME_CLOSED -> {
+                this.lifecycleStatus = GameLifecycleStatus.STOPPED;
+                onLifecycleStateChanged();
                 this.gameSpace.close(GameCloseReason.FINISHED);
                 return;
             }
@@ -194,6 +207,29 @@ public class botcActive {
 
         // TODO win result logic
         return WinResult.no();
+    }
+
+    private void onLifecycleStateChanged() {
+        // Hook for handling lifecycle specific logic
+        switch (this.lifecycleStatus) {
+            case STARTING -> {
+                handleGameStarting();
+            }
+            case RUNNING -> {
+                // TODO: running-state logic
+            }
+            case STOPPING -> {
+                // TODO: cleanup logic
+            }
+            case STOPPED -> {
+                // TODO: final shutdown logic
+            }
+        }
+    }
+
+    private void handleGameStarting() {
+        // Place any setup logic that should run exactly once when the game begins.
+        // Examples: distribute starting items, trigger countdown titles, play sounds, etc.
     }
 
     static class WinResult {
