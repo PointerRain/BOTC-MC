@@ -26,15 +26,14 @@ import xyz.nucleoid.stimuli.event.EventResult;
 import xyz.nucleoid.stimuli.event.player.PlayerDamageEvent;
 import xyz.nucleoid.stimuli.event.player.PlayerDeathEvent;
 
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.mob.CreeperEntity;
-import net.minecraft.util.math.BlockPos;
-import java.util.Random;
-
 import java.util.*;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class botcActive {
+    private static final Logger LOG = LoggerFactory.getLogger("botc-mc");
+
     private final botcConfig config;
 
     public final GameSpace gameSpace;
@@ -48,9 +47,7 @@ public class botcActive {
     private final ServerWorld world;
 
     private GameLifecycleStatus lifecycleStatus = GameLifecycleStatus.STOPPED;
-    private boolean startingClusterSpawned = false;
-
-    private static final Random BOTC_RANDOM = new Random();
+    private boolean startingLogged = false;
 
     private botcActive(GameSpace gameSpace, ServerWorld world, botcMap map, GlobalWidgets widgets, botcConfig config, Set<PlayerRef> participants) {
         this.gameSpace = gameSpace;
@@ -114,10 +111,8 @@ public class botcActive {
         this.stageManager.attachContext(this.gameSpace, this.config);
         this.stageManager.markPlayersPresent(!this.gameSpace.getPlayers().participants().isEmpty());
         this.stageManager.onOpen(this.world.getTime(), this.config);
-        // Option A: Removed manual lifecycle STARTING assignment and callback here to avoid double invocation.
         // Lifecycle transition and game-start logic will be triggered during the first tick() when the
-        // stageManager updates lifecycle state to STARTING.
-        // TODO setup logic
+        // stageManager updates lifecycle state.
     }
 
     private void onClose() {
@@ -219,81 +214,33 @@ public class botcActive {
     }
 
     private void onLifecycleStateChanged() {
-        // Hook for handling lifecycle specific logic
+        // Log every lifecycle transition and run hooks
+        LOG.info("Lifecycle changed to {}", this.lifecycleStatus);
         switch (this.lifecycleStatus) {
             case STARTING -> {
                 handleGameStarting();
             }
             case RUNNING -> {
-                // TODO: running-state logic
+                // Additional running-state logging if desired
+                LOG.info("Game is now RUNNING");
             }
             case STOPPING -> {
-                // TODO: cleanup logic
+                LOG.info("Game is STOPPING");
             }
             case STOPPED -> {
-                // TODO: final shutdown logic
+                LOG.info("Game is STOPPED");
             }
         }
     }
 
     private void handleGameStarting() {
-        if (startingClusterSpawned) {
-            return; // Already executed starting logic
+        if (startingLogged) {
+            return; // Already logged starting logic
         }
-        startingClusterSpawned = true;
-        // Place any setup logic that should run exactly once when the game begins.
-        // Examples: distribute starting items, trigger countdown titles, play sounds, etc.
-        // Spawning a cluster of creepers that burst outward and ignite.
-        spawnCreeperCluster(1000);
-    }
-
-    private void spawnCreeperCluster(int count) {
-        if (count <= 0) return;
-        BlockPos center = this.world.getSpawnPos();
-        double baseX = center.getX() + 0.5;
-        double baseY = center.getY() + 1.0; // spawn slightly above ground
-        double baseZ = center.getZ() + 0.5;
-
-        int spawned = 0;
-        // NOTE: Spawning 1000 entities in one tick can lag. Consider batching if needed.
-        for (int i = 0; i < count; i++) {
-            // Previous code used EntityType.CREEPER.create(world) which no longer matches available signatures.
-            CreeperEntity creeper = new CreeperEntity(EntityType.CREEPER, this.world);
-            // Safety check
-            if (creeper == null) continue;
-
-            double angle = (2.0 * Math.PI * i / count) + BOTC_RANDOM.nextDouble() * 0.05;
-            double speed = 0.35 + BOTC_RANDOM.nextDouble() * 0.25;
-            double vx = Math.cos(angle) * speed;
-            double vz = Math.sin(angle) * speed;
-            double vy = 0.35 + BOTC_RANDOM.nextDouble() * 0.15;
-
-            creeper.refreshPositionAndAngles(baseX, baseY, baseZ, (float) (angle * 57.29578f), 0.0f);
-            creeper.setVelocity(vx, vy, vz);
-
-            try {
-                var ignite = CreeperEntity.class.getMethod("ignite");
-                ignite.invoke(creeper);
-            } catch (ReflectiveOperationException ignored) {
-                // Ignored: ignite method not accessible in current mappings.
-            }
-            try {
-                var m = CreeperEntity.class.getMethod("setFuseTime", int.class);
-                m.invoke(creeper, 20 + BOTC_RANDOM.nextInt(40));
-            } catch (ReflectiveOperationException ignored) {
-                try {
-                    var m2 = CreeperEntity.class.getMethod("setFuse", int.class);
-                    m2.invoke(creeper, 20 + BOTC_RANDOM.nextInt(40));
-                } catch (ReflectiveOperationException ignored2) {
-                    // Fuse customization not available.
-                }
-            }
-
-            if (this.world.spawnEntity(creeper)) {
-                spawned++;
-            }
-        }
-        this.gameSpace.getPlayers().sendMessage(Text.literal("Spawned " + spawned + " creepers!"));
+        startingLogged = true;
+        // Print a concise console line when the game begins
+        int participantCount = this.gameSpace.getPlayers().participants().size();
+        LOG.info("Game STARTING at tick {} with {} participant(s)", this.world.getTime(), participantCount);
     }
 
     static class WinResult {
