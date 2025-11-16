@@ -28,8 +28,12 @@ import xyz.nucleoid.stimuli.event.player.PlayerDeathEvent;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class botcActive {
+    private static final Logger LOG = LoggerFactory.getLogger("botc-mc");
+
     private final botcConfig config;
 
     public final GameSpace gameSpace;
@@ -43,6 +47,7 @@ public class botcActive {
     private final ServerWorld world;
 
     private GameLifecycleStatus lifecycleStatus = GameLifecycleStatus.STOPPED;
+    private boolean startingLogged = false;
 
     private botcActive(GameSpace gameSpace, ServerWorld world, botcMap map, GlobalWidgets widgets, botcConfig config, Set<PlayerRef> participants) {
         this.gameSpace = gameSpace;
@@ -106,9 +111,8 @@ public class botcActive {
         this.stageManager.attachContext(this.gameSpace, this.config);
         this.stageManager.markPlayersPresent(!this.gameSpace.getPlayers().participants().isEmpty());
         this.stageManager.onOpen(this.world.getTime(), this.config);
-        this.lifecycleStatus = GameLifecycleStatus.STARTING;
-        onLifecycleStateChanged();
-        // TODO setup logic
+        // Lifecycle transition and game-start logic will be triggered during the first tick() when the
+        // stageManager updates lifecycle state.
     }
 
     private void onClose() {
@@ -210,26 +214,33 @@ public class botcActive {
     }
 
     private void onLifecycleStateChanged() {
-        // Hook for handling lifecycle specific logic
+        // Log every lifecycle transition and run hooks
+        LOG.info("Lifecycle changed to {}", this.lifecycleStatus);
         switch (this.lifecycleStatus) {
             case STARTING -> {
                 handleGameStarting();
             }
             case RUNNING -> {
-                // TODO: running-state logic
+                // Additional running-state logging if desired
+                LOG.info("Game is now RUNNING");
             }
             case STOPPING -> {
-                // TODO: cleanup logic
+                LOG.info("Game is STOPPING");
             }
             case STOPPED -> {
-                // TODO: final shutdown logic
+                LOG.info("Game is STOPPED");
             }
         }
     }
 
     private void handleGameStarting() {
-        // Place any setup logic that should run exactly once when the game begins.
-        // Examples: distribute starting items, trigger countdown titles, play sounds, etc.
+        if (startingLogged) {
+            return; // Already logged starting logic
+        }
+        startingLogged = true;
+        // Print a concise console line when the game begins
+        int participantCount = this.gameSpace.getPlayers().participants().size();
+        LOG.info("Game STARTING at tick {} with {} participant(s)", this.world.getTime(), participantCount);
     }
 
     static class WinResult {
