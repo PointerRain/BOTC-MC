@@ -1,0 +1,11 @@
+{
+  "maps": [
+    {
+      "id": "botc:example",
+      "name": "Example Map",
+      "description": "A sample map.",
+      "authors": ["AuthorName"],
+      "nbt_file": "botc:map_template/plasmid/maps/example.nbt"
+    }
+  ]
+}

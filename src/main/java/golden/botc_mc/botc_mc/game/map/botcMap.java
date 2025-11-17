@@ -7,19 +7,19 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 
 public class botcMap {
-    public BlockPos spawn;
-    private final MapTemplate template;
-    private final botcMapConfig config;
+    protected final MapTemplate template;
+    protected final botcMapConfig config;
 
-    public botcMap() {
-        this.template = null;
-        this.config = null;
-    }
+    // public spawn point used by botcSpawnLogic and waiting code
+    public BlockPos spawn = null;
 
     public botcMap(MapTemplate template, botcMapConfig config) {
         this.template = template;
         this.config = config;
     }
+
+    public MapTemplate getTemplate() { return this.template; }
+    public botcMapConfig getConfig() { return this.config; }
 
     // Return a ChunkGenerator for the world; when not able to construct a custom generator,
     // fallback to the server's overworld chunk generator to avoid nulls during runtime world creation.

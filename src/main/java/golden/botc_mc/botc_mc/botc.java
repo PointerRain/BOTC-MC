@@ -13,17 +13,23 @@ public class botc implements ModInitializer {
 
     public static final String ID = "botc-mc";
     public static final Logger LOGGER = LogManager.getLogger(ID);
-    // We will use the built-in ScreenHandlerType.GENERIC_9X1 when creating handlers to avoid
-    // registry/mapping mismatches in the dev environment.
 
-    public static final GameType<botcConfig> TYPE = GameType.<botcConfig>register(
-            Identifier.of(ID, "botc-mc"),
+    // Statically register the GameType so it is available to client UI early
+    public static final GameType<botcConfig> TYPE = GameType.register(
+            Identifier.of(ID, "game"),
             botcConfig.MAP_CODEC,
             botcWaiting::open
     );
 
     @Override
     public void onInitialize() {
+        if (TYPE != null) {
+            LOGGER.info("GameType is present during onInitialize: {}", Identifier.of(ID, "game"));
+        } else {
+            LOGGER.error("GameType is NULL during onInitialize for id {}", Identifier.of(ID, "game"));
+        }
+
+        // Register commands and other runtime initialization
         botcCommands.register();
     }
 }

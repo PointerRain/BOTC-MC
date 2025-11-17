@@ -27,7 +27,17 @@ public final class botcSettings {
     public int executionSecs = 20;
     public int nightSecs = 60;
 
+    // persisted default map id (optional)
+    public String mapId = null;
+
     private botcSettings() {}
+
+    private static botcSettings settingsInstance = null;
+
+    public static synchronized botcSettings get() {
+        if (settingsInstance == null) settingsInstance = botcSettings.load();
+        return settingsInstance;
+    }
 
     public static botcSettings load() {
         botcSettings s = new botcSettings();
@@ -45,9 +55,10 @@ public final class botcSettings {
                 s.nominationSecs = parseInt(p.getProperty("nominationSecs"), s.nominationSecs);
                 s.executionSecs = parseInt(p.getProperty("executionSecs"), s.executionSecs);
                 s.nightSecs = parseInt(p.getProperty("nightSecs"), s.nightSecs);
-            } else {
-                // ensure parent directory exists and write defaults
-                if (CONFIG_PATH.getParent() != null) Files.createDirectories(CONFIG_PATH.getParent());
+                s.mapId = p.getProperty("mapId", null);
+                if (s.mapId != null && !s.mapId.contains(":")) {
+                    s.mapId = "botc:" + s.mapId;
+                }
                 s.save();
             }
         } catch (IOException e) {
@@ -66,6 +77,7 @@ public final class botcSettings {
         p.setProperty("nominationSecs", Integer.toString(this.nominationSecs));
         p.setProperty("executionSecs", Integer.toString(this.executionSecs));
         p.setProperty("nightSecs", Integer.toString(this.nightSecs));
+        if (this.mapId != null) p.setProperty("mapId", this.mapId);
 
         if (CONFIG_PATH.getParent() != null) Files.createDirectories(CONFIG_PATH.getParent());
         try (OutputStream out = Files.newOutputStream(CONFIG_PATH)) {
@@ -91,5 +103,15 @@ public final class botcSettings {
         botcPhaseDurations durations = new botcPhaseDurations(this.dayDiscussionSecs, this.nominationSecs, this.executionSecs, this.nightSecs);
 
         return botcConfig.of(mapCfg, players, timeLimit, durations);
+    }
+
+    // helpers for external code to get/set persisted map id
+    public static synchronized String getMapId() {
+        return get().mapId;
+    }
+
+    public static synchronized void setMapId(String id) {
+        botcSettings s = get();
+        s.mapId = id;
     }
 }

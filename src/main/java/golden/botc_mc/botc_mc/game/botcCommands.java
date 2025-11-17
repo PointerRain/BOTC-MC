@@ -69,6 +69,69 @@ public final class botcCommands {
                     )
             );
 
+            // /botc map ... commands for runtime map management
+            root.then(
+                literal("map")
+                    .then(literal("list").executes(ctx -> {
+                        ServerCommandSource src = ctx.getSource();
+                        golden.botc_mc.botc_mc.game.map.MapManager mgr = new golden.botc_mc.botc_mc.game.map.MapManager();
+                        mgr.discoverRuntimeMaps();
+                        StringBuilder sb = new StringBuilder();
+                        sb.append("Available maps:\n");
+                        for (var info : mgr.listInfos()) {
+                            sb.append(" - ").append(info.id).append(" : ").append(info.name);
+                            if (info.authors != null && !info.authors.isEmpty()) {
+                                sb.append(" (by ").append(String.join(", ", info.authors)).append(")");
+                            }
+                            if (info.description != null && !info.description.isEmpty()) {
+                                sb.append(" - ").append(info.description);
+                            }
+                            sb.append("\n");
+                        }
+                        src.sendFeedback(() -> Text.literal(sb.toString()), false);
+                        return 1;
+                    }))
+                    .then(literal("set").then(
+                        CommandManager.argument("id", StringArgumentType.greedyString())
+                            .suggests((context, builder) -> {
+                                // Build suggestions from discovered packaged and runtime maps
+                                golden.botc_mc.botc_mc.game.map.MapManager mgr = new golden.botc_mc.botc_mc.game.map.MapManager();
+                                mgr.discoverRuntimeMaps();
+                                for (String mid : mgr.listIds()) {
+                                    builder.suggest(mid);
+                                }
+                                return builder.buildFuture();
+                            })
+                            .executes(ctx -> {
+                                String id = StringArgumentType.getString(ctx, "id");
+                                // normalize unqualified ids
+                                if (!id.contains(":")) id = "botc:" + id;
+                                final String idFinal = id;
+                                golden.botc_mc.botc_mc.game.map.MapManager mgr = new golden.botc_mc.botc_mc.game.map.MapManager();
+                                mgr.discoverRuntimeMaps();
+                                if (mgr.listIds().contains(idFinal)) {
+                                    // Persist via settings manager
+                                    golden.botc_mc.botc_mc.game.botcSettings s = botcSettingsManager.get();
+                                    s.mapId = idFinal;
+                                    try { botcSettingsManager.save(); } catch (IOException e) { /* best-effort */ }
+                                    ctx.getSource().sendFeedback(() -> Text.literal("Set default map to " + idFinal), false);
+                                    return 1;
+                                } else {
+                                    ctx.getSource().sendError(Text.literal("Unknown map id: " + idFinal));
+                                    return 0;
+                                }
+                            })
+                    ))
+            );
+
+            // /botc debug - lightweight diagnostic for mod/game registration
+            root.then(literal("debug").executes(ctx -> {
+                ServerCommandSource src = ctx.getSource();
+                boolean registered = (golden.botc_mc.botc_mc.botc.TYPE != null);
+                src.sendFeedback(() -> Text.literal("botc GameType registered: " + registered), false);
+                return 1;
+            }));
+
             dispatcher.register(root);
         });
     }
