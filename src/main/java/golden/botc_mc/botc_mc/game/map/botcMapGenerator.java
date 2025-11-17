@@ -17,7 +17,8 @@ public class botcMapGenerator {
         botcMap map = new botcMap(template, this.config);
 
         this.buildSpawn(template);
-        map.spawn = new BlockPos(0,65,0);
+        // Use configured spawn coordinates (defaults are 0,65,0)
+        map.spawn = new BlockPos(this.config.spawnX(), this.config.spawnY(), this.config.spawnZ());
 
         return map;
     }
@@ -32,4 +33,3 @@ public class botcMapGenerator {
         }
     }
 }
-

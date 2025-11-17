@@ -83,7 +83,8 @@ public final class botcSettings {
      * Values from the settings file override the provided config's time- and player-related settings.
      */
     public botcConfig applyTo(botcConfig base) {
-        botcMapConfig mapCfg = (base != null && base.mapConfig() != null) ? base.mapConfig() : new botcMapConfig(Blocks.STONE.getDefaultState());
+        // Default map config uses stone spawn block and default spawn coordinates (0,65,0)
+        botcMapConfig mapCfg = (base != null && base.mapConfig() != null) ? base.mapConfig() : new botcMapConfig(Blocks.STONE.getDefaultState(), 0, 65, 0);
         int players = this.players > 0 ? this.players : (base == null ? 8 : base.players());
         int timeLimit = this.timeLimitSecs > 0 ? this.timeLimitSecs : (base == null ? 300 : base.timeLimitSecs());
 

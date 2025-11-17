@@ -55,7 +55,20 @@ public class botcWaiting {
             game.listen(GameActivityEvents.REQUEST_START, waiting::requestStart);
             game.listen(GamePlayerEvents.ADD, waiting::addPlayer);
             game.listen(GamePlayerEvents.OFFER, JoinOffer::accept);
-            game.listen(GamePlayerEvents.ACCEPT, joinAcceptor -> joinAcceptor.teleport(world, Vec3d.ZERO));
+            // Teleport accepted players to the map spawn (centered on the block and one block above).
+            // Fallback to Vec3d.ZERO if no spawn is defined to avoid NPEs.
+            game.listen(GamePlayerEvents.ACCEPT, joinAcceptor -> {
+                if (map.spawn != null) {
+                    Vec3d spawnPos = new Vec3d(
+                            map.spawn.getX() + 0.5,
+                            map.spawn.getY() + 1.0,
+                            map.spawn.getZ() + 0.5
+                    );
+                    return joinAcceptor.teleport(world, spawnPos);
+                } else {
+                    return joinAcceptor.teleport(world, Vec3d.ZERO);
+                }
+            });
             game.listen(PlayerDeathEvent.EVENT, waiting::onPlayerDeath);
         });
     }
