@@ -25,7 +25,7 @@ import xyz.nucleoid.plasmid.api.game.world.generator.TemplateChunkGenerator;
 /**
  * A BOTC map loaded from a map template resource.
  */
-public class botcMap {
+public class MapInstance {
     private final Regions regions;
     private final Meta meta;
     private final Attributes attributes;
@@ -34,7 +34,7 @@ public class botcMap {
 
     private static final int CURRENT_MAP_FORMAT = 1;
 
-    private botcMap(MapTemplate template) {
+    private MapInstance(MapTemplate template) {
         this.template = template;
 
         int mapFormat = template.getMetadata()
@@ -83,15 +83,9 @@ public class botcMap {
     /**
      * Load a BOTC map from a resource.
      */
-    public static botcMap load(MinecraftServer server, Identifier identifier) {
-        MapTemplate template;
-        try {
-            template = MapTemplateSerializer.loadFromResource(server, identifier);
-        } catch (IOException e) {
-            throw new GameOpenException(Text.of("Couldn't load map " + identifier));
-        }
-
-        return new botcMap(template);
+    public static Map load(MinecraftServer server, Identifier identifier) {
+        // Delegate to the core Map loader to avoid calling its private constructor
+        return Map.load(server, identifier);
     }
 
     public ChunkGenerator asGenerator(MinecraftServer server) {

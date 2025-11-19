@@ -1,5 +1,7 @@
 package golden.botc_mc.botc_mc.game;
 
+import golden.botc_mc.botc_mc.game.map.MapConfig;
+import net.minecraft.block.Blocks;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 

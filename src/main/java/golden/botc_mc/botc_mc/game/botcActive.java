@@ -19,7 +19,7 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.world.GameMode;
-import golden.botc_mc.botc_mc.game.map.botcMap;
+import golden.botc_mc.botc_mc.game.map.Map;
 import golden.botc_mc.botc_mc.game.state.BotcGameState;
 import golden.botc_mc.botc_mc.game.state.GameLifecycleStatus;
 import xyz.nucleoid.stimuli.event.EventResult;
@@ -37,7 +37,7 @@ public class botcActive {
     private final botcConfig config;
 
     public final GameSpace gameSpace;
-    private final botcMap gameMap;
+    private final Map gameMap;
 
     private final Object2ObjectMap<PlayerRef, botcPlayer> participants;
     private final botcSpawnLogic spawnLogic;
@@ -49,7 +49,7 @@ public class botcActive {
     private GameLifecycleStatus lifecycleStatus = GameLifecycleStatus.STOPPED;
     private boolean startingLogged = false;
 
-    private botcActive(GameSpace gameSpace, ServerWorld world, botcMap map, GlobalWidgets widgets, botcConfig config, Set<PlayerRef> participants) {
+    private botcActive(GameSpace gameSpace, ServerWorld world, Map map, GlobalWidgets widgets, botcConfig config, Set<PlayerRef> participants) {
         this.gameSpace = gameSpace;
         this.config = config;
         this.gameMap = map;
@@ -66,7 +66,7 @@ public class botcActive {
         this.timerBar = new botcTimerBar(widgets);
     }
 
-    public static void open(GameSpace gameSpace, ServerWorld world, botcMap map, botcConfig config) {
+    public static void open(GameSpace gameSpace, ServerWorld world, Map map, botcConfig config) {
         gameSpace.setActivity(game -> {
             Set<PlayerRef> participants = gameSpace.getPlayers().participants().stream()
                     .map(PlayerRef::of)

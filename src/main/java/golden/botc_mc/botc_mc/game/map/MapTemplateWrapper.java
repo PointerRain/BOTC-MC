@@ -24,20 +24,19 @@ import xyz.nucleoid.plasmid.api.game.GameOpenException;
 import xyz.nucleoid.plasmid.api.game.world.generator.TemplateChunkGenerator;
 
 /**
- * Lightweight map template wrapper (renamed from BotcTrack). Provides access to template metadata
- * and regions. This class mirrors boat-race map template logic but uses "Map" naming.
+ * Lightweight map template wrapper. Provides access to template metadata and regions.
  */
-public class BotcMapTemplate {
-    private static final org.apache.logging.log4j.Logger LOGGER = org.apache.logging.log4j.LogManager.getLogger("botc.BotcMapTemplate");
+public class MapTemplateWrapper {
+    private static final org.apache.logging.log4j.Logger LOGGER = org.apache.logging.log4j.LogManager.getLogger("botc.MapTemplate");
     private final Regions regions;
     private final Meta meta;
     private final Attributes attributes;
 
-    private final MapTemplate template;
+    private final xyz.nucleoid.map_templates.MapTemplate template;
 
     private static final int CURRENT_MAP_FORMAT = 1;
 
-    private BotcMapTemplate(MapTemplate template) {
+    private MapTemplateWrapper(xyz.nucleoid.map_templates.MapTemplate template) {
         this.template = template;
 
         int mapFormat = template.getMetadata()
@@ -112,13 +111,15 @@ public class BotcMapTemplate {
                 pitBoxes);
     }
 
-    public static BotcMapTemplate load(MinecraftServer server, Identifier identifier) {
-        MapTemplate template = null;
+    public static MapTemplateWrapper load(MinecraftServer server, Identifier identifier) {
+        xyz.nucleoid.map_templates.MapTemplate rawTemplate = null;
+        MapTemplateWrapper wrapper = null;
 
         // First attempt: load by the identifier as provided
         try {
-            template = MapTemplateSerializer.loadFromResource(server, identifier);
-            if (template != null) {
+            rawTemplate = MapTemplateSerializer.loadFromResource(server, identifier);
+            if (rawTemplate != null) {
+                wrapper = new MapTemplateWrapper(rawTemplate);
                 LOGGER.info("Loaded map template from {}", identifier);
             }
         } catch (IOException ignored) {
@@ -126,13 +127,14 @@ public class BotcMapTemplate {
         }
 
         // Second attempt: if path doesn't already include map_template, try namespace:map_template/<path>
-        if (template == null) {
+        if (wrapper == null) {
             String path = identifier.getPath();
             if (!path.startsWith("map_template/")) {
                 Identifier alt = Identifier.of(identifier.getNamespace(), "map_template/" + path);
                 try {
-                    template = MapTemplateSerializer.loadFromResource(server, alt);
-                    if (template != null) {
+                    rawTemplate = MapTemplateSerializer.loadFromResource(server, alt);
+                    if (rawTemplate != null) {
+                        wrapper = new MapTemplateWrapper(rawTemplate);
                         LOGGER.info("Loaded map template from {}", alt);
                     }
                     // if loaded, continue; otherwise fall through to error
@@ -145,10 +147,10 @@ public class BotcMapTemplate {
             }
         }
 
-        return new BotcMapTemplate(template);
+        return wrapper;
     }
 
-    public static BotcMapTemplate load(MinecraftServer server, String resourcePath) {
+    public static MapTemplateWrapper load(MinecraftServer server, String resourcePath) {
         java.util.LinkedHashSet<Identifier> attempts = new java.util.LinkedHashSet<>();
 
         // Candidate namespaces to try
@@ -201,7 +203,7 @@ public class BotcMapTemplate {
             try {
                 MapTemplate template = MapTemplateSerializer.loadFromResource(server, id);
                 LOGGER.info("Successfully loaded map template from {}", id);
-                return new BotcMapTemplate(template);
+                return new MapTemplateWrapper(template);
             } catch (IOException e) {
                 lastEx = e;
                 LOGGER.debug("Failed to load template from {}: {}", id, e.getMessage());
@@ -216,7 +218,7 @@ public class BotcMapTemplate {
     }
 
     // Expose the underlying MapTemplate so callers can build template-backed maps
-    public MapTemplate getTemplate() { return this.template; }
+    public xyz.nucleoid.map_templates.MapTemplate getTemplate() { return this.template; }
 
     public Regions getRegions() { return this.regions; }
     public Meta getMeta() { return this.meta; }
@@ -272,3 +274,4 @@ public class BotcMapTemplate {
         @Override public String asString() { return this.name; }
     }
 }
+

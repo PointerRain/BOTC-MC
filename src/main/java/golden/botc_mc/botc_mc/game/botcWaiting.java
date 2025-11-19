@@ -8,7 +8,7 @@ import xyz.nucleoid.plasmid.api.game.*;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.world.GameMode;
-import golden.botc_mc.botc_mc.game.map.botcMap;
+import golden.botc_mc.botc_mc.game.map.Map;
 import net.minecraft.util.Identifier;
 import xyz.nucleoid.plasmid.api.game.common.GameWaitingLobby;
 import xyz.nucleoid.plasmid.api.game.event.GameActivityEvents;
@@ -20,12 +20,12 @@ import xyz.nucleoid.stimuli.event.player.PlayerDeathEvent;
 
 public class botcWaiting {
     private final GameSpace gameSpace;
-    private final botcMap map;
+    private final Map map;
     private final botcConfig config;
     private final botcSpawnLogic spawnLogic;
     private final ServerWorld world;
 
-    private botcWaiting(GameSpace gameSpace, ServerWorld world, botcMap map, botcConfig config) {
+    private botcWaiting(GameSpace gameSpace, ServerWorld world, Map map, botcConfig config) {
         this.gameSpace = gameSpace;
         this.map = map;
         this.config = config;
@@ -40,7 +40,7 @@ public class botcWaiting {
         botcConfig effectiveConfig = settings.applyTo(context.config());
 
         Identifier mapId = effectiveConfig.mapId();
-        botcMap map = botcMap.load(context.server(), mapId);
+        Map map = Map.load(context.server(), mapId);
 
         RuntimeWorldConfig worldConfig = new RuntimeWorldConfig()
                 // Map generator API mismatch: `asGenerator` returns a ChunkGenerator stub. Cast to avoid compilation errors.

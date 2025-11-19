@@ -13,17 +13,17 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.GameMode;
 import net.minecraft.world.Heightmap;
 import golden.botc_mc.botc_mc.botc;
-import golden.botc_mc.botc_mc.game.map.botcMap;
-import golden.botc_mc.botc_mc.game.map.botcMap.RespawnRegion;
+import golden.botc_mc.botc_mc.game.map.Map;
+import golden.botc_mc.botc_mc.game.map.Map.RespawnRegion;
 
 import java.util.Set;
 
 public class botcSpawnLogic {
     private final GameSpace gameSpace;
-    private final botcMap map;
+    private final Map map;
     private final ServerWorld world;
 
-    public botcSpawnLogic(GameSpace gameSpace, ServerWorld world, botcMap map) {
+    public botcSpawnLogic(GameSpace gameSpace, ServerWorld world, Map map) {
         this.gameSpace = gameSpace;
         this.map = map;
         this.world = world;
