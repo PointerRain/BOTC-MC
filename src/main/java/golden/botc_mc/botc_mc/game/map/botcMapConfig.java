@@ -2,18 +2,23 @@ package golden.botc_mc.botc_mc.game.map;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockPos;
 
-public record botcMapConfig(BlockState spawnBlockState, int spawnX, int spawnY, int spawnZ) {
+public record botcMapConfig(Identifier mapId, BlockPos fallbackSpawn) {
+    private static final BlockPos DEFAULT_FALLBACK = new BlockPos(0, 65, 0);
+
     public static final Codec<botcMapConfig> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-            BlockState.CODEC.optionalFieldOf("spawnBlockState", Blocks.STONE.getDefaultState()).forGetter(botcMapConfig::spawnBlockState),
-            Codec.INT.fieldOf("spawnX").orElse(0).forGetter(botcMapConfig::spawnX),
-            Codec.INT.fieldOf("spawnY").orElse(65).forGetter(botcMapConfig::spawnY),
-            Codec.INT.fieldOf("spawnZ").orElse(0).forGetter(botcMapConfig::spawnZ)
+            Identifier.CODEC.fieldOf("map_id").forGetter(botcMapConfig::mapId),
+            BlockPos.CODEC.optionalFieldOf("fallback_spawn", DEFAULT_FALLBACK).forGetter(botcMapConfig::fallbackSpawn)
     ).apply(instance, botcMapConfig::new));
 
-    public BlockState spawnBlockState() { return this.spawnBlockState; }
-    public int spawnY() { return this.spawnY; }
-    public int spawnZ() { return this.spawnZ; }
+    public botcMapConfig {
+        if (mapId == null) {
+            throw new IllegalArgumentException("mapId cannot be null");
+        }
+        if (fallbackSpawn == null) {
+            fallbackSpawn = DEFAULT_FALLBACK;
+        }
+    }
 }

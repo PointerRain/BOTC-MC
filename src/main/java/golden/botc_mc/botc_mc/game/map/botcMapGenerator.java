@@ -1,35 +1,9 @@
 package golden.botc_mc.botc_mc.game.map;
 
-import xyz.nucleoid.map_templates.MapTemplate;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.block.BlockState;
+// Legacy generator no longer used now that maps are loaded from NBT templates.
+// This class is kept as a no-op shell to avoid breaking references during the transition
+// but should not be used by new code.
 
+@Deprecated
 public class botcMapGenerator {
-
-    private final botcMapConfig config;
-
-    public botcMapGenerator(botcMapConfig config) {
-        this.config = config;
-    }
-
-    public botcMap build() {
-        MapTemplate template = MapTemplate.createEmpty();
-        botcMap map = new botcMap(template, this.config);
-
-        this.buildSpawn(template);
-        // Use configured spawn coordinates (defaults are 0,65,0)
-        map.spawn = new BlockPos(this.config.spawnX(), this.config.spawnY(), this.config.spawnZ());
-
-        return map;
-    }
-
-    private void buildSpawn(MapTemplate builder) {
-        BlockPos min = new BlockPos(-5, 64, -5);
-        BlockPos max = new BlockPos(5, 64, 5);
-
-        for (BlockPos pos : BlockPos.iterate(min, max)) {
-            // botcMapConfig now exposes BlockState via spawnBlockState()
-            builder.setBlockState(pos, this.config.spawnBlockState());
-        }
-    }
 }

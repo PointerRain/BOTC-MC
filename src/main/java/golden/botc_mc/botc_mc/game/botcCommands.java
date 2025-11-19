@@ -4,12 +4,16 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 
 import java.io.IOException;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import static net.minecraft.server.command.CommandManager.literal;
 
@@ -69,69 +73,73 @@ public final class botcCommands {
                     )
             );
 
-            // /botc map ... commands for runtime map management
-            root.then(
-                literal("map")
-                    .then(literal("list").executes(ctx -> {
-                        ServerCommandSource src = ctx.getSource();
-                        golden.botc_mc.botc_mc.game.map.MapManager mgr = new golden.botc_mc.botc_mc.game.map.MapManager();
-                        mgr.discoverRuntimeMaps();
-                        StringBuilder sb = new StringBuilder();
-                        sb.append("Available maps:\n");
-                        for (var info : mgr.listInfos()) {
-                            sb.append(" - ").append(info.id).append(" : ").append(info.name);
-                            if (info.authors != null && !info.authors.isEmpty()) {
-                                sb.append(" (by ").append(String.join(", ", info.authors)).append(")");
-                            }
-                            if (info.description != null && !info.description.isEmpty()) {
-                                sb.append(" - ").append(info.description);
-                            }
-                            sb.append("\n");
-                        }
-                        src.sendFeedback(() -> Text.literal(sb.toString()), false);
-                        return 1;
-                    }))
-                    .then(literal("set").then(
-                        CommandManager.argument("id", StringArgumentType.greedyString())
-                            .suggests((context, builder) -> {
-                                // Build suggestions from discovered packaged and runtime maps
-                                golden.botc_mc.botc_mc.game.map.MapManager mgr = new golden.botc_mc.botc_mc.game.map.MapManager();
-                                mgr.discoverRuntimeMaps();
-                                for (String mid : mgr.listIds()) {
-                                    builder.suggest(mid);
-                                }
-                                return builder.buildFuture();
-                            })
-                            .executes(ctx -> {
-                                String id = StringArgumentType.getString(ctx, "id");
-                                // normalize unqualified ids
-                                if (!id.contains(":")) id = "botc:" + id;
-                                final String idFinal = id;
-                                golden.botc_mc.botc_mc.game.map.MapManager mgr = new golden.botc_mc.botc_mc.game.map.MapManager();
-                                mgr.discoverRuntimeMaps();
-                                if (mgr.listIds().contains(idFinal)) {
-                                    // Persist via settings manager
-                                    golden.botc_mc.botc_mc.game.botcSettings s = botcSettingsManager.get();
-                                    s.mapId = idFinal;
-                                    try { botcSettingsManager.save(); } catch (IOException e) { /* best-effort */ }
-                                    ctx.getSource().sendFeedback(() -> Text.literal("Set default map to " + idFinal), false);
-                                    return 1;
-                                } else {
-                                    ctx.getSource().sendError(Text.literal("Unknown map id: " + idFinal));
-                                    return 0;
-                                }
-                            })
-                    ))
-            );
+            // /botc map set <id>
+            root.then(literal("map")
+                .then(literal("set")
+                    .then(CommandManager.argument("id", StringArgumentType.greedyString())
+                        .suggests((ctx, builder) -> {
+                            MinecraftServer server = ctx.getSource().getServer();
+                            // Suggest canonical ids like "botc-mc:test" by scanning map_template/*.nbt
+                            Set<String> suggestions = new LinkedHashSet<>();
+                            server.getResourceManager()
+                                    .findResources("map_template", path -> path.getPath().endsWith(".nbt"))
+                                    .keySet()
+                                    .forEach(fullId -> {
+                                        String ns = fullId.getNamespace();
+                                        String p = fullId.getPath(); // e.g., "map_template/test.nbt"
+                                        if (p.startsWith("map_template/")) {
+                                            p = p.substring("map_template/".length()); // "test.nbt"
+                                        }
+                                        if (p.endsWith(".nbt")) {
+                                            p = p.substring(0, p.length() - 4); // "test"
+                                        }
+                                        suggestions.add(ns + ":" + p);
+                                    });
+                            suggestions.forEach(builder::suggest);
+                            return builder.buildFuture();
+                        })
+                        .executes(ctx -> {
+                            String rawId = StringArgumentType.getString(ctx, "id");
 
-            // /botc debug - lightweight diagnostic for mod/game registration
-            root.then(literal("debug").executes(ctx -> {
-                ServerCommandSource src = ctx.getSource();
-                boolean registered = (golden.botc_mc.botc_mc.botc.TYPE != null);
-                src.sendFeedback(() -> Text.literal("botc GameType registered: " + registered), false);
-                return 1;
-            }));
+                            // Normalize input: allow users to paste full resource ids like
+                            // "botc-mc:map_template/test.nbt" and convert to canonical "botc-mc:test"
+                            Identifier parsed;
+                            try {
+                                parsed = Identifier.of(rawId);
+                            } catch (IllegalArgumentException ex) {
+                                ctx.getSource().sendError(Text.literal("Invalid map id: " + rawId + ". Use namespace:path, e.g. botc-mc:test"));
+                                return 0;
+                            }
 
+                            String ns = parsed.getNamespace();
+                            String p = parsed.getPath();
+                            if (p.startsWith("map_template/")) {
+                                p = p.substring("map_template/".length());
+                            }
+                            if (p.endsWith(".nbt")) {
+                                p = p.substring(0, p.length() - 4);
+                            }
+
+                            Identifier normalized;
+                            try {
+                                normalized = Identifier.of(ns, p);
+                            } catch (IllegalArgumentException ex) {
+                                ctx.getSource().sendError(Text.literal("Invalid normalized id: " + ns + ":" + p));
+                                return 0;
+                            }
+
+                            botcSettings settings = botcSettings.load();
+                            settings.mapId = normalized.toString();
+                            try {
+                                settings.save();
+                            } catch (IOException e) {
+                                ctx.getSource().sendError(Text.literal("Failed to save settings: " + e.getMessage()));
+                                return 0;
+                            }
+
+                            ctx.getSource().sendFeedback(() -> Text.literal("Set BOTC map to " + normalized), false);
+                            return 1;
+                        }))));
             dispatcher.register(root);
         });
     }
