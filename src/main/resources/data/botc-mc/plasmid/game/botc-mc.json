@@ -1,5 +1,5 @@
 {
-  "type": "botc-mc:botc-mc",
+  "type": "botc-mc:game",
   "map_id": "botc-mc:test",
   "players": 8,
   "timeLimitSecs": 300,
@@ -10,4 +10,3 @@
     "night_secs": 60
   }
 }
-

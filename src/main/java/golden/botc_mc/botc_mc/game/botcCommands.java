@@ -25,7 +25,8 @@ import static net.minecraft.server.command.CommandManager.literal;
 public final class botcCommands {
     public static void register() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            LiteralArgumentBuilder<ServerCommandSource> root = literal("botc");
+            LiteralArgumentBuilder<ServerCommandSource> root = literal("botc")
+                    .requires(src -> src.hasPermissionLevel(4)); // admin-only
 
             root.then(literal("settings").executes(ctx -> {
                 ServerCommandSource src = ctx.getSource();
