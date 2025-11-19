@@ -25,6 +25,8 @@ import xyz.nucleoid.plasmid.api.game.world.generator.TemplateChunkGenerator;
  * A BOTC map loaded from a map template resource.
  */
 public class Map {
+    private static final org.apache.logging.log4j.Logger LOGGER = org.apache.logging.log4j.LogManager.getLogger("botc.Map");
+
     private final Regions regions;
     private final Meta meta;
     private final Attributes attributes;
@@ -42,9 +44,9 @@ public class Map {
 
         // Allow loading even if map_format mismatches for now.
         if (mapFormat < CURRENT_MAP_FORMAT) {
-            // older format; allow
+            LOGGER.warn("Map template is from an older format ({} < {}), continuing anyway.", mapFormat, CURRENT_MAP_FORMAT);
         } else if (mapFormat > CURRENT_MAP_FORMAT) {
-            // future format; allow
+            LOGGER.warn("Map template is from a newer format ({} > {}), continuing anyway.", mapFormat, CURRENT_MAP_FORMAT);
         }
 
         this.meta = template.getMetadata()
@@ -85,7 +87,10 @@ public class Map {
         try {
             template = MapTemplateSerializer.loadFromResource(server, identifier);
         } catch (IOException e) {
-            throw new GameOpenException(Text.of("Couldn't load map " + identifier));
+            // Log a clear error and throw a GameOpenException so only this game open is aborted.
+            String msg = "Map load failed for " + identifier + ": " + e.getMessage();
+            LOGGER.error(msg, e);
+            throw new GameOpenException(Text.of(msg));
         }
 
         return new Map(template);
@@ -135,4 +140,3 @@ public class Map {
         ).apply(instance, Meta::new));
     }
 }
-

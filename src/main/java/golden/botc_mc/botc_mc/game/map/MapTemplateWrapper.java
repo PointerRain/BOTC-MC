@@ -112,14 +112,13 @@ public class MapTemplateWrapper {
     }
 
     public static MapTemplateWrapper load(MinecraftServer server, Identifier identifier) {
-        xyz.nucleoid.map_templates.MapTemplate rawTemplate = null;
-        MapTemplateWrapper wrapper = null;
+        // Work with the underlying MapTemplate type that MapTemplateSerializer returns
+        MapTemplate template = null;
 
         // First attempt: load by the identifier as provided
         try {
-            rawTemplate = MapTemplateSerializer.loadFromResource(server, identifier);
-            if (rawTemplate != null) {
-                wrapper = new MapTemplateWrapper(rawTemplate);
+            template = MapTemplateSerializer.loadFromResource(server, identifier);
+            if (template != null) {
                 LOGGER.info("Loaded map template from {}", identifier);
             }
         } catch (IOException ignored) {
@@ -127,14 +126,13 @@ public class MapTemplateWrapper {
         }
 
         // Second attempt: if path doesn't already include map_template, try namespace:map_template/<path>
-        if (wrapper == null) {
+        if (template == null) {
             String path = identifier.getPath();
             if (!path.startsWith("map_template/")) {
                 Identifier alt = Identifier.of(identifier.getNamespace(), "map_template/" + path);
                 try {
-                    rawTemplate = MapTemplateSerializer.loadFromResource(server, alt);
-                    if (rawTemplate != null) {
-                        wrapper = new MapTemplateWrapper(rawTemplate);
+                    template = MapTemplateSerializer.loadFromResource(server, alt);
+                    if (template != null) {
                         LOGGER.info("Loaded map template from {}", alt);
                     }
                     // if loaded, continue; otherwise fall through to error
@@ -147,7 +145,7 @@ public class MapTemplateWrapper {
             }
         }
 
-        return wrapper;
+        return new MapTemplateWrapper(template);
     }
 
     public static MapTemplateWrapper load(MinecraftServer server, String resourcePath) {

@@ -107,16 +107,11 @@ public final class botcSettings {
 
     /**
      * Merge these settings with an existing botcConfig coming from the datapack/game open context.
-     * Values from the settings file override the provided config's time- and player-related settings.
+     * Currently this only updates the selected map id based on the settings file; timing and player
+     * values are managed independently from the map config.
      */
     public botcConfig applyTo(botcConfig base) {
         Identifier selectedMap = base != null && base.mapId() != null ? base.mapId() : Identifier.of(this.mapId);
-        BlockPos spawn = base != null && base.phaseDurations() != null ? this.fallbackSpawn : this.fallbackSpawn;
-        int players = this.players > 0 ? this.players : (base == null ? 8 : base.players());
-        int timeLimit = this.timeLimitSecs > 0 ? this.timeLimitSecs : (base == null ? 300 : base.timeLimitSecs());
-
-        botcPhaseDurations durations = new botcPhaseDurations(this.dayDiscussionSecs, this.nominationSecs, this.executionSecs, this.nightSecs);
-
-        return new botcConfig(selectedMap, players, timeLimit, durations);
+        return new botcConfig(selectedMap);
     }
 }
