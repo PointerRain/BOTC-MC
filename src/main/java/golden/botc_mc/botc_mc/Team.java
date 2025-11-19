@@ -1,4 +1,4 @@
-package golden.botc_mc.botc_mc.game;
+package golden.botc_mc.botc_mc;
 
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
@@ -13,22 +13,22 @@ public enum Team {
     LORIC,
     TRAVELLER;
 
-    /**
-     * Get the string representation of the team.
-     * @return the team as a string
-     */
-    @Override
-    public String toString() {
-        return switch (this) {
-            case TOWNSFOLK -> "Townsfolk";
-            case OUTSIDER -> "Outsider";
-            case MINION -> "Minion";
-            case DEMON -> "Demon";
-            case FABLED -> "Fabled";
-            case LORIC -> "Loric";
-            case TRAVELLER -> "Traveller";
-        };
-    }
+//    /**
+//     * Get the string representation of the team.
+//     * @return the team as a string
+//     */
+//    @Override
+//    public String toString() {
+//        return switch (this) {
+//            case TOWNSFOLK -> "Townsfolk";
+//            case OUTSIDER -> "Outsider";
+//            case MINION -> "Minion";
+//            case DEMON -> "Demon";
+//            case FABLED -> "Fabled";
+//            case LORIC -> "Loric";
+//            case TRAVELLER -> "Traveller";
+//        };
+//    }
 
     public MutableText toText() {
         return Text.literal(this.toString());
@@ -87,7 +87,8 @@ public enum Team {
         return switch (this) {
             case TOWNSFOLK, OUTSIDER -> botcAlignment.GOOD;
             case MINION, DEMON -> botcAlignment.EVIL;
-            case FABLED, LORIC, TRAVELLER -> botcAlignment.NEUTRAL;
+            case FABLED, LORIC -> botcAlignment.NPC;
+            case TRAVELLER -> botcAlignment.NEUTRAL;
         };
     }
 

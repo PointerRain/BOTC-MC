@@ -1,19 +1,18 @@
 package golden.botc_mc.botc_mc;
 
-import golden.botc_mc.botc_mc.game.Character;
+import golden.botc_mc.botc_mc.game.botcCommands;
+import golden.botc_mc.botc_mc.game.botcConfig;
+import golden.botc_mc.botc_mc.game.botcWaiting;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.minecraft.resource.Resource;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.ResourceType;
-import xyz.nucleoid.plasmid.api.game.GameType;
 import net.minecraft.util.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import golden.botc_mc.botc_mc.game.botcConfig;
-import golden.botc_mc.botc_mc.game.botcWaiting;
-import golden.botc_mc.botc_mc.game.botcCommands;
+import xyz.nucleoid.plasmid.api.game.GameType;
 
 public class botc implements ModInitializer {
 
@@ -43,11 +42,24 @@ public class botc implements ModInitializer {
                 if (baseCharacters != null) {
                     Character.registerBaseCharacters(baseCharacters);
                     // Log some character data to verify loading
-                    LOGGER.info(Character.baseCharacters[0]);
-                    LOGGER.info(new Character("eviltwin"));
+                    LOGGER.info(new Character("pithag"));
                 } else {
                     LOGGER.error("Error reading base_characters.json");
                 }
+
+                // An example of loading a script resource.
+                // TODO: Need to work out how to use it in the right place.
+                Resource scriptResource =
+                        manager.getResource(Identifier.of("botc-mc:scripts/trouble_brewing.json")).orElse(null);
+                if (scriptResource != null) {
+                    Script troubleBrewing = Script.fromResource(scriptResource);
+                    LOGGER.info("Successfully found trouble_brewing.json");
+                    LOGGER.info(troubleBrewing.toString());
+                } else {
+                    LOGGER.error("Error finding trouble_brewing.json");
+                }
+
+
                 for(Identifier id : manager.findResources("character_data", path -> path.toString().endsWith(".json")).keySet()) {
                     LOGGER.info("reloading {}", id);
                 }
