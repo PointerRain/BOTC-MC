@@ -4,16 +4,12 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 
 import java.io.IOException;
-import java.util.LinkedHashSet;
-import java.util.Set;
 
 import static net.minecraft.server.command.CommandManager.literal;
 
@@ -74,73 +70,8 @@ public final class botcCommands {
                     )
             );
 
-            // /botc map set <id>
-            root.then(literal("map")
-                .then(literal("set")
-                    .then(CommandManager.argument("id", StringArgumentType.greedyString())
-                        .suggests((ctx, builder) -> {
-                            MinecraftServer server = ctx.getSource().getServer();
-                            // Suggest canonical ids like "botc-mc:test" by scanning map_template/*.nbt
-                            Set<String> suggestions = new LinkedHashSet<>();
-                            server.getResourceManager()
-                                    .findResources("map_template", path -> path.getPath().endsWith(".nbt"))
-                                    .keySet()
-                                    .forEach(fullId -> {
-                                        String ns = fullId.getNamespace();
-                                        String p = fullId.getPath(); // e.g., "map_template/test.nbt"
-                                        if (p.startsWith("map_template/")) {
-                                            p = p.substring("map_template/".length()); // "test.nbt"
-                                        }
-                                        if (p.endsWith(".nbt")) {
-                                            p = p.substring(0, p.length() - 4); // "test"
-                                        }
-                                        suggestions.add(ns + ":" + p);
-                                    });
-                            suggestions.forEach(builder::suggest);
-                            return builder.buildFuture();
-                        })
-                        .executes(ctx -> {
-                            String rawId = StringArgumentType.getString(ctx, "id");
+            // Intentionally no map subcommands; maps are chosen via game configs (e.g., /game open botc-mc:testv2)
 
-                            // Normalize input: allow users to paste full resource ids like
-                            // "botc-mc:map_template/test.nbt" and convert to canonical "botc-mc:test"
-                            Identifier parsed;
-                            try {
-                                parsed = Identifier.of(rawId);
-                            } catch (IllegalArgumentException ex) {
-                                ctx.getSource().sendError(Text.literal("Invalid map id: " + rawId + ". Use namespace:path, e.g. botc-mc:test"));
-                                return 0;
-                            }
-
-                            String ns = parsed.getNamespace();
-                            String p = parsed.getPath();
-                            if (p.startsWith("map_template/")) {
-                                p = p.substring("map_template/".length());
-                            }
-                            if (p.endsWith(".nbt")) {
-                                p = p.substring(0, p.length() - 4);
-                            }
-
-                            Identifier normalized;
-                            try {
-                                normalized = Identifier.of(ns, p);
-                            } catch (IllegalArgumentException ex) {
-                                ctx.getSource().sendError(Text.literal("Invalid normalized id: " + ns + ":" + p));
-                                return 0;
-                            }
-
-                            botcSettings settings = botcSettings.load();
-                            settings.mapId = normalized.toString();
-                            try {
-                                settings.save();
-                            } catch (IOException e) {
-                                ctx.getSource().sendError(Text.literal("Failed to save settings: " + e.getMessage()));
-                                return 0;
-                            }
-
-                            ctx.getSource().sendFeedback(() -> Text.literal("Set BOTC map to " + normalized), false);
-                            return 1;
-                        }))));
             dispatcher.register(root);
         });
     }

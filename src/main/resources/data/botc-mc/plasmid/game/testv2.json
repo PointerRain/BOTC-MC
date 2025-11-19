@@ -1,0 +1,13 @@
+{
+  "type": "botc-mc:game",
+  "map_id": "botc-mc:testv2",
+  "players": 8,
+  "timeLimitSecs": 300,
+  "phase_durations": {
+    "day_discussion_secs": 120,
+    "nomination_secs": 45,
+    "execution_secs": 20,
+    "night_secs": 60
+  }
+}
+
