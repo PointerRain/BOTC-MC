@@ -2,6 +2,7 @@ package golden.botc_mc.botc_mc.game;
 
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.BlockPos;
 import xyz.nucleoid.fantasy.RuntimeWorldConfig;
 import xyz.nucleoid.plasmid.api.game.*;
 import net.minecraft.entity.damage.DamageSource;
@@ -13,6 +14,7 @@ import xyz.nucleoid.plasmid.api.game.common.GameWaitingLobby;
 import xyz.nucleoid.plasmid.api.game.event.GameActivityEvents;
 import xyz.nucleoid.plasmid.api.game.event.GamePlayerEvents;
 import xyz.nucleoid.plasmid.api.game.player.JoinOffer;
+import xyz.nucleoid.plasmid.api.game.rule.GameRuleType;
 import xyz.nucleoid.stimuli.event.EventResult;
 import xyz.nucleoid.stimuli.event.player.PlayerDeathEvent;
 
@@ -48,15 +50,19 @@ public class botcWaiting {
             // Use the effective config (merged from settings + datapack) for the activity
             botcWaiting waiting = new botcWaiting(game.getGameSpace(), world, map, effectiveConfig);
 
-            // GameWaitingLobby.addTo requires a WaitingLobbyConfig; original code passed an int. Leave commented until real API usage is implemented.
-            // GameWaitingLobby.addTo(game, config.players());
+            // Set a safe spawn for the world to avoid initial void placement
+            Vec3d safe = waiting.spawnLogic.getSafeSpawnPosition();
+            world.setSpawnPos(BlockPos.ofFloored(safe), 0.0F);
+
+            // Deny fall damage while in waiting to prevent void deaths before teleport
+            game.setRule(GameRuleType.FALL_DAMAGE, EventResult.DENY);
 
             game.listen(GameActivityEvents.REQUEST_START, waiting::requestStart);
             game.listen(GamePlayerEvents.ADD, waiting::addPlayer);
             game.listen(GamePlayerEvents.OFFER, JoinOffer::accept);
             // Teleport accepted players to the map spawn (centered on the block and one block above).
             // Fallback to Vec3d.ZERO if no spawn is defined to avoid NPEs.
-            game.listen(GamePlayerEvents.ACCEPT, joinAcceptor -> joinAcceptor.teleport(world, Vec3d.ZERO));
+            game.listen(GamePlayerEvents.ACCEPT, joinAcceptor -> joinAcceptor.teleport(world, safe));
             game.listen(PlayerDeathEvent.EVENT, waiting::onPlayerDeath);
         });
     }
