@@ -20,10 +20,9 @@ public class BotcVoicechatPlugin {
 
     public BotcVoicechatPlugin(MinecraftServer server) {
         this.server = server;
-        this.store = new PersistentGroupStore(server);
+        this.store = new PersistentGroupStore();
     }
 
-    public PersistentGroupStore getStore() { return store; }
     public MinecraftServer getServer() { return server; }
 
     /**

@@ -5,7 +5,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import golden.botc_mc.botc_mc.botc;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.server.MinecraftServer;
 
 import java.io.File;
 import java.io.FileReader;
@@ -21,7 +20,7 @@ public class PersistentGroupStore {
     private final List<PersistentGroup> groups = new ArrayList<>();
     private final Map<UUID, PersistentGroup> cache = new HashMap<>();
 
-    public PersistentGroupStore(MinecraftServer server) {
+    public PersistentGroupStore() {
         // Use BOTC config root: <gameDir>/config/botc/
         Path botcRoot = VoiceRegionService.botcConfigRoot();
         try { java.nio.file.Files.createDirectories(botcRoot); } catch (Throwable ignored) {}

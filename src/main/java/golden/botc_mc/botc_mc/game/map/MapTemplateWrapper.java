@@ -2,7 +2,6 @@ package golden.botc_mc.botc_mc.game.map;
 
 import java.io.IOException;
 import java.util.Comparator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -13,7 +12,6 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.StringIdentifiable;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.gen.chunk.ChunkGenerator;
 import xyz.nucleoid.map_templates.BlockBounds;
@@ -23,9 +21,8 @@ import xyz.nucleoid.map_templates.TemplateRegion;
 import xyz.nucleoid.plasmid.api.game.GameOpenException;
 import xyz.nucleoid.plasmid.api.game.world.generator.TemplateChunkGenerator;
 
-/**
- * Lightweight map template wrapper. Provides access to template metadata and regions.
- */
+/** Lightweight map template wrapper. Provides access to template metadata and regions. */
+@SuppressWarnings("unused")
 public class MapTemplateWrapper {
     private static final org.apache.logging.log4j.Logger LOGGER = org.apache.logging.log4j.LogManager.getLogger("botc.MapTemplate");
     private final Regions regions;
@@ -112,35 +109,23 @@ public class MapTemplateWrapper {
     }
 
     public static MapTemplateWrapper load(MinecraftServer server, Identifier identifier) {
-        MapTemplate template = null;
-
-        // First attempt: load by the identifier as provided
+        MapTemplate template;
         try {
             template = MapTemplateSerializer.loadFromResource(server, identifier);
-            if (template != null) {
-                LOGGER.info("Loaded map template from {}", identifier);
-            }
-        } catch (IOException ignored) {
-            // ignored; we'll try an alternative path below
-        }
-
-        // Second attempt: if path doesn't already include map_template, try namespace:map_template/<path>
-        if (template == null) {
+            LOGGER.info("Loaded map template from {}", identifier);
+        } catch (IOException first) {
+            // Fallback path
             String path = identifier.getPath();
             if (!path.startsWith("map_template/")) {
                 Identifier alt = Identifier.of(identifier.getNamespace(), "map_template/" + path);
                 try {
                     template = MapTemplateSerializer.loadFromResource(server, alt);
-                    if (template != null) {
-                        LOGGER.info("Loaded map template from {}", alt);
-                    }
-                    // if loaded, continue; otherwise fall through to error
-                } catch (IOException e) {
-                    throw new GameOpenException(Text.of(String.format("Couldn't load map %s (tried %s): %s", identifier.toString(), alt.toString(), e.getMessage())));
+                    LOGGER.info("Loaded map template from {}", alt);
+                } catch (IOException second) {
+                    throw new GameOpenException(Text.of("Couldn't load map " + identifier + " (tried " + alt + "): " + second.getMessage()));
                 }
             } else {
-                // Already tried and failed to load the given identifier
-                throw new GameOpenException(Text.of(String.format("Couldn't load map %s", identifier.toString())));
+                throw new GameOpenException(Text.of("Couldn't load map " + identifier));
             }
         }
 
@@ -160,8 +145,7 @@ public class MapTemplateWrapper {
         namespaces.add("botc-mc");
 
         // Derive a canonical tail by removing any leading known prefixes
-        String base = resourcePath.contains(":") ? Identifier.of(resourcePath).getPath() : resourcePath;
-        String tail = base;
+        String tail = resourcePath.contains(":") ? Identifier.of(resourcePath).getPath() : resourcePath;
         while (tail.startsWith("map_template/") || tail.startsWith("plasmid/")) {
             if (tail.startsWith("map_template/")) tail = tail.substring("map_template/".length());
             if (tail.startsWith("plasmid/")) tail = tail.substring("plasmid/".length());
@@ -207,7 +191,7 @@ public class MapTemplateWrapper {
             }
         }
 
-        throw new GameOpenException(Text.of(String.format("Couldn't load map resource %s (attempted %d variants): %s", resourcePath, attempts.size(), lastEx == null ? "unknown" : lastEx.getMessage())));
+        throw new GameOpenException(Text.of("Couldn't load map resource " + resourcePath + " (attempted " + attempts.size() + " variants): " + (lastEx == null ? "unknown" : lastEx.getMessage())));
     }
 
     public ChunkGenerator asGenerator(MinecraftServer server) {
@@ -262,12 +246,15 @@ public class MapTemplateWrapper {
                 .apply(instance, Meta::new));
     }
 
-    public enum Layout implements StringIdentifiable {
+    public enum Layout {
         CIRCULAR("circular"), LINEAR("linear");
-
         private final String name;
-        public static final Codec<Layout> CODEC = StringIdentifiable.createCodec(Layout::values);
         Layout(String name) { this.name = name; }
-        @Override public String asString() { return this.name; }
+        public String asString() { return this.name; }
+        public static final Codec<Layout> CODEC = Codec.STRING.xmap(Layout::fromString, Layout::asString);
+        private static Layout fromString(String s) {
+            for (Layout l : values()) if (l.name.equalsIgnoreCase(s)) return l;
+            return CIRCULAR;
+        }
     }
 }
