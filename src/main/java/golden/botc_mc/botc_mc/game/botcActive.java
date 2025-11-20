@@ -40,7 +40,7 @@ public class botcActive {
     private final Map gameMap;
 
     private final Object2ObjectMap<PlayerRef, botcPlayer> participants;
-    private final botcSpawnLogic spawnLogic;
+    private final SpawnLogic spawnLogic;
     private final botcStageManager stageManager;
     private final boolean ignoreWinState;
     private final botcTimerBar timerBar;
@@ -53,7 +53,7 @@ public class botcActive {
         this.gameSpace = gameSpace;
         this.config = config;
         this.gameMap = map;
-        this.spawnLogic = new botcSpawnLogic(world, map);
+        this.spawnLogic = new SpawnLogic(world, map);
         this.participants = new Object2ObjectOpenHashMap<>();
         this.world = world;
 

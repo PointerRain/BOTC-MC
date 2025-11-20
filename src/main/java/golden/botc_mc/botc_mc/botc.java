@@ -11,7 +11,7 @@ import golden.botc_mc.botc_mc.game.botcCommands;
 import golden.botc_mc.botc_mc.game.voice.VoiceRegionManager;
 import golden.botc_mc.botc_mc.game.voice.VoiceRegionTask;
 import golden.botc_mc.botc_mc.game.voice.VoiceRegionService;
-import golden.botc_mc.botc_mc.game.voice.BotcVoicechatPlugin;
+import golden.botc_mc.botc_mc.game.voice.VoicechatPlugin;
 import golden.botc_mc.botc_mc.game.voice.SvcBridge;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.server.MinecraftServer;
@@ -65,7 +65,7 @@ public class botc implements ModInitializer {
                 if (!REGIONS_MATERIALIZED && SvcBridge.isAvailableRuntime()) {
                     VoiceRegionManager active = VoiceRegionService.getActiveManager();
                     if (active != null) {
-                        BotcVoicechatPlugin plugin = BotcVoicechatPlugin.getInstance(server);
+                        VoicechatPlugin plugin = VoicechatPlugin.getInstance(server);
                         plugin.onMapOpen(active.getMapId()); // reuse logic; it will materialize regions
                         REGIONS_MATERIALIZED = true;
                         LOGGER.info("Deferred voice region materialization complete for map {}", active.getMapId());
@@ -88,15 +88,19 @@ public class botc implements ModInitializer {
                 PRELOADED = true; // do not spam per-tick
                 return;
             }
-            Class<?> pluginCls = Class.forName("golden.botc_mc.botc_mc.game.voice.BotcVoicechatPlugin");
-            Method gi = pluginCls.getMethod("getInstance", MinecraftServer.class);
-            Object plugin = gi.invoke(null, server);
-            Method preload = pluginCls.getMethod("preload");
-            preload.invoke(plugin);
+            tryInitVoiceReflective(server);
             PRELOADED = true;
         } catch (Throwable t) {
             // keep silent; voice is optional
             PRELOADED = true;
         }
+    }
+
+    private static void tryInitVoiceReflective(MinecraftServer server) {
+        try {
+            Class<?> pluginCls = Class.forName("golden.botc_mc.botc_mc.game.voice.VoicechatPlugin");
+            java.lang.reflect.Method getInstance = pluginCls.getMethod("getInstance", MinecraftServer.class);
+            getInstance.invoke(null, server);
+        } catch (Throwable ignored) {}
     }
 }

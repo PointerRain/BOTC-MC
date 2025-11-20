@@ -14,13 +14,13 @@ import golden.botc_mc.botc_mc.game.map.Map.RespawnRegion;
 
 import java.util.Set;
 
-public class botcSpawnLogic {
+public class SpawnLogic {
     private static final int SEARCH_RADIUS = 8;
 
     private final Map map;
     private final ServerWorld world;
 
-    public botcSpawnLogic(ServerWorld world, Map map) {
+    public SpawnLogic(ServerWorld world, Map map) {
         this.map = map;
         this.world = world;
     }
@@ -117,3 +117,4 @@ public class botcSpawnLogic {
         return this.world.isAir(above) && this.world.isAir(above2);
     }
 }
+

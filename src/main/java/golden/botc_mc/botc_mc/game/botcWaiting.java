@@ -18,13 +18,13 @@ import xyz.nucleoid.stimuli.event.EventResult;
 import xyz.nucleoid.stimuli.event.player.PlayerDeathEvent;
 import golden.botc_mc.botc_mc.game.voice.VoiceRegionManager;
 import golden.botc_mc.botc_mc.game.voice.VoiceRegionService;
-import golden.botc_mc.botc_mc.game.voice.BotcVoicechatPlugin;
+import golden.botc_mc.botc_mc.game.voice.VoicechatPlugin;
 
 public class botcWaiting {
     private final GameSpace gameSpace;
     private final Map map;
     private final botcConfig config;
-    private final botcSpawnLogic spawnLogic;
+    private final SpawnLogic spawnLogic;
     private final ServerWorld world;
 
     private botcWaiting(GameSpace gameSpace, ServerWorld world, Map map, botcConfig config) {
@@ -32,7 +32,7 @@ public class botcWaiting {
         this.map = map;
         this.config = config;
         this.world = world;
-        this.spawnLogic = new botcSpawnLogic(world, map);
+        this.spawnLogic = new SpawnLogic(world, map);
         // Create per-map voice region manager and activate it
         VoiceRegionManager vrm = VoiceRegionManager.forMap(world, config.mapId());
         VoiceRegionService.setActive(world, config.mapId(), vrm);
@@ -56,7 +56,7 @@ public class botcWaiting {
             botcWaiting waiting = new botcWaiting(game.getGameSpace(), world, map, effectiveConfig);
             // Activate per-map voice groups
             try {
-                BotcVoicechatPlugin plugin = BotcVoicechatPlugin.getInstance(context.server());
+                VoicechatPlugin plugin = VoicechatPlugin.getInstance(context.server());
                 plugin.onMapOpen(mapId);
             } catch (Throwable ignored) {}
             // Set a safe spawn for the world to avoid initial void placement

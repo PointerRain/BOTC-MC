@@ -2,23 +2,22 @@ package golden.botc_mc.botc_mc.game.voice;
 
 import golden.botc_mc.botc_mc.botc;
 import net.minecraft.server.MinecraftServer;
-
 import net.minecraft.util.Identifier;
 
-public class BotcVoicechatPlugin {
-    private static BotcVoicechatPlugin INSTANCE = null;
+public class VoicechatPlugin {
+    private static VoicechatPlugin INSTANCE = null;
 
     private final PersistentGroupStore store;
     private final MinecraftServer server;
 
-    public static synchronized BotcVoicechatPlugin getInstance(MinecraftServer server) {
+    public static synchronized VoicechatPlugin getInstance(MinecraftServer server) {
         if (INSTANCE == null) {
-            INSTANCE = new BotcVoicechatPlugin(server);
+            INSTANCE = new VoicechatPlugin(server);
         }
         return INSTANCE;
     }
 
-    public BotcVoicechatPlugin(MinecraftServer server) {
+    public VoicechatPlugin(MinecraftServer server) {
         this.server = server;
         this.store = new PersistentGroupStore();
     }
@@ -66,7 +65,7 @@ public class BotcVoicechatPlugin {
                             ok++;
                         }
                     }
-                } catch (Throwable t) { botc.LOGGER.warn("BotcVoicechatPlugin preload failed for {}: {}", g.name, t.toString()); }
+                } catch (Throwable t) { botc.LOGGER.warn("VoicechatPlugin preload failed for {}: {}", g.name, t.toString()); }
             }
             try {
                 VoiceRegionManager vrm = new VoiceRegionManager(VoiceRegionService.legacyGlobalConfigPath());
@@ -95,9 +94,9 @@ public class BotcVoicechatPlugin {
             } catch (Throwable t) {
                 botc.LOGGER.debug("VoiceRegionManager not available during preload: {}", t.toString());
             }
-            botc.LOGGER.info("BotcVoicechatPlugin: preloaded {}/{} voice groups (store+regions)", ok, total);
+            botc.LOGGER.info("VoicechatPlugin: preloaded {}/{} voice groups (store+regions)", ok, total);
         } catch (Throwable t) {
-            botc.LOGGER.warn("BotcVoicechatPlugin preload error: {}", t.toString());
+            botc.LOGGER.warn("VoicechatPlugin preload error: {}", t.toString());
         }
     }
 
@@ -141,14 +140,14 @@ public class BotcVoicechatPlugin {
                             }
                         }
                     } catch (Throwable t) {
-                        botc.LOGGER.warn("BotcVoicechatPlugin: region materialize error for {}: {}", r.id(), t.toString());
+                        botc.LOGGER.warn("VoicechatPlugin: region materialize error for {}: {}", r.id(), t.toString());
                     }
                 }
             } else {
-                botc.LOGGER.debug("BotcVoicechatPlugin: active manager missing or mapId mismatch for materialization (mapId={})", mapId);
+                botc.LOGGER.debug("VoicechatPlugin: active manager missing or mapId mismatch for materialization (mapId={})", mapId);
             }
         } catch (Throwable t) {
-            botc.LOGGER.warn("BotcVoicechatPlugin.onMapOpen failed for {}: {}", mapId, t.toString());
+            botc.LOGGER.warn("VoicechatPlugin.onMapOpen failed for {}: {}", mapId, t.toString());
         }
     }
 }
