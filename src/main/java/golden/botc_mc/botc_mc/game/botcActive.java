@@ -53,7 +53,7 @@ public class botcActive {
         this.gameSpace = gameSpace;
         this.config = config;
         this.gameMap = map;
-        this.spawnLogic = new botcSpawnLogic(gameSpace, world, map);
+        this.spawnLogic = new botcSpawnLogic(world, map);
         this.participants = new Object2ObjectOpenHashMap<>();
         this.world = world;
 
@@ -89,7 +89,10 @@ public class botcActive {
             game.listen(GameActivityEvents.STATE_UPDATE, state -> state.canPlay(false));
 
             game.listen(GamePlayerEvents.OFFER, JoinOffer::acceptSpectators);
-            game.listen(GamePlayerEvents.ACCEPT, joinAcceptor -> joinAcceptor.teleport(world, Vec3d.ZERO));
+            game.listen(GamePlayerEvents.ACCEPT, joinAcceptor -> {
+                Vec3d safe = active.spawnLogic.getSafeSpawnPosition();
+                return joinAcceptor.teleport(world, safe);
+            });
             game.listen(GamePlayerEvents.ADD, active::addPlayer);
             game.listen(GamePlayerEvents.REMOVE, active::removePlayer);
 

@@ -32,7 +32,7 @@ public class botcWaiting {
         this.map = map;
         this.config = config;
         this.world = world;
-        this.spawnLogic = new botcSpawnLogic(gameSpace, world, map);
+        this.spawnLogic = new botcSpawnLogic(world, map);
         // Create per-map voice region manager and activate it
         VoiceRegionManager vrm = VoiceRegionManager.forMap(world, config.mapId());
         VoiceRegionService.setActive(world, config.mapId(), vrm);

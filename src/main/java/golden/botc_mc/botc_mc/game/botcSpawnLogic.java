@@ -1,9 +1,7 @@
 package golden.botc_mc.botc_mc.game;
 
 import net.minecraft.block.BlockState;
-import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.util.math.Vec3d;
-import xyz.nucleoid.plasmid.api.game.GameSpace;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -11,20 +9,18 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.GameMode;
-import net.minecraft.world.Heightmap;
-import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.map.Map;
 import golden.botc_mc.botc_mc.game.map.Map.RespawnRegion;
 
 import java.util.Set;
 
 public class botcSpawnLogic {
-    private final GameSpace gameSpace;
+    private static final int SEARCH_RADIUS = 8;
+
     private final Map map;
     private final ServerWorld world;
 
-    public botcSpawnLogic(GameSpace gameSpace, ServerWorld world, Map map) {
-        this.gameSpace = gameSpace;
+    public botcSpawnLogic(ServerWorld world, Map map) {
         this.map = map;
         this.world = world;
     }
@@ -42,39 +38,34 @@ public class botcSpawnLogic {
                 false
         ));
 
-        // Give the player 3 seconds (60 ticks) of invulnerability on spawn
+        // Give the player ~3 seconds of invulnerability on spawn, then clear
         player.setInvulnerable(true);
-        this.world.getServer().execute(() -> {
-            // schedule disabling after 3 seconds of game time
-            this.world.getServer().getOverworld().getServer().execute(() -> {
-                player.setInvulnerable(false);
-            });
-        });
+        // Schedule clearing invulnerability after 60 ticks
+        this.world.getServer().execute(() -> this.world.getServer().getOverworld().getServer().execute(() -> player.setInvulnerable(false)));
     }
 
-    // Return a safe spawn location computed around X=0,Z=0 (highest surface near 0,0),
-    // falling back to (0, ~, 0) if nothing is found.
+    // Return a safe spawn location near the map's respawn region center.
     public Vec3d getSafeSpawnPosition() {
         RespawnRegion respawn = this.map.getRegions().spawn();
         BlockPos center = respawn.centerBlock();
-        BlockPos best = findHighestSpawnable(center, 6);
+        BlockPos best = findHighestSpawnable(center);
         if (best != null) {
             return new Vec3d(best.getX() + 0.5, best.getY() + 1.0, best.getZ() + 0.5);
         }
-        // Fallback to just above the region center
-        return new Vec3d(center.getX() + 0.5, center.getY() + 1.0, center.getZ() + 0.5);
+        // Fallback: use center one block above as last resort
+        return new Vec3d(center.getX() + 0.5, Math.max(center.getY(), this.world.getBottomY()) + 1.0, center.getZ() + 0.5);
     }
 
     public void spawnPlayer(ServerPlayerEntity player) {
         RespawnRegion respawn = this.map.getRegions().spawn();
         BlockPos center = respawn.centerBlock();
 
-        BlockPos best = findHighestSpawnable(center, 6);
+        BlockPos best = findHighestSpawnable(center);
         if (best == null) {
             float radius = 2.0f;
             float x = center.getX() + MathHelper.nextFloat(player.getRandom(), -radius, radius);
             float z = center.getZ() + MathHelper.nextFloat(player.getRandom(), -radius, radius);
-            player.teleport(this.world, x, center.getY(), z, Set.of(), respawn.yaw(), respawn.pitch(), true);
+            player.teleport(this.world, x, Math.max(center.getY(), this.world.getBottomY()) + 1.0, z, Set.of(), respawn.yaw(), respawn.pitch(), true);
             return;
         }
 
@@ -85,31 +76,25 @@ public class botcSpawnLogic {
     }
 
     /**
-     * Finds the highest spawnable block near a given center within the given radius.
-     * "Spawnable" means: any block with a non-empty collision shape (covers glass & stained glass) and at least 2 air blocks above it.
+     * Finds the highest spawnable block near a given center within SEARCH_RADIUS.
      */
-    private BlockPos findHighestSpawnable(BlockPos center, int horizontalRadius) {
+    private BlockPos findHighestSpawnable(BlockPos center) {
         BlockPos best = null;
+        final int bottom = this.world.getBottomY();
+        final int top = bottom + this.world.getDimension().height() - 1;
+        final int startYCap = Math.min(top, center.getY() + 96);
 
-        for (int dx = -horizontalRadius; dx <= horizontalRadius; dx++) {
-            for (int dz = -horizontalRadius; dz <= horizontalRadius; dz++) {
-                BlockPos columnPos = center.add(dx, 0, dz);
-
-                // Use heightmap as a quick starting point for the top of this column
-                int topY = this.world.getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, columnPos.getX(), columnPos.getZ());
-                if (topY <= this.world.getBottomY()) continue;
-
-                BlockPos.Mutable pos = new BlockPos.Mutable(columnPos.getX(), topY, columnPos.getZ());
-
-                // Walk downward until we find a spawnable surface
-                while (pos.getY() >= this.world.getBottomY()) {
+        for (int dx = -SEARCH_RADIUS; dx <= SEARCH_RADIUS; dx++) {
+            for (int dz = -SEARCH_RADIUS; dz <= SEARCH_RADIUS; dz++) {
+                int x = center.getX() + dx;
+                int z = center.getZ() + dz;
+                BlockPos.Mutable pos = new BlockPos.Mutable(x, startYCap, z);
+                while (pos.getY() >= bottom) {
                     BlockState state = this.world.getBlockState(pos);
-                    if (isSpawnSurface(state)) {
+                    if (!state.isAir() && isSpawnSurface(pos, state)) {
                         BlockPos surface = pos.toImmutable();
                         if (canStandAbove(surface)) {
-                            if (best == null || surface.getY() > best.getY()) {
-                                best = surface;
-                            }
+                            if (best == null || surface.getY() > best.getY()) best = surface;
                             break;
                         }
                     }
@@ -117,14 +102,13 @@ public class botcSpawnLogic {
                 }
             }
         }
-
         return best;
     }
 
-    private boolean isSpawnSurface(BlockState state) {
+    private boolean isSpawnSurface(BlockPos pos, BlockState state) {
         // Any block with a collision shape counts as a surface the player can stand on,
         // which includes glass and stained glass.
-        return !state.getCollisionShape(this.world, BlockPos.ORIGIN).isEmpty();
+        return !state.getCollisionShape(this.world, pos).isEmpty();
     }
 
     private boolean canStandAbove(BlockPos surface) {
