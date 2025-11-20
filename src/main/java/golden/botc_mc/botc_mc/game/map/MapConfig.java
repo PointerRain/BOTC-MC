@@ -5,6 +5,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 
+@SuppressWarnings("unused")
 public class MapConfig {
     private static final BlockPos DEFAULT_FALLBACK = new BlockPos(0, 65, 0);
 
@@ -17,21 +18,14 @@ public class MapConfig {
     private final BlockPos fallbackSpawn;
 
     public MapConfig(Identifier mapId, BlockPos fallbackSpawn) {
-        this.mapId = mapId;
-        this.fallbackSpawn = fallbackSpawn;
         if (mapId == null) {
             throw new IllegalArgumentException("mapId cannot be null");
         }
-        if (fallbackSpawn == null) {
-            fallbackSpawn = DEFAULT_FALLBACK;
-        }
+        this.mapId = mapId;
+        this.fallbackSpawn = (fallbackSpawn != null) ? fallbackSpawn : DEFAULT_FALLBACK;
     }
 
-    public Identifier mapId() {
-        return mapId;
-    }
+    public Identifier mapId() { return mapId; }
 
-    public BlockPos fallbackSpawn() {
-        return fallbackSpawn;
-    }
+    public BlockPos fallbackSpawn() { return fallbackSpawn; }
 }

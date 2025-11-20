@@ -187,8 +187,7 @@ public class VoiceRegionManager {
                         try (InputStream is = optional.get().getInputStream(); Reader r = new InputStreamReader(is)) {
                             JsonObject obj = gson.fromJson(r, JsonObject.class);
                             JsonObject voiceSection = obj != null && obj.has("voice") && obj.get("voice").isJsonObject() ? obj.getAsJsonObject("voice") : obj;
-                            if (parseRegionsFromVoiceSection(voiceSection)) {
-                            }
+                            if (parseRegionsFromVoiceSection(voiceSection)) return;
                         }
                     }
                 } catch (Exception ex) {

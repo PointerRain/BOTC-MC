@@ -19,6 +19,14 @@ import java.util.*;
  *
  * If any step fails, diagnostics are recorded and available returns false. Re-attempt occurs on each runtime check until successful.
  */
+@SuppressWarnings({
+        "unused", // many hooks are used reflectively or from commands
+        "FieldCanBeLocal",
+        "RedundantSuppression",
+        "ConstantConditions",
+        "Convert2MethodRef",
+        "SimplifiableConditionalExpression"
+})
 public final class SvcBridge {
     private static boolean available = false;
     private static boolean initializing = false;

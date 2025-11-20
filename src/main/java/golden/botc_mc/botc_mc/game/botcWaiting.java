@@ -26,7 +26,6 @@ public class botcWaiting {
     private final botcConfig config;
     private final botcSpawnLogic spawnLogic;
     private final ServerWorld world;
-    private final VoiceRegionManager voiceRegions;
 
     private botcWaiting(GameSpace gameSpace, ServerWorld world, Map map, botcConfig config) {
         this.gameSpace = gameSpace;
@@ -35,8 +34,8 @@ public class botcWaiting {
         this.world = world;
         this.spawnLogic = new botcSpawnLogic(gameSpace, world, map);
         // Create per-map voice region manager and activate it
-        this.voiceRegions = VoiceRegionManager.forMap(world, config.mapId());
-        VoiceRegionService.setActive(world, config.mapId(), this.voiceRegions);
+        VoiceRegionManager vrm = VoiceRegionManager.forMap(world, config.mapId());
+        VoiceRegionService.setActive(world, config.mapId(), vrm);
     }
 
     public static GameOpenProcedure open(GameOpenContext<botcConfig> context) {

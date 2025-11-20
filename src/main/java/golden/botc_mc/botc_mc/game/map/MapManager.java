@@ -12,7 +12,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -22,6 +21,7 @@ import java.util.Set;
  * Map discovery/registry. Loads manifests from runtime folder `run/config/plasmid/maps/*` and
  * merges with packaged map index from `data/botc/maps/index.json` when present in the classpath.
  */
+@SuppressWarnings({"unused"})
 public class MapManager {
     private static final Logger LOGGER = LogManager.getLogger("botc.MapManager");
 
@@ -35,7 +35,6 @@ public class MapManager {
 
     public void discoverRuntimeMaps() {
         registry.clear();
-        Set<String> runtimeIds = new HashSet<>();
         Path mapsRoot = Paths.get("run", "config", "plasmid", "maps");
         if (!Files.exists(mapsRoot) || !Files.isDirectory(mapsRoot)) {
             LOGGER.warn("Runtime maps root not found: {}", mapsRoot.toAbsolutePath());
@@ -59,7 +58,6 @@ public class MapManager {
                     String name = dir.getFileName().toString();
                     MapInfo info = new MapInfo(id, name, List.of(), "", null);
                     registry.put(id, info);
-                    runtimeIds.add(id);
                     LOGGER.info("Registered allowlisted map: {} (display={})", id, name);
                 } catch (Exception e) {
                     LOGGER.warn("Failed processing map dir {}: {}", dir, e.getMessage());
