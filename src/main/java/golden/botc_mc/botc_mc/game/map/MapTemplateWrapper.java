@@ -112,7 +112,6 @@ public class MapTemplateWrapper {
     }
 
     public static MapTemplateWrapper load(MinecraftServer server, Identifier identifier) {
-        // Work with the underlying MapTemplate type that MapTemplateSerializer returns
         MapTemplate template = null;
 
         // First attempt: load by the identifier as provided
@@ -272,4 +271,3 @@ public class MapTemplateWrapper {
         @Override public String asString() { return this.name; }
     }
 }
-

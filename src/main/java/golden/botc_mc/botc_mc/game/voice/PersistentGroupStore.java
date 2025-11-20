@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import golden.botc_mc.botc_mc.botc;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.MinecraftServer;
 
 import java.io.File;
@@ -19,11 +20,23 @@ public class PersistentGroupStore {
     private final Map<UUID, PersistentGroup> cache = new HashMap<>();
 
     public PersistentGroupStore(MinecraftServer server) {
-        File cfgDir = new File("run/config");
+        File cfgDir = FabricLoader.getInstance().getGameDir().resolve("config").toFile();
         if (!cfgDir.exists()) cfgDir.mkdirs();
         this.file = new File(cfgDir, "botc-persistent-groups.json");
+        migrateLegacyDoubleRunIfNeeded();
         this.gson = new GsonBuilder().setPrettyPrinting().create();
         load();
+    }
+    /** Migrates legacy path run/run/config/botc-persistent-groups.json -> gameDir/config/botc-persistent-groups.json */
+    private void migrateLegacyDoubleRunIfNeeded() {
+        try {
+            File legacy = FabricLoader.getInstance().getGameDir().resolve("run/config/botc-persistent-groups.json").toFile();
+            if (!file.exists() && legacy.exists()) {
+                java.nio.file.Files.createDirectories(file.getParentFile().toPath());
+                java.nio.file.Files.copy(legacy.toPath(), file.toPath());
+                golden.botc_mc.botc_mc.botc.LOGGER.info("Migrated legacy persistent group file from double-run path.");
+            }
+        } catch (Throwable ignored) {}
     }
 
     public synchronized void load() {
@@ -88,4 +101,3 @@ public class PersistentGroupStore {
 
     public synchronized int clearAll() { int s = groups.size(); groups.clear(); cache.clear(); save(); return s; }
 }
-

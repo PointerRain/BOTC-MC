@@ -4,6 +4,8 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.command.argument.BlockPosArgumentType;
+import net.minecraft.command.argument.EntityArgumentType;
+import com.mojang.brigadier.arguments.BoolArgumentType;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -12,16 +14,28 @@ import net.minecraft.util.math.BlockPos;
 
 import static net.minecraft.server.command.CommandManager.literal;
 import golden.botc_mc.botc_mc.botc;
+import net.minecraft.server.world.ServerWorld;
 
 public final class VoiceRegionCommands {
-    public static void register(VoiceRegionManager mgr) {
+    private static boolean registered = false; // prevent duplicate registration
+
+    public static void register(VoiceRegionManager fallback) {
+        if (registered) {
+            botc.LOGGER.debug("VoiceRegionCommands.register() called more than once; ignoring subsequent call");
+            return;
+        }
+        registered = true;
+
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             // Root: /botc voice
             LiteralArgumentBuilder<ServerCommandSource> botcRoot = literal("botc");
             // Require operator permissions for voice commands (setup/debug)
             LiteralArgumentBuilder<ServerCommandSource> voiceRoot = literal("voice").requires(src -> src.hasPermissionLevel(2));
 
-            // Group subtree: /botc voice group add <name>  (aliases: group create, group-create)
+            VoiceRegionManager mgrOrFallback = VoiceRegionService.getActiveManager();
+            final VoiceRegionManager mgr = (mgrOrFallback != null) ? mgrOrFallback : fallback;
+
+            // Group subtree: /botc voice group add <name>  (aliases: group create)
             LiteralArgumentBuilder<ServerCommandSource> groupRoot = literal("group").requires(src -> src.hasPermissionLevel(2));
 
             // Build the primary 'add' node and keep a reference for redirects
@@ -32,46 +46,46 @@ public final class VoiceRegionCommands {
                     return 0;
                 }
                 String name = StringArgumentType.getString(ctx, "name");
-                if (!SvcBridge.isAvailableRuntime()) {
-                    src.sendFeedback(() -> Text.literal("SvcBridge not available; cannot create group."), false);
+
+                // If group already exists, acknowledge instead of failing
+                if (SvcBridge.groupExists(name)) {
+                    src.sendFeedback(() -> Text.literal("Group already exists: " + name), false);
+                    return 1;
+                }
+                // If creation globally disabled, inform once and skip
+                if (SvcBridge.isGroupCreationDisabled()) {
+                    src.sendFeedback(() -> Text.literal("Group creation disabled (voicechat " + SvcBridge.getVoicechatVersion() + ") - using regions without voice groups."), false);
                     return 0;
                 }
+
+                if (!SvcBridge.isAvailableRuntime()) {
+                    src.sendFeedback(() -> Text.literal("Voice chat not initialized yet; try again later."), false);
+                    return 0;
+                }
+
                 java.util.UUID id = SvcBridge.createOrGetGroup(name, player);
                 if (id != null) {
-                    // persist in store so it auto-loads next boot
                     BotcVoicechatPlugin plugin = BotcVoicechatPlugin.getInstance(src.getServer());
                     PersistentGroupStore store = plugin.getStore();
                     PersistentGroup pg = new PersistentGroup(name);
                     pg.voicechatId = id;
                     store.addGroup(pg);
-                    final String createdMsg = "Group created: " + name + " (" + id + ")";
-                    src.sendFeedback(() -> Text.literal(createdMsg), false);
+                    src.sendFeedback(() -> Text.literal("Group created: " + name + " (" + id + ")"), false);
                     return 1;
-                } else {
-                    src.sendFeedback(() -> Text.literal("Failed to create group: " + name), false);
-                    return 0;
                 }
+
+                // At this point, either creation failed unexpectedly or was disabled mid-attempt.
+                if (SvcBridge.isGroupCreationDisabled()) {
+                    src.sendFeedback(() -> Text.literal("Group creation now disabled (voicechat " + SvcBridge.getVoicechatVersion() + ")."), false);
+                } else {
+                    src.sendFeedback(() -> Text.literal("Could not create group: " + name), false);
+                }
+                return 0;
             }));
 
             groupRoot.then(groupAdd);
             // alias: group create -> redirect to add
             groupRoot.then(literal("create").requires(src -> src.hasPermissionLevel(2)).then(CommandManager.argument("name", StringArgumentType.word()).redirect(groupAdd.build())));
-            // alias: group-create (flat)
-            voiceRoot.then(literal("group-create").requires(src -> src.hasPermissionLevel(2)).redirect(groupAdd.build()));
-
-            // Group repair: /botc voice group repair <groupOrId> (alias: group fix)
-            LiteralArgumentBuilder<ServerCommandSource> groupRepair = literal("repair").requires(src -> src.hasPermissionLevel(2)).then(CommandManager.argument("groupOrId", StringArgumentType.word()).executes(ctx -> {
-                ServerCommandSource src = ctx.getSource();
-                String arg = StringArgumentType.getString(ctx, "groupOrId");
-                boolean ok;
-                try { java.util.UUID.fromString(arg); ok = SvcBridge.clearPasswordAndOpenByIdString(arg); }
-                catch (Exception e) { ok = SvcBridge.clearPasswordAndOpenByName(arg); }
-                if (ok) src.sendFeedback(() -> Text.literal("Repaired voice group " + arg), false);
-                else src.sendError(Text.literal("Failed to repair voice group " + arg));
-                return ok ? 1 : 0;
-            }));
-            groupRoot.then(groupRepair);
-            groupRoot.then(literal("fix").requires(src -> src.hasPermissionLevel(2)).then(CommandManager.argument("groupOrId", StringArgumentType.word()).redirect(groupRepair.build())));
 
             // Register group subtree under voice
             voiceRoot.then(groupRoot);
@@ -102,7 +116,7 @@ public final class VoiceRegionCommands {
                     try {
                         groupUuid = SvcBridge.createOrGetGroup(group, player);
                     } catch (Throwable t) {
-                        botc.LOGGER.warn("SvcBridge createOrGetGroup failed: {}", t.getMessage());
+                        golden.botc_mc.botc_mc.botc.LOGGER.warn("SvcBridge createOrGetGroup failed: {}", t.getMessage());
                     }
                 }
 
@@ -123,7 +137,7 @@ public final class VoiceRegionCommands {
             // also expose single-word alias region-create
             voiceRoot.then(literal("region-create").requires(src -> src.hasPermissionLevel(2)).redirect(regionAdd.build()));
 
-            // region remove: /botc voice region remove <id> (alias: region del)
+            // region remove: /botc voice region remove <id>
             LiteralArgumentBuilder<ServerCommandSource> regionRemove = literal("remove").requires(src -> src.hasPermissionLevel(2)).then(CommandManager.argument("id", StringArgumentType.word()).executes(ctx -> {
                 ServerCommandSource src = ctx.getSource();
                 String id = StringArgumentType.getString(ctx, "id");
@@ -139,7 +153,7 @@ public final class VoiceRegionCommands {
             regionRoot.then(regionRemove);
             regionRoot.then(literal("del").requires(src -> src.hasPermissionLevel(2)).then(CommandManager.argument("id", StringArgumentType.word()).redirect(regionRemove.build())));
 
-            // region list: /botc voice region list (alias: regions)
+            // region list: /botc voice region list
             LiteralArgumentBuilder<ServerCommandSource> regionList = literal("list").requires(src -> src.hasPermissionLevel(2)).executes(ctx -> {
                 ServerCommandSource src = ctx.getSource();
                 src.sendFeedback(() -> Text.literal("Voice regions:"), false);
@@ -154,7 +168,7 @@ public final class VoiceRegionCommands {
             // Also attach region subtree
             voiceRoot.then(regionRoot);
 
-            // Clear all: renamed to wipe-all (keeps compatibility alias groups clear)
+            // Clear all: /botc voice wipe-all
             LiteralArgumentBuilder<ServerCommandSource> wipeAllNode = literal("wipe-all").requires(src -> src.hasPermissionLevel(2)).executes(ctx -> {
                 ServerCommandSource src = ctx.getSource();
                 int leftPlayers = 0;
@@ -185,55 +199,80 @@ public final class VoiceRegionCommands {
                 return 1;
             });
             voiceRoot.then(wipeAllNode);
-            // alias: groups clear
-            voiceRoot.then(literal("groups").requires(src -> src.hasPermissionLevel(2)).then(literal("clear").redirect(wipeAllNode.build())));
 
-            // Bridge info
-            LiteralArgumentBuilder<ServerCommandSource> bridgeInfo = literal("bridge-info").requires(src -> src.hasPermissionLevel(2)).executes(ctx -> {
-                ServerCommandSource src = ctx.getSource();
-                src.sendFeedback(() -> Text.literal("SvcBridge available: " + SvcBridge.isAvailable()), false);
-                for (String d : SvcBridge.getDiagnostics()) {
-                    src.sendFeedback(() -> Text.literal(d), false);
-                }
+            // Debug toggles: /botc voice debug regions|task <true|false>
+            LiteralArgumentBuilder<ServerCommandSource> debugRoot = literal("debug").requires(src -> src.hasPermissionLevel(2));
+            debugRoot.then(literal("regions").then(CommandManager.argument("enabled", BoolArgumentType.bool()).executes(ctx -> {
+                boolean enabled = BoolArgumentType.getBool(ctx, "enabled");
+                VoiceRegionManager.setDebugRegions(enabled);
+                ctx.getSource().sendFeedback(() -> Text.literal("Voice region debug " + (enabled ? "enabled" : "disabled")), false);
                 return 1;
-            });
-            voiceRoot.then(bridgeInfo);
+            })));
+            debugRoot.then(literal("task").then(CommandManager.argument("enabled", BoolArgumentType.bool()).executes(ctx -> {
+                boolean enabled = BoolArgumentType.getBool(ctx, "enabled");
+                VoiceRegionTask.setDebugTask(enabled);
+                ctx.getSource().sendFeedback(() -> Text.literal("Voice autojoin task debug " + (enabled ? "enabled" : "disabled")), false);
+                return 1;
+            })));
+            voiceRoot.then(debugRoot);
 
-            // Position inspect: /botc voice debug-pos <player>  (alias: inspect-pos)
-            LiteralArgumentBuilder<ServerCommandSource> debugPos = literal("debug-pos").requires(src -> src.hasPermissionLevel(2)).then(CommandManager.argument("player", StringArgumentType.word()).executes(ctx -> {
-                ServerCommandSource src = ctx.getSource();
-                String name = StringArgumentType.getString(ctx, "player");
-                for (ServerPlayerEntity p : src.getServer().getPlayerManager().getPlayerList()) {
-                    if (p.getName().getString().equalsIgnoreCase(name)) {
-                        VoiceRegion r = mgr.regionForPlayer(p);
-                        String msg = "pos=" + p.getBlockX()+","+p.getBlockY()+","+p.getBlockZ()+" region=" + (r==null?"<none>":r.id+"/"+r.groupName+" bounds="+r.boundsDebug());
-                        src.sendFeedback(() -> Text.literal(msg), false);
-                        botc.LOGGER.info("POSDEBUG player={} uuid={} pos={},{},{} region={}", p.getName().getString(), p.getUuid(), p.getBlockX(), p.getBlockY(), p.getBlockZ(), (r==null?"<none>":r.id+"/"+r.groupName+" bounds="+r.boundsDebug()));
-                        return 1;
-                    }
+            // Watchers: /botc voice watch add|remove <player>, list
+            LiteralArgumentBuilder<ServerCommandSource> watchRoot = literal("watch").requires(src -> src.hasPermissionLevel(2));
+            watchRoot.then(literal("add").then(CommandManager.argument("player", EntityArgumentType.player()).executes(ctx -> {
+                ServerPlayerEntity target = EntityArgumentType.getPlayer(ctx, "player");
+                boolean added = VoiceRegionTask.addWatcher(target.getUuid());
+                ctx.getSource().sendFeedback(() -> Text.literal((added ? "Now" : "Already") + " watching " + target.getName().getString()), false);
+                return added ? 1 : 0;
+            })));
+            watchRoot.then(literal("remove").then(CommandManager.argument("player", EntityArgumentType.player()).executes(ctx -> {
+                ServerPlayerEntity target = EntityArgumentType.getPlayer(ctx, "player");
+                boolean removed = VoiceRegionTask.removeWatcher(target.getUuid());
+                ctx.getSource().sendFeedback(() -> Text.literal(removed ? "Stopped watching " + target.getName().getString() : target.getName().getString() + " was not being watched"), false);
+                return removed ? 1 : 0;
+            })));
+            watchRoot.then(literal("list").executes(ctx -> {
+                var watchers = VoiceRegionTask.watchers();
+                if (watchers.isEmpty()) {
+                    ctx.getSource().sendFeedback(() -> Text.literal("No active voice region watchers."), false);
+                    return 0;
                 }
-                src.sendError(Text.literal("Player not found: " + name));
-                return 0;
+                StringBuilder sb = new StringBuilder("Watching: ");
+                boolean first = true;
+                for (java.util.UUID uuid : watchers) {
+                    if (!first) sb.append(", "); else first = false;
+                    ServerPlayerEntity player = ctx.getSource().getServer().getPlayerManager().getPlayer(uuid);
+                    sb.append(player != null ? player.getName().getString() : uuid.toString());
+                }
+                ctx.getSource().sendFeedback(() -> Text.literal(sb.toString()), false);
+                return watchers.size();
             }));
-            voiceRoot.then(debugPos);
-            voiceRoot.then(literal("inspect-pos").requires(src -> src.hasPermissionLevel(2)).redirect(debugPos.build()));
+            voiceRoot.then(watchRoot);
 
-            // Audit regions snapshot: /botc voice audit (alias: scan-regions)
-            LiteralArgumentBuilder<ServerCommandSource> auditNode = literal("audit").requires(src -> src.hasPermissionLevel(2)).executes(ctx -> {
-                ServerCommandSource src = ctx.getSource();
-                var players = src.getServer().getPlayerManager().getPlayerList();
-                src.sendFeedback(() -> Text.literal("VoiceRegion audit: players=" + players.size() + " regions=" + mgr.list().size()), false);
-                for (ServerPlayerEntity p : players) {
-                    VoiceRegion r = mgr.regionForPlayer(p);
-                    String line = p.getName().getString() + " pos=" + p.getBlockX()+","+p.getBlockY()+","+p.getBlockZ()+" region=" + (r==null?"<none>":r.id+"/"+r.groupName+" bounds="+r.boundsDebug());
-                    src.sendFeedback(() -> Text.literal(line), false);
-                    botc.LOGGER.info("SCAN player={} uuid={} pos={},{},{} region={}", p.getName().getString(), p.getUuid(), p.getBlockX(), p.getBlockY(), p.getBlockZ(), (r==null?"<none>":r.id+"/"+r.groupName+" bounds="+r.boundsDebug()));
+            // Info: /botc voice info
+            voiceRoot.then(literal("info").requires(src -> src.hasPermissionLevel(2)).executes(ctx -> {
+                VoiceRegionManager active = VoiceRegionService.getActiveManager();
+                VoiceRegionManager used = active != null ? active : mgr;
+                StringBuilder sb = new StringBuilder();
+                sb.append("VoiceRegion info\n");
+                sb.append("Config path: ").append(used.getConfigPath()).append("\n");
+                sb.append("Map bound: ").append(used.getMapId()==null?"<none>":used.getMapId()).append("\n");
+                sb.append("Regions: ").append(used.list().size()).append("\n");
+                for (VoiceRegion r : used.list()) {
+                    sb.append(" - ").append(r.id).append(" -> ").append(r.groupName).append(" (gid=").append(r.groupId).append(") bounds=").append(r.boundsDebug()).append("\n");
                 }
-                return 1;
-            });
-            voiceRoot.then(auditNode);
-            voiceRoot.then(literal("scan-regions").requires(src -> src.hasPermissionLevel(2)).redirect(auditNode.build()));
+                ctx.getSource().sendFeedback(() -> Text.literal(sb.toString()), false);
+                return used.list().size();
+            }));
 
+            // Reload: /botc voice reload
+            voiceRoot.then(literal("reload").requires(src -> src.hasPermissionLevel(2)).executes(ctx -> {
+                VoiceRegionManager active = VoiceRegionService.getActiveManager();
+                VoiceRegionManager used = active != null ? active : mgr;
+                int before = used.list().size();
+                int after = used.reload();
+                ctx.getSource().sendFeedback(() -> Text.literal("Reloaded voice regions: " + before + " -> " + after), false);
+                return after;
+            }));
             // Build tree
             botcRoot.then(voiceRoot);
             dispatcher.register(botcRoot);

@@ -2,7 +2,6 @@ package golden.botc_mc.botc_mc.game.voice;
 
 import golden.botc_mc.botc_mc.botc;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 
 import java.util.HashMap;
@@ -66,6 +65,10 @@ public class VoiceRegionTask implements Runnable {
     public void run() {
         long nowMs = System.currentTimeMillis();
         if (server == null) return; // safety
+        // Resolve the current manager: prefer active per-map, fallback to the constructed one
+        VoiceRegionManager resolved = VoiceRegionService.getActiveManager();
+        final VoiceRegionManager mgr = (resolved != null) ? resolved : this.manager;
+
         server.getPlayerManager().getPlayerList().forEach(p -> {
             try {
                 UUID pu = p.getUuid();
@@ -81,7 +84,7 @@ public class VoiceRegionTask implements Runnable {
                     return;
                 }
 
-                VoiceRegion detected = manager.regionForPlayer(p); // may log internally
+                VoiceRegion detected = mgr.regionForPlayer(p); // may log internally
                 if (watching) {
                     // Build detailed watch log regardless of region presence
                     StringBuilder sb = new StringBuilder();
@@ -95,7 +98,7 @@ public class VoiceRegionTask implements Runnable {
                     }
                     sb.append(" allBounds=");
                     boolean first = true;
-                    for (VoiceRegion r : manager.list()) {
+                    for (VoiceRegion r : mgr.list()) {
                         if (!first) sb.append(' '); else first = false;
                         sb.append(r.id).append(':').append(r.boundsDebug());
                     }

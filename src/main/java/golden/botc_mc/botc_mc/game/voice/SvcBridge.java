@@ -1,6 +1,7 @@
 package golden.botc_mc.botc_mc.game.voice;
 
 import golden.botc_mc.botc_mc.botc;
+import net.fabricmc.loader.api.FabricLoader; // added for mod version lookup
 import net.minecraft.server.network.ServerPlayerEntity;
 
 import java.lang.reflect.Field;
@@ -21,6 +22,11 @@ import java.util.*;
 public final class SvcBridge {
     private static boolean available = false;
     private static boolean initializing = false;
+    // NEW: flag to mark that the voice chat mod is not present; prevents repeated init spam
+    private static boolean permanentlyMissing = false;
+    private static int initAttempts = 0;
+    // Added missing version field
+    private static String detectedVoicechatVersion = null;
 
     private static Object serverVoiceEvents;            // de.maxhenkel.voicechat.voice.server.ServerVoiceEvents instance
     private static Object voiceServer;                  // de.maxhenkel.voicechat.voice.server.Server instance
@@ -61,15 +67,40 @@ public final class SvcBridge {
     private static java.lang.reflect.Constructor<?> joinedGroupPacketCtor;
 
     private static final List<String> diagnostics = new ArrayList<>();
-    // Alias mapping: desired logical name -> actual group UUID (when we cannot set name)
     private static final Map<String, UUID> aliasGroups = new HashMap<>();
+    private static boolean groupCreationUnavailable = false;
+    private static boolean groupCreationWarned = false;
+    private static final Set<String> failedCreationNames = new java.util.HashSet<>(); // names for which creation already failed
+
+    private static final Map<String, Integer> unresolvedGroupAttempts = new HashMap<>();
+    private static final Set<String> suppressedGroups = new HashSet<>();
+    private static final int SUPPRESS_THRESHOLD = 2; // log first attempt, second, then suppress
+    private static final int SUPPRESS_RELOG_INTERVAL = 200; // attempts between periodic log (approx ticks) when suppressed
+    private static final Map<String, Long> nextJoinAttemptMs = new HashMap<>();
+    private static final long BACKOFF_INITIAL_MS = 1000; // 1s after suppression
+    private static final long BACKOFF_MAX_MS = 15000; // cap backoff at 15s
+    private static final Map<String, Long> currentBackoffMs = new HashMap<>();
 
     private static void diag(String msg) {
+        // Lower verbosity: use debug unless first attempt or important
+        if (!permanentlyMissing) {
+            if (initAttempts <= 1) {
+                botc.LOGGER.info(msg);
+            } else {
+                botc.LOGGER.debug(msg);
+            }
+        } else {
+            // When permanently missing, suppress routine diagnostics
+            botc.LOGGER.debug(msg);
+        }
         diagnostics.add(msg);
-        botc.LOGGER.info(msg);
     }
 
-    public static List<String> getDiagnostics() { return new ArrayList<>(diagnostics); }
+    /** Quick check whether the external voice chat mod was detected at least once. */
+    public static boolean isModPresent() { return !permanentlyMissing; }
+    /** Returns true if features are disabled due to missing mod. */
+    public static boolean isDisabledNoMod() { return permanentlyMissing; }
+
     public static boolean isAvailable() { return available; }
 
     /** Returns true if the players voice state indicates they are connected (not disconnected). If unknown, returns true. */
@@ -115,32 +146,66 @@ public final class SvcBridge {
 
     /** Runtime check with lazy initialization */
     public static boolean isAvailableRuntime() {
+        if (permanentlyMissing) return false; // hard disabled
         if (!available) attemptInit();
         return available;
     }
 
     private static synchronized void attemptInit() {
-        if (available || initializing) return;
+        if (permanentlyMissing || available || initializing) return;
         initializing = true;
+        initAttempts++;
         try {
+            // Detect mod presence early; if class not found, mark missing and do not spam
+            try {
+                Class.forName("de.maxhenkel.voicechat.Voicechat");
+            } catch (ClassNotFoundException e) {
+                permanentlyMissing = true;
+                diag("SvcBridge: voice chat mod not detected; disabling voice features (no further attempts). ");
+                botc.LOGGER.info("[Voice] Simple Voice Chat mod not found; voice features disabled.");
+                return;
+            }
+
+            // Resolve version from Fabric loader if available
+            try {
+                FabricLoader.getInstance().getModContainer("voicechat").ifPresent(mc -> {
+                    detectedVoicechatVersion = mc.getMetadata().getVersion().getFriendlyString();
+                });
+            } catch (Throwable ignored) {}
+            if (detectedVoicechatVersion == null) detectedVoicechatVersion = "unknown";
+            botc.LOGGER.info("[Voice] Simple Voice Chat mod detected (version=" + detectedVoicechatVersion + "). Initializing integration...");
+
             Class<?> voicechatCls = Class.forName("de.maxhenkel.voicechat.Voicechat");
             Field serverField = voicechatCls.getField("SERVER");
             serverVoiceEvents = serverField.get(null);
             if (serverVoiceEvents == null) {
                 diag("SvcBridge: Voicechat.SERVER field is null");
+                botc.LOGGER.warn("[Voice] Mod detected (version=" + detectedVoicechatVersion + ") but SERVER field was null; integration disabled.");
                 return;
             }
             Method getServer = serverVoiceEvents.getClass().getMethod("getServer");
             voiceServer = getServer.invoke(serverVoiceEvents);
-            if (voiceServer == null) { diag("SvcBridge: getServer() returned null"); return; }
+            if (voiceServer == null) {
+                diag("SvcBridge: getServer() returned null");
+                botc.LOGGER.warn("[Voice] Mod detected (version=" + detectedVoicechatVersion + ") but getServer() returned null; integration disabled.");
+                return;
+            }
 
             Method getGroupManager = voiceServer.getClass().getMethod("getGroupManager");
             serverGroupManager = getGroupManager.invoke(voiceServer);
-            if (serverGroupManager == null) { diag("SvcBridge: getGroupManager() returned null"); return; }
+            if (serverGroupManager == null) {
+                diag("SvcBridge: getGroupManager() returned null");
+                botc.LOGGER.warn("[Voice] Mod detected (version=" + detectedVoicechatVersion + ") but group manager missing; integration disabled.");
+                return;
+            }
 
             Method getPlayerStateManager = voiceServer.getClass().getMethod("getPlayerStateManager");
             playerStateManager = getPlayerStateManager.invoke(voiceServer);
-            if (playerStateManager == null) { diag("SvcBridge: getPlayerStateManager() returned null"); return; }
+            if (playerStateManager == null) {
+                diag("SvcBridge: getPlayerStateManager() returned null");
+                botc.LOGGER.warn("[Voice] Mod detected (version=" + detectedVoicechatVersion + ") but player state manager missing; integration disabled.");
+                return;
+            }
 
             // Resolve group manager methods
             for (Method m : serverGroupManager.getClass().getMethods()) {
@@ -154,13 +219,6 @@ public final class SvcBridge {
                     case "getPlayerGroup" -> { if (m.getParameterCount()==1) gmGetPlayerGroup = m; }
                 }
             }
-            if (gmGetGroups == null) diag("SvcBridge: getGroups not found");
-            if (gmAddGroup == null) diag("SvcBridge: addGroup not found");
-            if (gmJoinGroup == null) diag("SvcBridge: joinGroup not found");
-            if (gmLeaveGroup == null) diag("SvcBridge: leaveGroup not found");
-            if (gmRemoveGroup == null) diag("SvcBridge: removeGroup(UUID) not found (alias lookup limited)");
-            if (gmGetGroup == null) diag("SvcBridge: getGroup(UUID) not found (alias lookup limited)");
-            if (gmGetPlayerGroup == null) diag("SvcBridge: getPlayerGroup(ServerPlayerEntity) not found (will use state fallback)");
 
             // Player state methods
             for (Method m : playerStateManager.getClass().getMethods()) {
@@ -170,107 +228,172 @@ public final class SvcBridge {
                 if (m.getName().equals("broadcastRemoveState") && m.getParameterCount()==1) psBroadcastRemoveState = m;
                 if (m.getName().equals("defaultDisconnectedState") && m.getParameterCount()==1) psDefaultDisconnectedState = m;
             }
-            if (psGetState == null) diag("SvcBridge: PlayerStateManager.getState(UUID) not found");
-            if (psSetGroup == null) diag("SvcBridge: PlayerStateManager.setGroup(ServerPlayerEntity,UUID) not found (will try gm methods)");
-            if (psBroadcastState == null) diag("SvcBridge: PlayerStateManager.broadcastState not found (client UI may not update)");
-            if (psBroadcastRemoveState == null) diag("SvcBridge: PlayerStateManager.broadcastRemoveState not found (client UI may not clear)");
-            if (psDefaultDisconnectedState == null) diag("SvcBridge: PlayerStateManager.defaultDisconnectedState not found (will use broadcastState fallback)");
 
-            // Group class metadata (we will inspect one element later when available)
-            Class<?> groupClass = Class.forName("de.maxhenkel.voicechat.voice.server.Group");
-            if (groupTypeClass == null) {
-                try {
-                    groupTypeClass = Class.forName("de.maxhenkel.voicechat.api.Group$Type");
-                    for (Field f : groupTypeClass.getFields()) {
-                        if (f.getName().equalsIgnoreCase("open")) {
-                            groupTypeOpenConstant = f.get(null);
-                            diag("SvcBridge: found Group$Type.OPEN constant");
-                            break;
-                        }
-                    }
-                } catch (ClassNotFoundException e) {
-                    diag("SvcBridge: Group$Type class not found");
-                } catch (Throwable t) {
-                    diag("SvcBridge: Group$Type reflection error: " + t);
-                }
+            // Determine availability: minimal requirement is getGroups present
+            available = gmGetGroups != null;
+            if (available) {
+                botc.LOGGER.info("[Voice] Simple Voice Chat integration enabled (version=" + detectedVoicechatVersion + ").");
+            } else {
+                botc.LOGGER.warn("[Voice] Simple Voice Chat detected (version=" + detectedVoicechatVersion + ") but required methods missing; voice features disabled.");
             }
-            for (Method m : groupClass.getMethods()) {
-                if (m.getName().equals("getId") && m.getParameterCount()==0) groupGetId = m;
-                if (m.getName().equals("getName") && m.getParameterCount()==0) groupGetName = m;
-                if (m.getName().equals("getPassword") && m.getParameterCount()==0) groupGetPassword = m;
-                if ((m.getName().equalsIgnoreCase("setPassword") || m.getName().equalsIgnoreCase("password")) && m.getParameterCount()==1 && m.getParameterTypes()[0]==String.class) groupSetPassword = m;
-                if ((m.getName().equalsIgnoreCase("setOpen") || m.getName().equalsIgnoreCase("open") || m.getName().equalsIgnoreCase("setIsOpen")) && m.getParameterCount()==1 && (m.getParameterTypes()[0]==boolean.class || m.getParameterTypes()[0]==Boolean.class)) groupSetOpen = m;
-            }
-            if (groupGetId == null) diag("SvcBridge: Group.getId not found");
-            if (groupGetName == null) diag("SvcBridge: Group.getName not found");
-            // Try to find a persistence boolean field
-            for (Field f : groupClass.getDeclaredFields()) {
-                if (f.getType() == boolean.class || f.getType() == Boolean.class) {
-                    String n = f.getName().toLowerCase();
-                    if (n.contains("persist")) {
-                        f.setAccessible(true);
-                        groupPersistentField = f;
-                        diag("SvcBridge: found persistent field candidate: " + f.getName());
-                        break;
-                    }
-                }
-                if (groupTypeField == null && groupTypeClass != null && groupTypeClass.isAssignableFrom(f.getType())) {
-                    f.setAccessible(true);
-                    groupTypeField = f;
-                    diag("SvcBridge: found type field: " + f.getName());
-                }
-            }
-
-            // GroupImpl path (optional)
-            try {
-                Class<?> groupImplCls = Class.forName("de.maxhenkel.voicechat.plugins.impl.GroupImpl");
-                for (Method m : groupImplCls.getMethods()) {
-                    if (m.getName().equals("create") && m.getParameterCount()==1) groupImplCreate = m;
-                    if (m.getName().equals("getGroup") && m.getParameterCount()==0) groupImplGetGroup = m;
-                }
-                // Attempt to find a name field to override
-                for (Field f : groupImplCls.getDeclaredFields()) {
-                    if (f.getName().equalsIgnoreCase("name") || f.getType()==String.class) {
-                        f.setAccessible(true);
-                        groupNameField = f;
-                        break;
-                    }
-                }
-                if (groupImplCreate != null) diag("SvcBridge: GroupImpl.create found");
-                else diag("SvcBridge: GroupImpl.create not found (group creation fallback limited)");
-            } catch (ClassNotFoundException e) {
-                diag("SvcBridge: GroupImpl class not found; will not attempt reflective creation");
-            }
-
-            // Try to locate NetManager.sendToClient and JoinedGroupPacket for fallback packet sends
-            try {
-                Class<?> netMgrCls = Class.forName("de.maxhenkel.voicechat.net.NetManager");
-                for (Method m : netMgrCls.getMethods()) {
-                    if (m.getName().equals("sendToClient") && m.getParameterCount()==2) {
-                        netSendToClient = m; // static
-                        break;
-                    }
-                }
-                try {
-                    joinedGroupPacketClass = Class.forName("de.maxhenkel.voicechat.net.JoinedGroupPacket");
-                    for (var ctor : joinedGroupPacketClass.getDeclaredConstructors()) {
-                        Class<?>[] pts = ctor.getParameterTypes();
-                        if (pts.length==2 && (UUID.class.isAssignableFrom(pts[0]) || Object.class.isAssignableFrom(pts[0]))) {
-                            // expect (UUID, boolean) or similar
-                            ctor.setAccessible(true);
-                            joinedGroupPacketCtor = ctor;
-                            break;
-                        }
-                    }
-                } catch (ClassNotFoundException ignored) {}
-            } catch (ClassNotFoundException ignored) {}
-
-            available = gmGetGroups != null; // minimal requirement
             diag("SvcBridge: initialization " + (available ? "succeeded" : "incomplete"));
         } catch (Throwable t) {
             diag("SvcBridge: initialization error: " + t);
+            botc.LOGGER.warn("[Voice] Initialization error; voice features disabled: " + t.getMessage());
         } finally {
             initializing = false;
+        }
+    }
+
+    private static boolean voiceConfigLoaded = false;
+    private static boolean suppressGroupCreationWarn = false;
+
+    private static void loadVoiceConfigIfNeeded() {
+        if (voiceConfigLoaded) return;
+        voiceConfigLoaded = true;
+        try {
+            java.io.File cfgDir = new java.io.File("run/config");
+            if (!cfgDir.exists()) cfgDir.mkdirs();
+            java.io.File f = new java.io.File(cfgDir, "botc-voice.properties");
+            java.util.Properties props = new java.util.Properties();
+            if (f.exists()) {
+                try (java.io.FileInputStream in = new java.io.FileInputStream(f)) {
+                    props.load(in);
+                }
+            } else {
+                // create with default values
+                props.setProperty("suppress_group_creation_warn", "true");
+                try (java.io.FileOutputStream out = new java.io.FileOutputStream(f)) {
+                    props.store(out, "BOTC voice integration settings");
+                }
+            }
+            suppressGroupCreationWarn = Boolean.parseBoolean(props.getProperty("suppress_group_creation_warn", "true"));
+        } catch (Throwable t) {
+            botc.LOGGER.debug("[Voice] Failed to load voice config: {}", t.toString());
+        }
+    }
+
+    private static void markGroupCreationUnavailable(String reason) {
+        loadVoiceConfigIfNeeded();
+        if (groupCreationUnavailable) return;
+        groupCreationUnavailable = true;
+        if (!groupCreationWarned) {
+            groupCreationWarned = true;
+            if (suppressGroupCreationWarn) {
+                botc.LOGGER.info("[Voice] Group auto-creation disabled (suppressed warn): {}", reason);
+            } else {
+                botc.LOGGER.warn("[Voice] Unable to create voice chat groups automatically: {}", reason);
+            }
+            diagnostics.add("SvcBridge: group creation disabled (" + reason + ")");
+        }
+    }
+
+    private static void clearPasswordAndOpen(Object group) {
+        if (group == null) return;
+        boolean passwordCleared = false;
+        boolean openForced = false;
+        boolean hiddenCleared = false;
+        boolean persistentForced = false;
+        boolean typeForced = false;
+        try {
+            if (groupSetOpen != null) {
+                try { groupSetOpen.invoke(group, true); openForced = true; } catch (Throwable ignored) {}
+            }
+            if (groupSetPassword != null) {
+                try { groupSetPassword.invoke(group, (Object) null); passwordCleared = true; } catch (Throwable ignored) {}
+            }
+            Class<?> cls = group.getClass();
+            for (Field f : cls.getDeclaredFields()) {
+                try {
+                    f.setAccessible(true);
+                    String fname = f.getName().toLowerCase();
+                    Class<?> ft = f.getType();
+                    if (ft == String.class && (fname.contains("pass") || fname.contains("password") || fname.contains("pwd"))) {
+                        f.set(group, null);
+                        passwordCleared = true;
+                    } else if ((ft == boolean.class || ft == Boolean.class) && fname.contains("open")) {
+                        f.set(group, true);
+                        openForced = true;
+                    } else if ((ft == boolean.class || ft == Boolean.class) && fname.contains("hidden")) {
+                        f.set(group, false);
+                        hiddenCleared = true;
+                    } else if ((ft == boolean.class || ft == Boolean.class) && fname.contains("persist")) {
+                        f.set(group, true);
+                        persistentForced = true;
+                    } else if (groupTypeField != null && f.equals(groupTypeField) && groupTypeOpenConstant != null) {
+                        f.set(group, groupTypeOpenConstant);
+                        typeForced = true;
+                    }
+                } catch (Throwable ignored) {}
+            }
+            for (Method m : group.getClass().getMethods()) {
+                try {
+                    String name = m.getName().toLowerCase();
+                    if (name.contains("setopen") && m.getParameterCount()==1 && (m.getParameterTypes()[0]==boolean.class || m.getParameterTypes()[0]==Boolean.class)) {
+                        m.invoke(group, true);
+                        openForced = true;
+                    } else if (name.contains("password") && m.getParameterCount()==1 && m.getParameterTypes()[0]==String.class) {
+                        m.invoke(group, (Object) null);
+                        passwordCleared = true;
+                    } else if (name.contains("hidden") && m.getParameterCount()==1 && (m.getParameterTypes()[0]==boolean.class || m.getParameterTypes()[0]==Boolean.class)) {
+                        m.invoke(group, false);
+                        hiddenCleared = true;
+                    } else if (name.contains("persist") && m.getParameterCount()==1 && (m.getParameterTypes()[0]==boolean.class || m.getParameterTypes()[0]==Boolean.class)) {
+                        m.invoke(group, true);
+                        persistentForced = true;
+                    }
+                } catch (Throwable ignored) {}
+            }
+            if (groupTypeField != null && groupTypeOpenConstant != null && !typeForced) {
+                try {
+                    groupTypeField.setAccessible(true);
+                    groupTypeField.set(group, groupTypeOpenConstant);
+                    typeForced = true;
+                } catch (Throwable ignored) {}
+            }
+        } catch (Throwable t) {
+            diag("SvcBridge: clearPasswordAndOpen failed: " + t.getMessage());
+            return;
+        }
+        if (passwordCleared || openForced || hiddenCleared || persistentForced || typeForced) {
+            botc.LOGGER.debug("[Voice] Sanitized group {} (pwCleared={}, open={}, hidden={}, persistent={}, typeOpen={})",
+                    describeGroup(group), passwordCleared, openForced, hiddenCleared, persistentForced, typeForced);
+        }
+    }
+
+    private static boolean groupIntrospectionReady = false;
+
+    private static void ensureGroupIntrospection(Object sampleGroup) {
+        if (groupIntrospectionReady || sampleGroup == null) return;
+        Class<?> cls = sampleGroup.getClass();
+        try {
+            if (groupGetName == null) {
+                try { groupGetName = cls.getMethod("getName"); } catch (Throwable ignored) {}
+                if (groupGetName == null) {
+                    try { groupGetName = cls.getMethod("name"); } catch (Throwable ignored) {}
+                }
+            }
+            if (groupGetId == null) {
+                try { groupGetId = cls.getMethod("getId"); } catch (Throwable ignored) {}
+            }
+            if (groupPersistentField == null) {
+                try { groupPersistentField = cls.getDeclaredField("persistent"); groupPersistentField.setAccessible(true); } catch (Throwable ignored) {}
+            }
+            if (groupGetPassword == null) {
+                try { groupGetPassword = cls.getMethod("getPassword"); } catch (Throwable ignored) {}
+            }
+            if (groupSetPassword == null) {
+                try { groupSetPassword = cls.getMethod("setPassword", String.class); } catch (Throwable ignored) {}
+            }
+            if (groupSetOpen == null) {
+                try { groupSetOpen = cls.getMethod("setOpen", boolean.class); } catch (Throwable ignored) {}
+            }
+            if (groupNameField == null) {
+                try { Field f = cls.getDeclaredField("name"); f.setAccessible(true); groupNameField = f; } catch (Throwable ignored) {}
+            }
+            groupIntrospectionReady = (groupGetName != null && groupGetId != null) || groupNameField != null;
+        } catch (Throwable t) {
+            diag("SvcBridge: ensureGroupIntrospection error: " + t.getMessage());
         }
     }
 
@@ -283,12 +406,46 @@ public final class SvcBridge {
             if (mapObj instanceof Map<?,?> m) {
                 Map<UUID,Object> out = new HashMap<>();
                 for (Map.Entry<?,?> e : m.entrySet()) {
-                    if (e.getKey() instanceof UUID u) out.put(u, e.getValue());
+                    if (e.getKey() instanceof UUID u) {
+                        Object group = e.getValue();
+                        if (group != null) ensureGroupIntrospection(group);
+                        out.put(u, group);
+                    }
                 }
                 return out;
             }
         } catch (Throwable t) { diag("SvcBridge: rawGroups error: " + t); }
         return Collections.emptyMap();
+    }
+
+    public static Object getGroupById(UUID id) {
+        if (gmGetGroup == null || id == null) return null;
+        try {
+            Object group = gmGetGroup.invoke(serverGroupManager, id);
+            if (group != null) ensureGroupIntrospection(group);
+            return group;
+        } catch (Throwable t) {
+            diag("SvcBridge: getGroupById error: " + t.getMessage());
+            return null;
+        }
+    }
+
+    public static void markPersistent(Object group) {
+        if (group == null) return;
+        if (groupPersistentField != null) {
+            try {
+                groupPersistentField.set(group, true);
+                return;
+            } catch (Throwable ignored) {}
+        }
+        for (Method m : group.getClass().getMethods()) {
+            if (m.getParameterCount() == 1 && (m.getName().equalsIgnoreCase("setPersistent") || m.getName().equalsIgnoreCase("persistent"))) {
+                try {
+                    m.invoke(group, true);
+                    return;
+                } catch (Throwable ignored) {}
+            }
+        }
     }
 
     // Attempt to send a JoinedGroupPacket to a player via NetManager (best-effort fallback)
@@ -308,202 +465,96 @@ public final class SvcBridge {
 
     // Find group by name
     private static Object findGroupByName(String name) {
+        if (name == null) return null;
         for (Object g : rawGroups().values()) {
-            try {
-                if (groupGetName != null) {
-                    Object n = groupGetName.invoke(g);
-                    if (n != null && n.toString().equalsIgnoreCase(name)) return g;
-                }
-            } catch (Throwable ignored) {}
+            String found = extractGroupName(g);
+            if (found != null && found.equalsIgnoreCase(name)) return g;
         }
         return null;
     }
 
     private static UUID getGroupId(Object group) {
-        try { return (UUID) groupGetId.invoke(group); } catch (Throwable ignored) { return null; }
-    }
-
-    // Helper to fetch a group object by UUID via ServerGroupManager.getGroup(UUID)
-    public static Object getGroupById(UUID id) {
-        if (gmGetGroup == null || id == null) return null;
-        try { return gmGetGroup.invoke(serverGroupManager, id); } catch (Throwable ignored) { return null; }
-    }
-
-    private static void markPersistent(Object group) {
-        if (group == null) return;
-        if (groupPersistentField != null) {
-            try {
-                groupPersistentField.set(group, true);
-                diag("SvcBridge: marked group persistent via field " + groupPersistentField.getName());
-                return;
-            } catch (Throwable t) {
-                diag("SvcBridge: failed to set persistent field: " + t.getMessage());
-            }
-        }
-        // attempt method-based setters if available
-        for (Method m : group.getClass().getMethods()) {
-            if (m.getParameterCount()==1 && (m.getName().equalsIgnoreCase("setPersistent") || m.getName().equalsIgnoreCase("persistent"))) {
-                try { m.invoke(group, true); diag("SvcBridge: marked group persistent via method " + m.getName()); return; } catch (Throwable ignored) {}
-            }
-        }
-    }
-
-    private static void clearPasswordAndOpen(Object group) {
-        if (group == null) return;
+        if (group == null) return null;
         try {
-            // Try explicit method-based open/password setters first
-            if (groupSetOpen != null) {
-                try { groupSetOpen.invoke(group, true); diag("SvcBridge: set group open via method"); } catch (Throwable ignored) {}
+            if (groupGetId != null) {
+                Object res = groupGetId.invoke(group);
+                if (res instanceof UUID u) return u;
             }
-            if (groupSetPassword != null) {
-                try { groupSetPassword.invoke(group, (Object) null); diag("SvcBridge: cleared password via setter"); } catch (Throwable ignored) {}
-            }
+        } catch (Throwable ignored) {}
+        return coerceUuid(group);
+    }
 
-            // Inspect fields and set common names by heuristics
-            Class<?> cls = group.getClass();
-            for (Field f : cls.getDeclaredFields()) {
+    private static String describeGroup(Object group) {
+        if (group == null) return "<null>";
+        String name = extractGroupName(group);
+        UUID id = getGroupId(group);
+        if (name != null && id != null) return name + "/" + id;
+        if (name != null) return name;
+        if (id != null) return id.toString();
+        return group.getClass().getSimpleName();
+    }
+
+    private static void setGroupNameIfPossible(Object group, String desiredName) {
+        if (group == null || desiredName == null || desiredName.isEmpty()) return;
+        if (groupNameField != null) {
+            try { groupNameField.setAccessible(true); groupNameField.set(group, desiredName); return; } catch (Throwable ignored) {}
+        }
+        try {
+            Method setter = group.getClass().getMethod("setName", String.class);
+            setter.invoke(group, desiredName);
+            return;
+        } catch (Throwable ignored) {}
+        for (Field f : group.getClass().getDeclaredFields()) {
+            if (f.getType() == String.class && f.getName().toLowerCase().contains("name")) {
                 try {
                     f.setAccessible(true);
-                    String fname = f.getName().toLowerCase();
-                    Class<?> ft = f.getType();
-                    if (ft == String.class && (fname.contains("pass") || fname.contains("password") || fname.contains("pwd"))) {
-                        // set to null (important: empty string can trigger password check as non-null)
-                        f.set(group, null);
-                        diag("SvcBridge: cleared password via field " + f.getName());
-                    } else if ((ft == boolean.class || ft == Boolean.class) && fname.contains("open")) {
-                        f.set(group, true);
-                        diag("SvcBridge: set open via field " + f.getName());
-                    } else if ((ft == boolean.class || ft == Boolean.class) && fname.contains("hidden")) {
-                        // ensure group is not hidden
-                        f.set(group, false);
-                        diag("SvcBridge: cleared hidden flag via field " + f.getName());
-                    } else if ((ft == boolean.class || ft == Boolean.class) && fname.contains("persist")) {
-                        f.set(group, true);
-                        diag("SvcBridge: set persistent via field " + f.getName());
-                    } else if (groupTypeField != null && f.equals(groupTypeField) && groupTypeOpenConstant != null) {
-                        // force OPEN type
-                        f.set(group, groupTypeOpenConstant);
-                        diag("SvcBridge: set type OPEN via field " + f.getName());
-                    }
+                    f.set(group, desiredName);
+                    return;
                 } catch (Throwable ignored) {}
             }
-
-            // Also attempt method-based setters for common names
-            for (Method m : group.getClass().getMethods()) {
-                try {
-                    String name = m.getName().toLowerCase();
-                    if (name.contains("setopen") && m.getParameterCount()==1 && (m.getParameterTypes()[0]==boolean.class || m.getParameterTypes()[0]==Boolean.class)) {
-                        try { m.invoke(group, true); diag("SvcBridge: set open via method " + m.getName()); } catch (Throwable ignored) {}
-                    }
-                    if (name.contains("password") && m.getParameterCount()==1 && m.getParameterTypes()[0]==String.class) {
-                        try { m.invoke(group, (Object) null); diag("SvcBridge: cleared password via method " + m.getName()); } catch (Throwable ignored) {}
-                    }
-                    if (name.contains("hidden") && m.getParameterCount()==1 && (m.getParameterTypes()[0]==boolean.class || m.getParameterTypes()[0]==Boolean.class)) {
-                        try { m.invoke(group, false); diag("SvcBridge: cleared hidden via method " + m.getName()); } catch (Throwable ignored) {}
-                    }
-                    if (name.contains("persist") && m.getParameterCount()==1 && (m.getParameterTypes()[0]==boolean.class || m.getParameterTypes()[0]==Boolean.class)) {
-                        try { m.invoke(group, true); diag("SvcBridge: set persistent via method " + m.getName()); } catch (Throwable ignored) {}
-                    }
-                } catch (Throwable ignored) {}
-            }
-
-            // If we discovered a type field and OPEN constant separately, ensure again
-            try {
-                if (groupTypeField != null && groupTypeOpenConstant != null) {
-                    groupTypeField.setAccessible(true);
-                    groupTypeField.set(group, groupTypeOpenConstant);
-                    diag("SvcBridge: enforced OPEN type via cached type field");
-                }
-            } catch (Throwable ignored) {}
-        } catch (Throwable t) {
-            diag("SvcBridge: clearPasswordAndOpen failed: " + t.getMessage());
         }
     }
 
     /** Creates a group if missing, returning UUID (or null on failure). */
     public static UUID createOrGetGroup(String desiredName, ServerPlayerEntity creator) {
+        if (desiredName == null || desiredName.isEmpty()) return null;
         if (!isAvailableRuntime()) return null;
-        Object existing = findGroupByName(desiredName);
-        if (existing != null) return getGroupId(existing);
-        // If alias already exists, return mapped UUID (group may have different internal name)
+        // Fast path: already exists
+        Object existingFast = findGroupByName(desiredName);
+        if (existingFast != null) return getGroupId(existingFast);
         if (aliasGroups.containsKey(desiredName)) {
             UUID mapped = aliasGroups.get(desiredName);
-            Object aliasGroup = SvcBridge.getGroupById(mapped);
-            if (aliasGroup != null) return mapped; // still valid
+            Object aliasGroup = getGroupById(mapped);
+            if (aliasGroup != null) return mapped;
         }
+        if (groupCreationUnavailable || failedCreationNames.contains(desiredName)) return null;
 
-        // Attempt creation via GroupImpl if available (requires non-null creator)
+        // Snapshot BEFORE we attempt anything for later diff salvage
+        Map<UUID, Object> before = rawGroups();
+
+        // --- Attempt via GroupImpl path (unchanged) ---
         if (creator != null && groupImplCreate != null && psGetState != null) {
             try {
-                // capture groups before
-                Map<UUID,Object> before = rawGroups();
                 Object state = psGetState.invoke(playerStateManager, creator.getUuid());
                 if (state != null) {
                     Object groupImpl = groupImplCreate.invoke(null, state);
                     if (groupImpl != null && groupImplGetGroup != null) {
                         Object group = groupImplGetGroup.invoke(groupImpl);
-                        // rename if possible on returned group object (preferred)
                         if (group != null) {
-                            try {
-                                // prefer setting name on the actual Group object
-                                for (Field f : group.getClass().getDeclaredFields()) {
-                                    if (f.getType() == String.class && f.getName().equalsIgnoreCase("name")) {
-                                        f.setAccessible(true);
-                                        f.set(group, desiredName);
-                                        break;
-                                    }
-                                }
-                            } catch (Throwable ignored) {}
-                        }
-                        // fallback: try to set name on the impl if we couldn't on the group
-                        if ((group == null || (groupGetName != null && !desiredName.equalsIgnoreCase((String) (groupGetName.invoke(group))))) && groupNameField != null) {
-                            try { groupNameField.set(groupImpl, desiredName); } catch (Throwable ignored) {}
-                        }
-
-                        if (group != null) {
-                            // Mark persistent before adding if possible
+                            // try to name group
+                            try { for (Field f : group.getClass().getDeclaredFields()) { if (f.getType()==String.class && f.getName().equalsIgnoreCase("name")) { f.setAccessible(true); f.set(group, desiredName); break; } } } catch (Throwable ignored) {}
                             markPersistent(group);
-                            // ensure group is open and has no password so joins don't fail
                             clearPasswordAndOpen(group);
-                            if (gmAddGroup != null) gmAddGroup.invoke(serverGroupManager, group, (Object) null); // don't auto-join creator
+                            if (gmAddGroup != null) gmAddGroup.invoke(serverGroupManager, group, (Object) null);
                             Object after = findGroupByName(desiredName);
-                            if (after != null) {
-                                UUID resultId = getGroupId(after);
-                                // ensure persisted and no password on authoritative instance
-                                if (resultId != null) {
-                                    clearPasswordAndOpenById(resultId);
-                                    markPersistent(getGroupById(resultId));
-                                }
-                                return getGroupId(after);
-                            }
-                            // fallback: compare new groups added
-                            Map<UUID,Object> afterMap = rawGroups();
-                            for (UUID id : afterMap.keySet()) {
-                                if (!before.containsKey(id)) {
-                                    aliasGroups.put(desiredName, id);
-                                    // repair the newly added group
-                                    clearPasswordAndOpenById(id);
-                                    markPersistent(getGroupById(id));
-                                    diag("SvcBridge: aliased logical name '" + desiredName + "' to UUID " + id);
-                                    return id;
-                                }
-                            }
-                            // fallback: return id of created group
-                            UUID fallbackId = getGroupId(group);
-                            if (fallbackId != null) {
-                                clearPasswordAndOpenById(fallbackId);
-                                markPersistent(getGroupById(fallbackId));
-                            }
-                            return getGroupId(group);
+                            if (after != null) return getGroupId(after);
                         }
                     }
                 }
-            } catch (Throwable t) {
-                diag("SvcBridge: group creation via GroupImpl failed: " + t);
-            }
+            } catch (Throwable t) { diag("SvcBridge: group creation via GroupImpl failed: " + t); }
         }
 
-        // Constructor-based fallback: try to instantiate server Group directly
+        // --- Constructor fallback ---
         try {
             Class<?> serverGroupCls = Class.forName("de.maxhenkel.voicechat.voice.server.Group");
             for (var ctor : serverGroupCls.getDeclaredConstructors()) {
@@ -511,181 +562,125 @@ public final class SvcBridge {
                     Class<?>[] params = ctor.getParameterTypes();
                     Object[] args = new Object[params.length];
                     UUID newId = UUID.randomUUID();
-                    int stringCount = 0;
-                    int booleanCount = 0;
-                    for (int i = 0; i < params.length; i++) {
+                    int stringCount = 0; int booleanCount = 0;
+                    for (int i=0;i<params.length;i++) {
                         Class<?> pt = params[i];
                         if (UUID.class.isAssignableFrom(pt)) args[i] = newId;
-                        else if (pt == String.class) {
-                            // only the first String param is the name; subsequent String params (e.g., password) should be null
-                            if (stringCount == 0) { args[i] = desiredName; } else { args[i] = null; }
-                            stringCount++;
-                        }
-                        else if (pt.isEnum()) {
-                            Object[] ec = pt.getEnumConstants();
-                            args[i] = ec != null && ec.length > 0 ? ec[0] : null;
-                        } else if (pt == boolean.class || pt == Boolean.class) {
-                            // heuristics: if first boolean -> persistent=true, second boolean -> hidden=false
-                            args[i] = (booleanCount == 0) ? Boolean.TRUE : Boolean.FALSE;
-                            booleanCount++;
-                        } else if (Number.class.isAssignableFrom(pt) || pt.isPrimitive()) {
-                            // numeric defaults
-                            if (pt == int.class || pt == Integer.class) args[i] = 0;
-                            else if (pt == long.class || pt == Long.class) args[i] = 0L;
-                            else if (pt == float.class || pt == Float.class) args[i] = 0f;
-                            else if (pt == double.class || pt == Double.class) args[i] = 0d;
-                            else if (pt == short.class || pt == Short.class) args[i] = (short)0;
-                            else if (pt == byte.class || pt == Byte.class) args[i] = (byte)0;
-                            else args[i] = null;
-                        } else {
-                            args[i] = null; // unsupported type
-                        }
+                        else if (pt==String.class) { args[i] = (stringCount==0? desiredName : null); stringCount++; }
+                        else if (pt.isEnum()) { Object[] ec = pt.getEnumConstants(); args[i] = (ec!=null && ec.length>0)? ec[0] : null; }
+                        else if (pt==boolean.class || pt==Boolean.class) { args[i] = (booleanCount==0); booleanCount++; }
+                        else if (Number.class.isAssignableFrom(pt) || pt.isPrimitive()) { args[i] = 0; }
+                        else args[i] = null;
                     }
                     ctor.setAccessible(true);
                     Object groupObj = ctor.newInstance(args);
                     if (groupObj != null && gmAddGroup != null) {
-                        // heuristically mark persistent
+                        setGroupNameIfPossible(groupObj, desiredName);
                         markPersistent(groupObj);
                         clearPasswordAndOpen(groupObj);
-                        gmAddGroup.invoke(serverGroupManager, groupObj, (Object) null); // don't auto-join creator
+                        gmAddGroup.invoke(serverGroupManager, groupObj, (Object) null);
                         Object after = findGroupByName(desiredName);
-                        if (after != null) {
-                            UUID resultId = getGroupId(after);
-                            if (resultId != null) {
-                                clearPasswordAndOpenById(resultId);
-                                markPersistent(getGroupById(resultId));
-                            }
-                            return getGroupId(after);
-                        }
-                        UUID id = getGroupId(groupObj);
-                        if (id != null) {
-                            // ensure the authoritative instance is clear/open
-                            clearPasswordAndOpenById(id);
-                            markPersistent(getGroupById(id));
-                            aliasGroups.put(desiredName, id);
-                            diag("SvcBridge: constructed Group via ctor; aliasing '" + desiredName + "' to UUID " + id);
-                            return id;
-                        }
+                        if (after != null) return getGroupId(after);
+                        UUID fallback = getGroupId(groupObj);
+                        if (fallback != null) { aliasGroups.put(desiredName, fallback); return fallback; }
                     }
                 } catch (Throwable ignored) {}
             }
-        } catch (Throwable t) {
-            diag("SvcBridge: constructor fallback failed: " + t);
+        } catch (Throwable t) { diag("SvcBridge: constructor fallback failed: " + t); }
+
+        // --- Salvage Phase: check if any new groups appeared even though we didn't find by name ---
+        Map<UUID, Object> afterAll = rawGroups();
+        List<UUID> newIds = new ArrayList<>();
+        for (UUID id : afterAll.keySet()) if (!before.containsKey(id)) newIds.add(id);
+        if (!newIds.isEmpty()) {
+            // Keep the first, remove extras to prevent 4 duplicate groups
+            UUID keep = newIds.get(0);
+            for (int i=1;i<newIds.size();i++) removeGroup(newIds.get(i));
+            Object keptGroup = getGroupById(keep);
+            // Attempt to rename kept group to desiredName if possible
+            if (keptGroup != null) {
+                setGroupNameIfPossible(keptGroup, desiredName);
+                markPersistent(keptGroup); clearPasswordAndOpen(keptGroup);
+            }
+            aliasGroups.put(desiredName, keep);
+            diag("SvcBridge: salvaged newly created group for '"+desiredName+"' -> " + keep + " (deduped " + newIds.size() + " total)");
+            return keep;
         }
+
+        // Final failure
         diag("SvcBridge: unable to create group '" + desiredName + "' (no builder available)");
+        failedCreationNames.add(desiredName);
+        markGroupCreationUnavailable("no compatible builder/constructor (voicechat " + (detectedVoicechatVersion==null?"unknown":detectedVoicechatVersion) + ")");
         return null;
     }
 
     /** Join group by name (create if absent). */
     public static boolean joinGroupByName(ServerPlayerEntity player, String groupName) {
+        if (player == null || groupName == null || groupName.isEmpty()) return false;
         if (!isAvailableRuntime()) return false;
+        if (shouldSkipJoinAttempt(groupName)) return false; // honor backoff silently
         Object group = findGroupByName(groupName);
         if (group == null && aliasGroups.containsKey(groupName)) {
-            group = SvcBridge.getGroupById(aliasGroups.get(groupName));
+            group = getGroupById(aliasGroups.get(groupName));
         }
-        UUID gid = null;
-        if (group != null) gid = getGroupId(group);
+        UUID gid = group == null ? null : getGroupId(group);
 
-        if (group == null) {
-            UUID id = createOrGetGroup(groupName, player);
-            if (id == null) {
-                diag("SvcBridge: failed to create or find group '" + groupName + "'");
-                return false;
-            }
-            gid = id;
-            group = SvcBridge.getGroupById(gid);
-            if (group == null) {
-                // attempt to find by name as last resort
-                group = findGroupByName(groupName);
-                if (group == null) {
-                    diag("SvcBridge: group created but authoritative instance not found for '" + groupName + "'");
-                }
-            }
+        // If suppressed but now exists, unsuppress to allow join
+        if (suppressedGroups.contains(groupName) && group != null) {
+            unsuppressGroup(groupName);
         }
 
-        try {
-            if (gid == null) {
-                gid = getGroupId(group);
-                if (gid == null) { diag("SvcBridge: group has no UUID, cannot join"); return false; }
+        // If group missing and creation disabled or previously failed, attempt fallback alias first
+        if (group == null && (groupCreationUnavailable || failedCreationNames.contains(groupName))) {
+            Map<UUID,Object> groups = rawGroups();
+            for (Map.Entry<UUID,Object> e : groups.entrySet()) {
+                group = e.getValue();
+                gid = e.getKey();
+                aliasGroups.put(groupName, gid);
+                diag("SvcBridge: fallback aliased '" + groupName + "' -> existing group UUID=" + gid);
+                break;
             }
-
-            // Use authoritative instance from manager if available
-            Object authGroup = SvcBridge.getGroupById(gid);
-            if (authGroup != null) group = authGroup;
-
-            // Repair authoritative group before attempting join (clear password/open, persistent)
-            try {
-                repairGroupById(gid, player);
-            } catch (Throwable t) { diag("SvcBridge: repairGroupById threw: " + t); }
-
-            // Try to join via ServerGroupManager.joinGroup if available
-            boolean joinedAttempt = false;
-            if (gmJoinGroup != null) {
-                try {
-                    // ensure authoritative group has no password/open
-                    ensureAuthoritativeCleared(gid, player);
-                    // pass null password to indicate no-password join
-                    gmJoinGroup.invoke(serverGroupManager, group, player, (Object) null);
-                    joinedAttempt = true;
-                    diag("SvcBridge: invoked gmJoinGroup for '" + groupName + "' (id=" + gid + ")");
-                } catch (Throwable t) {
-                    diag("SvcBridge: gmJoinGroup failed for '" + groupName + "': " + t);
-                }
+        }
+        // Attempt creation if still missing and creation not disabled
+        if (group == null && !groupCreationUnavailable) {
+            UUID created = createOrGetGroup(groupName, player);
+            if (created != null) {
+                group = getGroupById(created);
+                gid = created;
             }
-
-            // Verify membership with snappier retries (to allow SVC internal update)
-            final int MAX_RETRY = 15;
-            final long RETRY_SLEEP_MS = 20; // snappier but slightly longer total
-            for (int i = 0; i < MAX_RETRY; i++) {
-                UUID now = getPlayerGroupId(player);
-                if (now != null && now.equals(gid)) {
-                    return true;
-                }
-                try { Thread.sleep(RETRY_SLEEP_MS); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
-            }
-
-            // Fallbacks: try to directly notify client and set player state
-            boolean fallbackOk = false;
-            try {
-                // try to send JoinedGroupPacket via NetManager if available
-                if (sendJoinedGroupPacket(player, gid, false)) {
-                    // wait briefly for state to sync
-                    for (int i = 0; i < 10; i++) {
-                        UUID now = getPlayerGroupId(player);
-                        if (now != null && now.equals(gid)) return true;
-                        try { Thread.sleep(25); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
-                    }
-                    fallbackOk = true;
-                }
-            } catch (Throwable ignored) {}
-
-            if (!fallbackOk) {
-                try {
-                    // Last-resort: set player state directly and broadcast state so client updates (may not fully enable audio path)
-                    if (psSetGroup != null) {
-                        psSetGroup.invoke(playerStateManager, player, gid);
-                        // broadcast the updated state
-                        if (psGetState != null && psBroadcastState != null) {
-                            Object state = psGetState.invoke(playerStateManager, player.getUuid());
-                            if (state != null) psBroadcastState.invoke(playerStateManager, player, state);
-                        }
-                        // verification wait
-                        for (int i = 0; i < 8; i++) {
-                            UUID now = getPlayerGroupId(player);
-                            if (now != null && now.equals(gid)) return true;
-                            try { Thread.sleep(30); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
-                        }
-                        fallbackOk = true;
-                    }
-                } catch (Throwable t) { diag("SvcBridge: psSetGroup fallback failed: " + t); }
-            }
-
-            diag("SvcBridge: joinGroupByName final verification failed for '" + groupName + "' (id=" + gid + ")");
-            return joinedAttempt || fallbackOk; // true if we at least requested join or applied fallback
-        } catch (Throwable t) {
-            diag("SvcBridge: joinGroupByName error: " + t);
+        }
+        if (group == null || gid == null) {
+            recordUnresolved(groupName);
             return false;
         }
+        // Try authoritative join
+        boolean joined = false;
+        if (gmJoinGroup != null) {
+            try {
+                ensureAuthoritativeCleared(gid, player);
+                gmJoinGroup.invoke(serverGroupManager, group, player, (Object) null);
+                joined = true;
+            } catch (Throwable t) {
+                diag("SvcBridge: gmJoinGroup fallback failed for '" + groupName + "': " + t.getMessage());
+            }
+        }
+        UUID current = getPlayerGroupId(player);
+        if (!gid.equals(current)) {
+            try {
+                if (psSetGroup != null) {
+                    psSetGroup.invoke(playerStateManager, player, gid);
+                    if (psGetState != null && psBroadcastState != null) {
+                        Object state = psGetState.invoke(playerStateManager, player.getUuid());
+                        if (state != null) psBroadcastState.invoke(playerStateManager, player, state);
+                    }
+                    joined = true;
+                    diag("SvcBridge: psSetGroup fallback applied for '" + groupName + "' -> " + gid);
+                }
+            } catch (Throwable t) {
+                diag("SvcBridge: psSetGroup fallback error: " + t.getMessage());
+            }
+        }
+        return joined;
     }
 
      public static boolean leaveGroup(ServerPlayerEntity player) {
@@ -773,18 +768,14 @@ public final class SvcBridge {
          if (!isAvailableRuntime()) return Collections.emptyList();
          List<String> names = new ArrayList<>();
          for (Object g : rawGroups().values()) {
-             try {
-                 Object n = groupGetName.invoke(g);
-                 if (n != null) names.add(n.toString());
-             } catch (Throwable ignored) {}
+             String n = extractGroupName(g);
+             if (n != null) names.add(n);
          }
-         // include alias logical names (mark them if they don't correspond to actual name)
          for (Map.Entry<String,UUID> e : aliasGroups.entrySet()) {
              Object g = SvcBridge.getGroupById(e.getValue());
-             String realName = null;
-             try { if (g != null) realName = (String) groupGetName.invoke(g); } catch (Throwable ignored) {}
+             String realName = extractGroupName(g);
              if (realName == null || !realName.equalsIgnoreCase(e.getKey())) {
-                 names.add(e.getKey() + " (alias)" );
+                 names.add(e.getKey() + " (alias)");
              }
          }
          return names;
@@ -951,6 +942,18 @@ public final class SvcBridge {
         return false;
     }
 
+    // Helper: remove a group by UUID via reflected manager (used in salvage dedup)
+    private static boolean removeGroup(UUID id) {
+        if (id == null || gmRemoveGroup == null || !isAvailableRuntime()) return false;
+        try {
+            gmRemoveGroup.invoke(serverGroupManager, id);
+            return true;
+        } catch (Throwable t) {
+            diag("SvcBridge: removeGroup failed during salvage for " + id + ": " + t.getMessage());
+            return false;
+        }
+    }
+
     /** Best-effort: leave group for all given players to avoid stale state before wiping groups. */
     public static void leaveAllPlayers(Collection<ServerPlayerEntity> players) {
         if (players == null) return;
@@ -982,5 +985,96 @@ public final class SvcBridge {
         }
         try { aliasGroups.clear(); } catch (Throwable ignored) {}
         return removed;
+    }
+
+    public static List<String> getDiagnostics() { return java.util.List.copyOf(diagnostics); }
+
+    public static boolean groupExists(String name) {
+        if (name == null || name.isEmpty()) return false;
+        // Quick check via raw groups
+        if (!isAvailableRuntime()) return false;
+        // Try name or alias
+        try {
+            Object g = findGroupByName(name);
+            if (g != null) return true;
+            if (aliasGroups.containsKey(name) && getGroupById(aliasGroups.get(name)) != null) return true;
+        } catch (Throwable ignored) {}
+        return false;
+    }
+
+    public static boolean isGroupCreationDisabled() { return groupCreationUnavailable; }
+
+    public static String getVoicechatVersion() { return detectedVoicechatVersion == null ? "unknown" : detectedVoicechatVersion; }
+
+    public static boolean isGroupSuppressed(String name) { return suppressedGroups.contains(name); }
+    public static void unsuppressGroup(String name) { suppressedGroups.remove(name); unresolvedGroupAttempts.remove(name); currentBackoffMs.remove(name); nextJoinAttemptMs.remove(name); }
+
+    public static boolean shouldSkipJoinAttempt(String groupName) {
+        if (!suppressedGroups.contains(groupName)) return false;
+        long now = System.currentTimeMillis();
+        Long next = nextJoinAttemptMs.get(groupName);
+        return next != null && now < next;
+    }
+
+    private static void scheduleNextAttempt(String groupName) {
+        long prev = currentBackoffMs.getOrDefault(groupName, BACKOFF_INITIAL_MS);
+        long nextDelay = Math.min(prev * 2L, BACKOFF_MAX_MS); // exponential backoff
+        currentBackoffMs.put(groupName, nextDelay);
+        nextJoinAttemptMs.put(groupName, System.currentTimeMillis() + nextDelay);
+    }
+
+    private static void recordUnresolved(String groupName) {
+        int n = unresolvedGroupAttempts.getOrDefault(groupName, 0) + 1;
+        unresolvedGroupAttempts.put(groupName, n);
+        if (suppressedGroups.contains(groupName)) {
+            // Only log periodically; extend backoff each unresolved attempt beyond schedule
+            if (!shouldSkipJoinAttempt(groupName)) {
+                if (n % SUPPRESS_RELOG_INTERVAL == 0) {
+                    diag("SvcBridge: group '" + groupName + "' still unresolved after " + n + " attempts (suppressed, backoff=" + currentBackoffMs.getOrDefault(groupName, 0L) + "ms)");
+                }
+                scheduleNextAttempt(groupName);
+            }
+            return;
+        }
+        if (n <= SUPPRESS_THRESHOLD) {
+            diag("SvcBridge: joinGroupByName unable to resolve group '" + groupName + "' (attempt=" + n + ")");
+        } else {
+            suppressedGroups.add(groupName);
+            scheduleNextAttempt(groupName);
+            diag("SvcBridge: suppressing further unresolved logs for group '" + groupName + "' (initial backoff=" + BACKOFF_INITIAL_MS + "ms)");
+        }
+    }
+
+    private static String extractGroupName(Object group) {
+        if (group == null) return null;
+        try {
+            if (groupGetName != null) {
+                Object n = groupGetName.invoke(group);
+                if (n != null) return n.toString();
+            }
+        } catch (Throwable ignored) {}
+        try {
+            Method m = group.getClass().getMethod("getName");
+            Object n = m.invoke(group);
+            if (n != null) return n.toString();
+        } catch (Throwable ignored) {}
+        try {
+            Method m = group.getClass().getMethod("name");
+            Object n = m.invoke(group);
+            if (n != null) return n.toString();
+        } catch (Throwable ignored) {}
+        for (Field f : group.getClass().getDeclaredFields()) {
+            if (f.getType() == String.class) {
+                String lower = f.getName().toLowerCase();
+                if (lower.contains("name") || lower.contains("label") || lower.contains("title")) {
+                    try {
+                        f.setAccessible(true);
+                        Object n = f.get(group);
+                        if (n != null) return n.toString();
+                    } catch (Throwable ignored) {}
+                }
+            }
+        }
+        return null;
     }
  }
