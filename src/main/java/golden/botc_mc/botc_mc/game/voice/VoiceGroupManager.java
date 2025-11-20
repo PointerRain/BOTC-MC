@@ -42,34 +42,11 @@ public class VoiceGroupManager {
         load();
     }
 
-    public static VoiceGroupManager forMap(ServerWorld world, Identifier mapId) {
-        return new VoiceGroupManager(mapId, world, world == null ? null : world.getServer());
-    }
-
     public static VoiceGroupManager forServer(MinecraftServer server, Identifier mapId) {
         return new VoiceGroupManager(mapId, null, server);
     }
 
     public List<PersistentGroup> list() { return Collections.unmodifiableList(groups); }
-
-    public void addOrUpdate(PersistentGroup g) {
-        groups.removeIf(x -> x.name.equalsIgnoreCase(g.name));
-        groups.add(g);
-        save();
-    }
-
-    public boolean removeByName(String name) {
-        boolean removed = groups.removeIf(x -> x.name.equalsIgnoreCase(name));
-        if (removed) save();
-        return removed;
-    }
-
-    public int clearAll() {
-        int s = groups.size();
-        groups.clear();
-        save();
-        return s;
-    }
 
     private void load() {
         groups.clear();

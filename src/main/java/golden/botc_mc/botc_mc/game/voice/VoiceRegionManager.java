@@ -31,10 +31,6 @@ public class VoiceRegionManager {
     private final Identifier mapId; // optional map association
     private final ServerWorld world; // optional world association
 
-    // Added public accessor/mutator for debug flag
-    public static void setDebugRegions(boolean enabled) { DEBUG_REGIONS = enabled; }
-    public static boolean isDebugRegions() { return DEBUG_REGIONS; }
-
     public static VoiceRegionManager forMap(ServerWorld world, Identifier mapId) {
         try { VoiceRegionService.writeDefaultConfigIfMissing(mapId); } catch (Throwable ignored) {}
         Path path = VoiceRegionService.configPathForMap(mapId);
@@ -106,23 +102,6 @@ public class VoiceRegionManager {
         regions.put(id, updated);
         save();
         return true;
-    }
-
-    public VoiceRegion remove(String id) {
-        VoiceRegion r = regions.remove(id);
-        save();
-        return r;
-    }
-
-    /**
-     * Remove all regions and persist the empty configuration.
-     * @return number of regions removed
-     */
-    public int clearAll() {
-        int count = regions.size();
-        regions.clear();
-        save();
-        return count;
     }
 
     private void load() {

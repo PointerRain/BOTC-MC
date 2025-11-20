@@ -120,25 +120,7 @@ public final class VoiceRegionService {
         activeManager = manager;
     }
 
-    public static synchronized void clearActive() {
-        activeWorld = null;
-        activeMapId = null;
-        activeManager = null;
-    }
-
     public static VoiceRegionManager getActiveManager() {
         return activeManager;
-    }
-
-    public static Identifier getActiveMapId() {
-        return activeMapId;
-    }
-
-    public static ServerWorld getActiveWorld() { return activeWorld; }
-
-    public static VoiceRegionManager managerForWorld(ServerWorld world) {
-        VoiceRegionManager mgr = activeManager;
-        if (mgr == null) return null;
-        return Objects.equals(activeWorld, world) ? mgr : null;
     }
 }

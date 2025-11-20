@@ -32,16 +32,6 @@ public class VoiceRegionTask implements Runnable {
     private static volatile boolean AUTOJOIN_ENABLED = true; // global toggle
     private static final Set<UUID> WATCH_PLAYERS = java.util.Collections.newSetFromMap(new ConcurrentHashMap<>()); // players for verbose position/region watch
 
-    public static void setDebugTask(boolean enabled) { DEBUG_TASK = enabled; }
-    public static void setRequireStability(boolean enabled) { REQUIRE_STABILITY = enabled; }
-    public static VoiceRegionTask getInstance() { return INSTANCE; }
-    public static void setAutojoinEnabled(boolean enabled) { AUTOJOIN_ENABLED = enabled; }
-    public static boolean isAutojoinEnabled() { return AUTOJOIN_ENABLED; }
-    public static boolean addWatcher(UUID u) { return WATCH_PLAYERS.add(u); }
-    public static boolean removeWatcher(UUID u) { return WATCH_PLAYERS.remove(u); }
-    public static boolean isWatching(UUID u) { return WATCH_PLAYERS.contains(u); }
-    public static Set<UUID> watchers() { return java.util.Collections.unmodifiableSet(WATCH_PLAYERS); }
-
     public VoiceRegionTask(MinecraftServer server, VoiceRegionManager manager) {
         this.server = server; // assign incoming server
         this.manager = manager;
