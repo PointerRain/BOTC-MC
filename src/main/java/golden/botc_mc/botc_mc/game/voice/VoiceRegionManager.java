@@ -5,7 +5,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.google.gson.reflect.TypeToken;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -16,7 +15,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -65,7 +63,6 @@ public class VoiceRegionManager {
 
     /** Reload regions from disk (clears current set). */
     public synchronized int reload() {
-        int before = regions.size();
         regions.clear();
         load();
         return regions.size();
@@ -101,14 +98,6 @@ public class VoiceRegionManager {
         return r;
     }
 
-    public boolean updateGroupId(String id, String groupId) {
-        VoiceRegion r = regions.get(id);
-        if (r == null) return false;
-        VoiceRegion updated = new VoiceRegion(r.id, r.groupName, groupId, r.cornerA, r.cornerB);
-        regions.put(id, updated);
-        save();
-        return true;
-    }
 
     public VoiceRegion remove(String id) {
         VoiceRegion r = regions.remove(id);
@@ -313,7 +302,7 @@ public class VoiceRegionManager {
             }
             // Ensure 'voice' section exists and write regions there
             JsonObject voiceSection = root.has("voice") && root.get("voice").isJsonObject() ? root.getAsJsonObject("voice") : new JsonObject();
-            JsonElement regionsElem = gson.toJsonTree(new ArrayList<>(regions.values()), new TypeToken<List<VoiceRegion>>(){}.getType());
+            JsonElement regionsElem = gson.toJsonTree(new ArrayList<>(regions.values()));
             voiceSection.add("voice_regions", regionsElem);
             // Preserve voice_groups if already present inside voice section
             if (!voiceSection.has("voice_groups")) voiceSection.add("voice_groups", new com.google.gson.JsonArray());
@@ -349,7 +338,7 @@ public class VoiceRegionManager {
                 if (obj == null) obj = new JsonObject();
                 // Write voice section only (avoid writing type/map_id to prevent creating phantom maps)
                 JsonObject voiceSection = obj.has("voice") && obj.get("voice").isJsonObject() ? obj.getAsJsonObject("voice") : new JsonObject();
-                JsonElement regionsElem = gson.toJsonTree(new ArrayList<>(regions.values()), new TypeToken<List<VoiceRegion>>(){}.getType());
+                JsonElement regionsElem = gson.toJsonTree(new ArrayList<>(regions.values()));
                 voiceSection.add("voice_regions", regionsElem);
                 if (!voiceSection.has("voice_groups")) voiceSection.add("voice_groups", new com.google.gson.JsonArray());
                 obj.add("voice", voiceSection);
