@@ -26,10 +26,10 @@ public class VoiceRegionTask implements Runnable {
     private static final long REGION_STABLE_MS = 500; // require region to be stable for smoother experience
     private final Map<UUID, String> lastDetectedRegion = new HashMap<>();
     private final Map<UUID, Long> lastDetectedRegionMs = new HashMap<>();
-    private static volatile boolean DEBUG_TASK = false; // toggle via command later (default off)
-    private static volatile boolean REQUIRE_STABILITY = true; // can disable to make more snappy
+    private static final boolean DEBUG_TASK = false; // toggle via command later (default off)
+    private static final boolean REQUIRE_STABILITY = true; // can disable to make more snappy
     private static volatile VoiceRegionTask INSTANCE; // singleton reference
-    private static volatile boolean AUTOJOIN_ENABLED = true; // global toggle
+    private static final boolean AUTOJOIN_ENABLED = true; // global toggle
     private static final Set<UUID> WATCH_PLAYERS = java.util.Collections.newSetFromMap(new ConcurrentHashMap<>()); // players for verbose position/region watch
 
     public VoiceRegionTask(MinecraftServer server, VoiceRegionManager manager) {
@@ -81,7 +81,7 @@ public class VoiceRegionTask implements Runnable {
                     sb.append("WATCH player=").append(p.getName().getString())
                       .append(" pos=").append(p.getBlockX()).append(',').append(p.getBlockY()).append(',').append(p.getBlockZ());
                     if (detected != null) {
-                        sb.append(" region=").append(detected.id).append(" group=").append(detected.groupName)
+                        sb.append(" region=").append(detected.id()).append(" group=").append(detected.groupName())
                           .append(" bounds=").append(detected.boundsDebug());
                     } else {
                         sb.append(" region=<none>");
@@ -90,7 +90,7 @@ public class VoiceRegionTask implements Runnable {
                     boolean first = true;
                     for (VoiceRegion r : mgr.list()) {
                         if (!first) sb.append(' '); else first = false;
-                        sb.append(r.id).append(':').append(r.boundsDebug());
+                        sb.append(r.id()).append(':').append(r.boundsDebug());
                     }
                     botc.LOGGER.info(sb.toString());
                 }
@@ -98,7 +98,7 @@ public class VoiceRegionTask implements Runnable {
                 if (detected == null && DEBUG_TASK && !watching) {
                     botc.LOGGER.trace("VoiceRegionTask: player {} in no voice region (blockPos={},{} ,{})", p.getName().getString(), p.getBlockX(), p.getBlockY(), p.getBlockZ());
                 }
-                String detectedName = detected == null ? null : detected.groupName;
+                String detectedName = detected == null ? null : detected.groupName();
                 String previousDetected = lastDetectedRegion.get(pu);
                 if ((previousDetected == null && detectedName != null) || (previousDetected != null && !previousDetected.equals(detectedName))) {
                     lastDetectedRegion.put(pu, detectedName);
@@ -174,7 +174,7 @@ public class VoiceRegionTask implements Runnable {
                         }
                         boolean joined = false;
                         try {
-                            if (detected != null && detected.groupId != null) SvcBridge.clearPasswordAndOpenByIdString(detected.groupId);
+                            if (detected != null && detected.groupId() != null) SvcBridge.clearPasswordAndOpenByIdString(detected.groupId());
                             else SvcBridge.clearPasswordAndOpenByName(targetGroupName);
                             joined = SvcBridge.joinGroupByName(p, targetGroupName);
                         } catch (Throwable t) {
@@ -219,7 +219,7 @@ public class VoiceRegionTask implements Runnable {
                             if (jAttempts >= MAX_JOIN_ATTEMPTS) return;
                             boolean joined = false;
                             try {
-                                if (detected != null && detected.groupId != null) SvcBridge.clearPasswordAndOpenByIdString(detected.groupId);
+                                if (detected != null && detected.groupId() != null) SvcBridge.clearPasswordAndOpenByIdString(detected.groupId());
                                 else SvcBridge.clearPasswordAndOpenByName(targetGroupName);
                                 joined = SvcBridge.joinGroupByName(p, targetGroupName);
                             } catch (Throwable t) { botc.LOGGER.warn("VoiceRegionTask: switch join error {}", t.toString()); }

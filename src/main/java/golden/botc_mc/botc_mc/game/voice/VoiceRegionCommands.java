@@ -33,7 +33,7 @@ public final class VoiceRegionCommands {
                 sb.append("Map bound: ").append(used.getMapId()==null?"<none>":used.getMapId()).append("\n");
                 sb.append("Regions: ").append(used.list().size()).append("\n");
                 for (VoiceRegion r : used.list()) {
-                    sb.append(" - ").append(r.id).append(" -> ").append(r.groupName).append(" (gid=").append(r.groupId).append(") bounds=").append(r.boundsDebug()).append("\n");
+                    sb.append(" - ").append(r.id()).append(" -> ").append(r.groupName()).append(" (gid=").append(r.groupId()).append(") bounds=").append(r.boundsDebug()).append("\n");
                 }
                 ctx.getSource().sendFeedback(() -> net.minecraft.text.Text.literal(sb.toString()), false);
                 return used.list().size();

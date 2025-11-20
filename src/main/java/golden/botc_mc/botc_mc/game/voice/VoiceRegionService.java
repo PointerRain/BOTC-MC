@@ -9,7 +9,7 @@ import java.io.ByteArrayOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Objects;
+
 
 public final class VoiceRegionService {
     private static volatile VoiceRegionManager activeManager;
@@ -67,6 +67,7 @@ public final class VoiceRegionService {
     }
 
     /** Returns true if a bundled default asset exists for the given map id. */
+    @SuppressWarnings("unused")
     public static boolean defaultAssetExists(Identifier mapId) {
         String res = String.format("assets/%s/voice_defaults/%s.json", mapId.getNamespace(), mapId.getPath());
         try (InputStream in = VoiceRegionService.class.getClassLoader().getResourceAsStream(res)) {
@@ -75,26 +76,26 @@ public final class VoiceRegionService {
     }
 
     /** Copy bundled default to per-map config. overwrite==true replaces existing file. */
-    public static boolean copyDefault(Identifier mapId, boolean overwrite) {
+    @SuppressWarnings("unused")
+    public static void copyDefault(Identifier mapId, boolean overwrite) {
         String res = String.format("assets/%s/voice_defaults/%s.json", mapId.getNamespace(), mapId.getPath());
         try (InputStream in = VoiceRegionService.class.getClassLoader().getResourceAsStream(res)) {
-            if (in == null) return false;
+            if (in == null) return;
             Path target = configPathForMap(mapId);
             Files.createDirectories(target.getParent());
-            if (!overwrite && Files.exists(target)) return false;
+            if (!overwrite && Files.exists(target)) return;
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             in.transferTo(baos);
             Files.write(target, baos.toByteArray());
             golden.botc_mc.botc_mc.botc.LOGGER.info("Copied default voice config for {} to {}", mapId, target);
-            return true;
         } catch (Throwable t) {
             golden.botc_mc.botc_mc.botc.LOGGER.warn("copyDefault failed for {}: {}", mapId, t.toString());
-            return false;
         }
     }
 
-    /** If per-map config missing or empty, attempt to write the bundled default. Returns true if written. */
-    public static boolean writeDefaultConfigIfMissing(Identifier mapId) {
+    /** If per-map config missing or empty, attempt to write the bundled default. Writes file if needed. */
+    @SuppressWarnings("unused")
+    public static void writeDefaultConfigIfMissing(Identifier mapId) {
         try {
             Path target = configPathForMap(mapId);
             boolean needs = !Files.exists(target);
@@ -106,11 +107,10 @@ public final class VoiceRegionService {
                     if (trimmed.isEmpty() || trimmed.equals("{}") || trimmed.equals("[]")) needs = true;
                 }
             }
-            if (!needs) return false;
-            return copyDefault(mapId, true);
+            if (!needs) return;
+            copyDefault(mapId, true);
         } catch (Throwable t) {
             golden.botc_mc.botc_mc.botc.LOGGER.warn("Failed to write default voice config for {}: {}", mapId, t.toString());
-            return false;
         }
     }
 
@@ -123,4 +123,10 @@ public final class VoiceRegionService {
     public static VoiceRegionManager getActiveManager() {
         return activeManager;
     }
+
+    // Accessors added so assigned fields are accessible and to silence warnings
+    @SuppressWarnings("unused")
+    public static Identifier getActiveMapId() { return activeMapId; }
+    @SuppressWarnings("unused")
+    public static ServerWorld getActiveWorld() { return activeWorld; }
 }

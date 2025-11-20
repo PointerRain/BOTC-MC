@@ -26,7 +26,7 @@ public class VoiceRegionManager {
     private final Path configPath;
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     // Debug flag (can be toggled at runtime via command later if needed)
-    private static volatile boolean DEBUG_REGIONS = false;
+    private static final boolean DEBUG_REGIONS = false;
 
     private final Identifier mapId; // optional map association
     private final ServerWorld world; // optional world association
@@ -75,7 +75,7 @@ public class VoiceRegionManager {
         for (VoiceRegion r : regions.values()) {
             if (r.containsBlock(bx, by, bz)) {
                 if (DEBUG_REGIONS) {
-                    golden.botc_mc.botc_mc.botc.LOGGER.debug("VoiceRegionManager: player {} in region {} group={} bounds= {}", player.getName().getString(), r.id, r.groupName, r.boundsDebug());
+                    golden.botc_mc.botc_mc.botc.LOGGER.debug("VoiceRegionManager: player {} in region {} group={} bounds= {}", player.getName().getString(), r.id(), r.groupName(), r.boundsDebug());
                 }
                 return r;
             }
@@ -98,7 +98,7 @@ public class VoiceRegionManager {
         VoiceRegion existing = regions.get(id);
         if (existing == null) return false;
         // Recreate region with new groupId
-        VoiceRegion updated = new VoiceRegion(existing.id, existing.groupName, newGroupId, existing.cornerA, existing.cornerB);
+        VoiceRegion updated = new VoiceRegion(existing.id(), existing.groupName(), newGroupId, existing.cornerA(), existing.cornerB());
         regions.put(id, updated);
         save();
         return true;
@@ -187,7 +187,8 @@ public class VoiceRegionManager {
                         try (InputStream is = optional.get().getInputStream(); Reader r = new InputStreamReader(is)) {
                             JsonObject obj = gson.fromJson(r, JsonObject.class);
                             JsonObject voiceSection = obj != null && obj.has("voice") && obj.get("voice").isJsonObject() ? obj.getAsJsonObject("voice") : obj;
-                            if (parseRegionsFromVoiceSection(voiceSection)) return;
+                            if (parseRegionsFromVoiceSection(voiceSection)) {
+                            }
                         }
                     }
                 } catch (Exception ex) {

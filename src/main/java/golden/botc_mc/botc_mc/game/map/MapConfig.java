@@ -14,7 +14,7 @@ public class MapConfig {
     ).apply(instance, MapConfig::new));
 
     private final Identifier mapId;
-    private BlockPos fallbackSpawn;
+    private final BlockPos fallbackSpawn;
 
     public MapConfig(Identifier mapId, BlockPos fallbackSpawn) {
         this.mapId = mapId;

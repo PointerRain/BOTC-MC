@@ -2,21 +2,10 @@ package golden.botc_mc.botc_mc.game.voice;
 
 import net.minecraft.util.math.BlockPos;
 
-public class VoiceRegion {
-    public final String id;
-    public final String groupName;
-    // Persisted voice chat group id (UUID string) assigned by SVC when created
-    public final String groupId;
-    public final BlockPos cornerA;
-    public final BlockPos cornerB;
-
-    public VoiceRegion(String id, String groupName, String groupId, BlockPos cornerA, BlockPos cornerB) {
-        this.id = id;
-        this.groupName = groupName;
-        this.groupId = groupId;
-        this.cornerA = cornerA;
-        this.cornerB = cornerB;
-    }
+/**
+ * @param groupId Persisted voice chat group id (UUID string) assigned by SVC when created
+ */
+public record VoiceRegion(String id, String groupName, String groupId, BlockPos cornerA, BlockPos cornerB) {
 
     public boolean contains(double x, double y, double z) {
         // existing double-based check retained for compatibility

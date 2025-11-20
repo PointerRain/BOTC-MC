@@ -74,15 +74,15 @@ public class BotcVoicechatPlugin {
                     try {
                         total++;
                         boolean repaired = false;
-                        if (r.groupId != null && !r.groupId.isEmpty()) {
-                            repaired = SvcBridge.clearPasswordAndOpenByIdString(r.groupId);
+                        if (r.groupId() != null && !r.groupId().isEmpty()) {
+                            repaired = SvcBridge.clearPasswordAndOpenByIdString(r.groupId());
                         }
-                        if (!repaired && !creationDisabled && r.groupName != null && !r.groupName.isEmpty() && !SvcBridge.groupExists(r.groupName)) {
-                            java.util.UUID id = SvcBridge.createOrGetGroup(r.groupName, null);
+                        if (!repaired && !creationDisabled && r.groupName() != null && !r.groupName().isEmpty() && !SvcBridge.groupExists(r.groupName())) {
+                            java.util.UUID id = SvcBridge.createOrGetGroup(r.groupName(), null);
                             if (id != null) {
                                 SvcBridge.clearPasswordAndOpenById(id);
-                                store.getByName(r.groupName).ifPresentOrElse(g -> store.addCached(id, g), () -> {
-                                    PersistentGroup pg = new PersistentGroup(r.groupName);
+                                store.getByName(r.groupName()).ifPresentOrElse(g -> store.addCached(id, g), () -> {
+                                    PersistentGroup pg = new PersistentGroup(r.groupName());
                                     pg.voicechatId = id; store.addGroup(pg);
                                 });
                                 ok++;
@@ -90,7 +90,7 @@ public class BotcVoicechatPlugin {
                         } else if (repaired) {
                             ok++;
                         }
-                    } catch (Throwable t) { botc.LOGGER.warn("Region preload error for {}: {}", r.id, t.toString()); }
+                    } catch (Throwable t) { botc.LOGGER.warn("Region preload error for {}: {}", r.id(), t.toString()); }
                 }
             } catch (Throwable t) {
                 botc.LOGGER.debug("VoiceRegionManager not available during preload: {}", t.toString());
@@ -127,21 +127,21 @@ public class BotcVoicechatPlugin {
             if (active != null && mapId.equals(active.getMapId())) {
                 for (VoiceRegion r : active.list()) {
                     try {
-                        if (r.groupName == null || r.groupName.isEmpty()) continue;
+                        if (r.groupName() == null || r.groupName().isEmpty()) continue;
                         boolean creationDisabled = SvcBridge.isGroupCreationDisabled();
-                        if (r.groupId != null && !r.groupId.isEmpty()) {
-                            SvcBridge.clearPasswordAndOpenByIdString(r.groupId);
+                        if (r.groupId() != null && !r.groupId().isEmpty()) {
+                            SvcBridge.clearPasswordAndOpenByIdString(r.groupId());
                         } else if (!creationDisabled) {
-                            if (!SvcBridge.groupExists(r.groupName)) {
-                                java.util.UUID gid = SvcBridge.createOrGetGroup(r.groupName, null);
+                            if (!SvcBridge.groupExists(r.groupName())) {
+                                java.util.UUID gid = SvcBridge.createOrGetGroup(r.groupName(), null);
                                 if (gid != null) {
-                                    active.updateGroupId(r.id, gid.toString());
+                                    active.updateGroupId(r.id(), gid.toString());
                                     SvcBridge.clearPasswordAndOpenById(gid);
                                 }
                             }
                         }
                     } catch (Throwable t) {
-                        botc.LOGGER.warn("BotcVoicechatPlugin: region materialize error for {}: {}", r.id, t.toString());
+                        botc.LOGGER.warn("BotcVoicechatPlugin: region materialize error for {}: {}", r.id(), t.toString());
                     }
                 }
             } else {

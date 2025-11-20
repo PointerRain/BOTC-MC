@@ -321,7 +321,7 @@ public final class SvcBridge {
                     } else if ((ft == boolean.class || ft == Boolean.class) && fname.contains("persist")) {
                         f.set(group, true);
                         persistentForced = true;
-                    } else if (groupTypeField != null && f.equals(groupTypeField) && groupTypeOpenConstant != null) {
+                    } else if (f.equals(groupTypeField) && groupTypeOpenConstant != null) {
                         f.set(group, groupTypeOpenConstant);
                         typeForced = true;
                     }

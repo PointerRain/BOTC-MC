@@ -6,7 +6,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 
 import java.io.IOException;
@@ -25,25 +24,24 @@ import java.util.List;
  * Manages persistent voice chat groups stored inside the map JSON under key "voice_groups".
  * Load precedence: override datapack -> embedded resource; Save target: override datapack only.
  */
+@SuppressWarnings({"unused", "FieldMayBeFinal"})
 public class VoiceGroupManager {
     private static final org.apache.logging.log4j.Logger LOGGER = org.apache.logging.log4j.LogManager.getLogger("botc.VoiceGroupManager");
 
     private final Identifier mapId;
-    private final ServerWorld world; // optional for embedded read
     private final MinecraftServer server; // optional alternative for embedded read
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
     private final List<PersistentGroup> groups = new ArrayList<>();
 
-    private VoiceGroupManager(Identifier mapId, ServerWorld world, MinecraftServer server) {
+    private VoiceGroupManager(Identifier mapId, MinecraftServer server) {
         this.mapId = mapId;
-        this.world = world;
-        this.server = server != null ? server : (world != null ? world.getServer() : null);
+        this.server = server;
         load();
     }
 
     public static VoiceGroupManager forServer(MinecraftServer server, Identifier mapId) {
-        return new VoiceGroupManager(mapId, null, server);
+        return new VoiceGroupManager(mapId, server);
     }
 
     public List<PersistentGroup> list() { return Collections.unmodifiableList(groups); }
@@ -84,7 +82,6 @@ public class VoiceGroupManager {
                                     Type type = new TypeToken<List<PersistentGroup>>(){}.getType();
                                     List<PersistentGroup> list = gson.fromJson(arr, type);
                                     if (list != null) groups.addAll(list);
-                                    return;
                                 }
                             }
                         }
@@ -98,6 +95,7 @@ public class VoiceGroupManager {
         }
     }
 
+    @SuppressWarnings("unused")
     public void save() {
         if (mapId == null) return;
         Path datapackBase = Paths.get("run", "world", "datapacks", "botc_overrides");

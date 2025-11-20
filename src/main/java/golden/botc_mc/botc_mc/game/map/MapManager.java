@@ -25,20 +25,7 @@ import java.util.Set;
 public class MapManager {
     private static final Logger LOGGER = LogManager.getLogger("botc.MapManager");
 
-    public static class MapInfo {
-        public final String id;
-        public final String name;
-        public final List<String> authors;
-        public final String description;
-        public final String nbtFile;
-
-        public MapInfo(String id, String name, List<String> authors, String description, String nbtFile) {
-            this.id = id;
-            this.name = name;
-            this.authors = authors;
-            this.description = description;
-            this.nbtFile = nbtFile;
-        }
+    public record MapInfo(String id, String name, List<String> authors, String description, String nbtFile) {
     }
 
     private final Map<String, MapInfo> registry = new HashMap<>();
