@@ -5,6 +5,7 @@ import net.minecraft.server.MinecraftServer;
 
 import java.nio.file.Paths;
 import java.util.UUID;
+import net.minecraft.util.Identifier;
 
 public class BotcVoicechatPlugin {
     private static BotcVoicechatPlugin INSTANCE = null;
@@ -102,6 +103,35 @@ public class BotcVoicechatPlugin {
             botc.LOGGER.info("BotcVoicechatPlugin: preloaded {}/{} voice groups (store+regions)", ok, total);
         } catch (Throwable t) {
             botc.LOGGER.warn("BotcVoicechatPlugin preload error: {}", t.toString());
+        }
+    }
+
+    /**
+     * Called when a map is opened. Ensure per-map defaults exist and attempt to preload any groups.
+     */
+    public void onMapOpen(Identifier mapId) {
+        if (mapId == null) return;
+        try {
+            // Ensure a default per-map config exists
+            VoiceRegionService.writeDefaultConfigIfMissing(mapId);
+
+            // Load voice groups from embedded or override and ensure groups exist in SVC (best-effort)
+            VoiceGroupManager gm = VoiceGroupManager.forServer(this.server, mapId);
+            for (PersistentGroup pg : gm.list()) {
+                try {
+                    if (pg.voicechatId != null) {
+                        SvcBridge.clearPasswordAndOpenById(pg.voicechatId);
+                    } else if (pg.name != null && !pg.name.isEmpty() && !SvcBridge.groupExists(pg.name)) {
+                        java.util.UUID id = SvcBridge.createOrGetGroup(pg.name, null);
+                        if (id != null) {
+                            // best-effort: mark persistent/open
+                            SvcBridge.clearPasswordAndOpenById(id);
+                        }
+                    }
+                } catch (Throwable ignored) {}
+            }
+        } catch (Throwable t) {
+            botc.LOGGER.warn("BotcVoicechatPlugin.onMapOpen failed for {}: {}", mapId, t.toString());
         }
     }
 }

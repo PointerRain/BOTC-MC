@@ -19,6 +19,7 @@ import xyz.nucleoid.stimuli.event.EventResult;
 import xyz.nucleoid.stimuli.event.player.PlayerDeathEvent;
 import golden.botc_mc.botc_mc.game.voice.VoiceRegionManager;
 import golden.botc_mc.botc_mc.game.voice.VoiceRegionService;
+import golden.botc_mc.botc_mc.game.voice.BotcVoicechatPlugin;
 
 public class botcWaiting {
     private final GameSpace gameSpace;
@@ -55,7 +56,11 @@ public class botcWaiting {
         return context.openWithWorld(worldConfig, (game, world) -> {
             // Use the effective config (merged from settings + datapack) for the activity
             botcWaiting waiting = new botcWaiting(game.getGameSpace(), world, map, effectiveConfig);
-
+            // Activate per-map voice groups
+            try {
+                BotcVoicechatPlugin plugin = BotcVoicechatPlugin.getInstance(context.server());
+                plugin.onMapOpen(mapId);
+            } catch (Throwable ignored) {}
             // Set a safe spawn for the world to avoid initial void placement
             Vec3d safe = waiting.spawnLogic.getSafeSpawnPosition();
             world.setSpawnPos(BlockPos.ofFloored(safe), 0.0F);
@@ -70,6 +75,7 @@ public class botcWaiting {
             // Fallback to Vec3d.ZERO if no spawn is defined to avoid NPEs.
             game.listen(GamePlayerEvents.ACCEPT, joinAcceptor -> joinAcceptor.teleport(world, safe));
             game.listen(PlayerDeathEvent.EVENT, waiting::onPlayerDeath);
+            // Removed DISPOSE listener; map voice groups are unloaded in botcActive.onClose
         });
     }
 

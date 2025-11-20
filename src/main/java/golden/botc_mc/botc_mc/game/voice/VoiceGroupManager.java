@@ -80,12 +80,15 @@ public class VoiceGroupManager {
                 if (Files.exists(override)) {
                     String s = new String(Files.readAllBytes(override));
                     JsonObject obj = gson.fromJson(s, JsonObject.class);
-                    if (obj != null && obj.has("voice_groups")) {
-                        JsonElement arr = obj.get("voice_groups");
-                        Type type = new TypeToken<List<PersistentGroup>>(){}.getType();
-                        List<PersistentGroup> list = gson.fromJson(arr, type);
-                        if (list != null) groups.addAll(list);
-                        return;
+                    if (obj != null) {
+                        JsonObject voiceSection = obj.has("voice") && obj.get("voice").isJsonObject() ? obj.getAsJsonObject("voice") : obj;
+                        if (voiceSection.has("voice_groups")) {
+                            JsonElement arr = voiceSection.get("voice_groups");
+                            Type type = new TypeToken<List<PersistentGroup>>(){}.getType();
+                            List<PersistentGroup> list = gson.fromJson(arr, type);
+                            if (list != null) groups.addAll(list);
+                            return;
+                        }
                     }
                 }
             }
@@ -97,12 +100,15 @@ public class VoiceGroupManager {
                     if (opt.isPresent()) {
                         try (InputStream is = opt.get().getInputStream(); Reader r = new InputStreamReader(is)) {
                             JsonObject obj = gson.fromJson(r, JsonObject.class);
-                            if (obj != null && obj.has("voice_groups")) {
-                                JsonElement arr = obj.get("voice_groups");
-                                Type type = new TypeToken<List<PersistentGroup>>(){}.getType();
-                                List<PersistentGroup> list = gson.fromJson(arr, type);
-                                if (list != null) groups.addAll(list);
-                                return;
+                            if (obj != null) {
+                                JsonObject voiceSection = obj.has("voice") && obj.get("voice").isJsonObject() ? obj.getAsJsonObject("voice") : obj;
+                                if (voiceSection.has("voice_groups")) {
+                                    JsonElement arr = voiceSection.get("voice_groups");
+                                    Type type = new TypeToken<List<PersistentGroup>>(){}.getType();
+                                    List<PersistentGroup> list = gson.fromJson(arr, type);
+                                    if (list != null) groups.addAll(list);
+                                    return;
+                                }
                             }
                         }
                     }
@@ -137,11 +143,13 @@ public class VoiceGroupManager {
                 } catch (Exception ignored) {}
             }
             if (obj == null) obj = new JsonObject();
-            if (!obj.has("type")) obj.addProperty("type", "botc-mc:game");
-            obj.addProperty("map_id", mapId.toString());
-
+            // if (!obj.has("type")) obj.addProperty("type", "botc-mc:game");
+            // obj.addProperty("map_id", mapId.toString());
+            // Ensure we write groups inside 'voice' section to avoid creating map objects
+            JsonObject voiceSection = obj.has("voice") && obj.get("voice").isJsonObject() ? obj.getAsJsonObject("voice") : new JsonObject();
             JsonElement groupsElem = gson.toJsonTree(groups, new TypeToken<List<PersistentGroup>>(){}.getType());
-            obj.add("voice_groups", groupsElem);
+            voiceSection.add("voice_groups", groupsElem);
+            obj.add("voice", voiceSection);
 
             String out = gson.toJson(obj);
             Files.write(target, out.getBytes());
@@ -161,4 +169,3 @@ public class VoiceGroupManager {
         }
     }
 }
-

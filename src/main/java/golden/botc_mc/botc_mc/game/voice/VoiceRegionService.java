@@ -4,6 +4,9 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 
+import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
@@ -23,9 +26,16 @@ public final class VoiceRegionService {
         return gameDir().resolve("config");
     }
 
+    /** BOTC configuration root: <gameDir>/config/botc */
+    public static Path botcConfigRoot() {
+        return configRoot().resolve("botc");
+    }
+
     public static Path legacyGlobalConfigPath() {
+        // legacy location for global regions (kept for migration)
         return configRoot().resolve("voice_regions.json");
     }
+
     /** Attempt migration from legacy double-run path (gameDir/run/config/voice_regions.json) if current file missing. */
     public static void migrateLegacyGlobalRegionsIfNeeded() {
         try {
@@ -44,8 +54,8 @@ public final class VoiceRegionService {
     public static Path configPathForMap(Identifier mapId) {
         String ns = mapId.getNamespace();
         String path = mapId.getPath();
-        // Store per map under <gameDir>/config/voice_regions/<ns>/<path>.json
-        return configRoot().resolve(Paths.get("voice_regions", ns, path + ".json"));
+        // New layout: <gameDir>/config/botc/voice/<ns>/<path>.json
+        return botcConfigRoot().resolve(Paths.get("voice", ns, path + ".json"));
     }
 
     public static Path datapackOverrideBase() {
@@ -54,6 +64,54 @@ public final class VoiceRegionService {
 
     public static Path datapackOverrideGameFile(Identifier mapId) {
         return datapackOverrideBase().resolve(Paths.get("data", mapId.getNamespace(), "plasmid", "game", mapId.getPath() + ".json"));
+    }
+
+    /** Returns true if a bundled default asset exists for the given map id. */
+    public static boolean defaultAssetExists(Identifier mapId) {
+        String res = String.format("assets/%s/voice_defaults/%s.json", mapId.getNamespace(), mapId.getPath());
+        try (InputStream in = VoiceRegionService.class.getClassLoader().getResourceAsStream(res)) {
+            return in != null;
+        } catch (Throwable ignored) { return false; }
+    }
+
+    /** Copy bundled default to per-map config. overwrite==true replaces existing file. */
+    public static boolean copyDefault(Identifier mapId, boolean overwrite) {
+        String res = String.format("assets/%s/voice_defaults/%s.json", mapId.getNamespace(), mapId.getPath());
+        try (InputStream in = VoiceRegionService.class.getClassLoader().getResourceAsStream(res)) {
+            if (in == null) return false;
+            Path target = configPathForMap(mapId);
+            Files.createDirectories(target.getParent());
+            if (!overwrite && Files.exists(target)) return false;
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            in.transferTo(baos);
+            Files.write(target, baos.toByteArray());
+            golden.botc_mc.botc_mc.botc.LOGGER.info("Copied default voice config for {} to {}", mapId, target);
+            return true;
+        } catch (Throwable t) {
+            golden.botc_mc.botc_mc.botc.LOGGER.warn("copyDefault failed for {}: {}", mapId, t.toString());
+            return false;
+        }
+    }
+
+    /** If per-map config missing or empty, attempt to write the bundled default. Returns true if written. */
+    public static boolean writeDefaultConfigIfMissing(Identifier mapId) {
+        try {
+            Path target = configPathForMap(mapId);
+            boolean needs = !Files.exists(target);
+            if (!needs) {
+                long size = Files.size(target);
+                if (size == 0) needs = true; else {
+                    String raw = new String(Files.readAllBytes(target));
+                    String trimmed = raw.trim();
+                    if (trimmed.isEmpty() || trimmed.equals("{}") || trimmed.equals("[]")) needs = true;
+                }
+            }
+            if (!needs) return false;
+            return copyDefault(mapId, true);
+        } catch (Throwable t) {
+            golden.botc_mc.botc_mc.botc.LOGGER.warn("Failed to write default voice config for {}: {}", mapId, t.toString());
+            return false;
+        }
     }
 
     public static synchronized void setActive(ServerWorld world, Identifier mapId, VoiceRegionManager manager) {

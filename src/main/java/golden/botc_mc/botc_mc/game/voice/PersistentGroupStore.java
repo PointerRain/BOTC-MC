@@ -11,6 +11,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.lang.reflect.Type;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 public class PersistentGroupStore {
@@ -20,9 +22,16 @@ public class PersistentGroupStore {
     private final Map<UUID, PersistentGroup> cache = new HashMap<>();
 
     public PersistentGroupStore(MinecraftServer server) {
-        File cfgDir = FabricLoader.getInstance().getGameDir().resolve("config").toFile();
-        if (!cfgDir.exists()) cfgDir.mkdirs();
-        this.file = new File(cfgDir, "botc-persistent-groups.json");
+        // Use BOTC config root: <gameDir>/config/botc/
+        Path botcRoot = VoiceRegionService.botcConfigRoot();
+        try { java.nio.file.Files.createDirectories(botcRoot); } catch (Throwable ignored) {}
+        // Ensure voice/voice_groups exists under run/config/botc
+        Path voiceGroupsDir = botcRoot.resolve(Paths.get("voice", "voice_groups"));
+        try { java.nio.file.Files.createDirectories(voiceGroupsDir); } catch (Throwable ignored) {}
+        // Global persistent groups file: run/config/botc/config/botc-persistent-groups.json
+        Path cfgDir = botcRoot.resolve("config");
+        try { java.nio.file.Files.createDirectories(cfgDir); } catch (Throwable ignored) {}
+        this.file = cfgDir.resolve("botc-persistent-groups.json").toFile();
         migrateLegacyDoubleRunIfNeeded();
         this.gson = new GsonBuilder().setPrettyPrinting().create();
         load();

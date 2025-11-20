@@ -13,14 +13,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
 
+import golden.botc_mc.botc_mc.game.voice.VoiceRegionService;
+
 /**
  * Simple file-backed settings for the BOTC game. This provides a single place to edit
  * common values (time limits, per-phase durations, player limits) without rebuilding the mod.
  *
- * The settings are stored at run/config/botc.properties relative to the project root.
+ * The settings are stored at run/config/botc/config/botc.properties relative to the project root.
  */
 public final class botcSettings {
-    private static final Path CONFIG_PATH = Paths.get("run", "config", "botc.properties");
+    private static final Path CONFIG_PATH = VoiceRegionService.botcConfigRoot().resolve(Paths.get("config", "botc.properties"));
 
     public int timeLimitSecs = 300;
     public int players = 8;

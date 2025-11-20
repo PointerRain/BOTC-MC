@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -37,6 +38,7 @@ public class VoiceRegionManager {
     public static boolean isDebugRegions() { return DEBUG_REGIONS; }
 
     public static VoiceRegionManager forMap(ServerWorld world, Identifier mapId) {
+        try { VoiceRegionService.writeDefaultConfigIfMissing(mapId); } catch (Throwable ignored) {}
         Path path = VoiceRegionService.configPathForMap(mapId);
         return new VoiceRegionManager(path, world, mapId);
     }
@@ -127,44 +129,68 @@ public class VoiceRegionManager {
 
     private void load() {
         try {
-            // Priority 1: explicit per-map config file (run/config/voice_regions/...)
+            // Priority 1: explicit per-map config file (run/config/botc/voice/..)
             if (Files.exists(configPath)) {
                 String s = new String(Files.readAllBytes(configPath));
-                Type type = new TypeToken<List<VoiceRegion>>(){}.getType();
-                List<VoiceRegion> list = gson.fromJson(s, type);
-                if (list != null) for (VoiceRegion r : list) regions.put(r.id, r);
-                return;
+                String trimmed = s.trim();
+                if (trimmed.startsWith("{")) {
+                    JsonObject obj = JsonParser.parseString(s).getAsJsonObject();
+                    JsonObject voiceSection = obj.has("voice") && obj.get("voice").isJsonObject() ? obj.getAsJsonObject("voice") : obj;
+                    parseRegionsFromVoiceSection(voiceSection);
+                    return;
+                } else if (trimmed.startsWith("[")) {
+                    // Legacy flat array
+                    parseLegacyArray(s);
+                    return;
+                }
             }
+
             // Global fallback for per-map managers: if map-specific file missing, import legacy global file
             if (mapId != null) {
                 Path global = VoiceRegionService.legacyGlobalConfigPath();
                 if (Files.exists(global)) {
                     try {
                         String s = new String(Files.readAllBytes(global));
-                        Type type = new TypeToken<List<VoiceRegion>>(){}.getType();
-                        List<VoiceRegion> list = gson.fromJson(s, type);
-                        if (list != null && !list.isEmpty()) {
-                            for (VoiceRegion r : list) regions.put(r.id, r);
-                            golden.botc_mc.botc_mc.botc.LOGGER.info("VoiceRegionManager: imported {} global region(s) into map '{}'", list.size(), mapId);
-                            // Persist immediately to create the per-map file so subsequent loads are map-scoped
-                            save();
-                            return;
+                        String trimmed = s.trim();
+                        if (trimmed.startsWith("{")) {
+                            JsonObject obj = JsonParser.parseString(s).getAsJsonObject();
+                            JsonObject voiceSection = obj.has("voice") && obj.get("voice").isJsonObject() ? obj.getAsJsonObject("voice") : obj;
+                            if (parseRegionsFromVoiceSection(voiceSection)) {
+                                golden.botc_mc.botc_mc.botc.LOGGER.info("VoiceRegionManager: imported {} global region(s) into map '{}'", regions.size(), mapId);
+                                save();
+                                return;
+                            }
+                        } else if (trimmed.startsWith("[")) {
+                            parseLegacyArray(s);
+                            if (!regions.isEmpty()) {
+                                golden.botc_mc.botc_mc.botc.LOGGER.info("VoiceRegionManager: imported {} global region(s) into map '{}'", regions.size(), mapId);
+                                save();
+                                return;
+                            }
                         }
                     } catch (Throwable t) {
                         golden.botc_mc.botc_mc.botc.LOGGER.warn("VoiceRegionManager: failed importing global regions for map {}: {}", mapId, t.toString());
                     }
                 }
             }
+
             // Fallback: legacy double-run path (gameDir/run/config/voice_regions.json) for global manager only
             if (mapId == null) {
                 Path legacy = FabricLoader.getInstance().getGameDir().resolve(Paths.get("run","config","voice_regions.json"));
                 if (Files.exists(legacy)) {
                     String s = new String(Files.readAllBytes(legacy));
-                    Type type = new TypeToken<List<VoiceRegion>>(){}.getType();
-                    List<VoiceRegion> list = gson.fromJson(s, type);
-                    if (list != null) for (VoiceRegion r : list) regions.put(r.id, r);
-                    golden.botc_mc.botc_mc.botc.LOGGER.info("Loaded voice regions from legacy double-run path fallback.");
-                    return;
+                    String trimmed = s.trim();
+                    if (trimmed.startsWith("{")) {
+                        JsonObject obj = JsonParser.parseString(s).getAsJsonObject();
+                        JsonObject voiceSection = obj.has("voice") && obj.get("voice").isJsonObject() ? obj.getAsJsonObject("voice") : obj;
+                        parseRegionsFromVoiceSection(voiceSection);
+                        golden.botc_mc.botc_mc.botc.LOGGER.info("Loaded voice regions from legacy double-run path fallback.");
+                        return;
+                    } else if (trimmed.startsWith("[")) {
+                        parseLegacyArray(s);
+                        golden.botc_mc.botc_mc.botc.LOGGER.info("Loaded voice regions from legacy double-run path fallback.");
+                        return;
+                    }
                 }
             }
 
@@ -174,29 +200,17 @@ public class VoiceRegionManager {
                 if (Files.exists(override)) {
                     String s = new String(Files.readAllBytes(override));
                     JsonObject obj = gson.fromJson(s, JsonObject.class);
-                    if (obj != null && obj.has("voice_regions")) {
-                        JsonElement vr = obj.get("voice_regions");
-                        Type type = new TypeToken<List<VoiceRegion>>(){}.getType();
-                        List<VoiceRegion> list = gson.fromJson(vr, type);
-                        if (list != null) for (VoiceRegion r : list) regions.put(r.id, r);
-                        return;
-                    }
+                    JsonObject voiceSection = obj != null && obj.has("voice") && obj.get("voice").isJsonObject() ? obj.getAsJsonObject("voice") : obj;
+                    if (parseRegionsFromVoiceSection(voiceSection)) return;
                 }
-
-                // Priority 3: embedded resource (mod datapack) — read from server resource manager
                 try {
                     Identifier resourceId = Identifier.of(mapId.getNamespace(), "plasmid/game/" + mapId.getPath() + ".json");
                     var optional = world.getServer().getResourceManager().getResource(resourceId);
                     if (optional.isPresent()) {
                         try (InputStream is = optional.get().getInputStream(); Reader r = new InputStreamReader(is)) {
                             JsonObject obj = gson.fromJson(r, JsonObject.class);
-                            if (obj != null && obj.has("voice_regions")) {
-                                JsonElement vr = obj.get("voice_regions");
-                                Type type = new TypeToken<List<VoiceRegion>>(){}.getType();
-                                List<VoiceRegion> list = gson.fromJson(vr, type);
-                                if (list != null) for (VoiceRegion reg : list) regions.put(reg.id, reg);
-                                return;
-                            }
+                            JsonObject voiceSection = obj != null && obj.has("voice") && obj.get("voice").isJsonObject() ? obj.getAsJsonObject("voice") : obj;
+                            if (parseRegionsFromVoiceSection(voiceSection)) return;
                         }
                     }
                 } catch (Exception ex) {
@@ -210,13 +224,102 @@ public class VoiceRegionManager {
         }
     }
 
+    private boolean parseRegionsFromVoiceSection(JsonObject voiceSection) {
+        if (voiceSection == null || !voiceSection.has("voice_regions")) return false;
+        try {
+            var vrElem = voiceSection.get("voice_regions");
+            if (vrElem != null && vrElem.isJsonArray()) {
+                int added = 0;
+                for (JsonElement el : vrElem.getAsJsonArray()) {
+                    if (!el.isJsonObject()) continue;
+                    JsonObject o = el.getAsJsonObject();
+                    String id = optString(o, "id");
+                    if (id == null) continue;
+                    String groupName = optString(o, "groupName");
+                    if (groupName == null) groupName = id; // fallback
+                    String groupId = optString(o, "groupId");
+                    BlockPos a = parseCorner(o.get("cornerA"));
+                    BlockPos b = parseCorner(o.get("cornerB"));
+                    if (a == null || b == null) continue;
+                    regions.put(id, new VoiceRegion(id, groupName, groupId, a, b));
+                    added++;
+                }
+                if (added > 0) {
+                    golden.botc_mc.botc_mc.botc.LOGGER.debug("VoiceRegionManager: loaded {} region(s) from voice section", added);
+                    return true;
+                }
+            }
+        } catch (Throwable t) {
+            golden.botc_mc.botc_mc.botc.LOGGER.warn("VoiceRegionManager: parseRegionsFromVoiceSection error: {}", t.toString());
+        }
+        return false;
+    }
+
+    private void parseLegacyArray(String json) {
+        try {
+            JsonElement root = JsonParser.parseString(json);
+            if (!root.isJsonArray()) return;
+            int added = 0;
+            for (JsonElement el : root.getAsJsonArray()) {
+                if (!el.isJsonObject()) continue;
+                JsonObject o = el.getAsJsonObject();
+                String id = optString(o, "id");
+                if (id == null) continue;
+                String groupName = optString(o, "groupName");
+                if (groupName == null) groupName = id;
+                String groupId = optString(o, "groupId");
+                BlockPos a = parseCorner(o.get("cornerA"));
+                BlockPos b = parseCorner(o.get("cornerB"));
+                if (a == null || b == null) continue;
+                regions.put(id, new VoiceRegion(id, groupName, groupId, a, b));
+                added++;
+            }
+            if (added > 0) golden.botc_mc.botc_mc.botc.LOGGER.debug("VoiceRegionManager: loaded {} legacy array region(s)", added);
+        } catch (Throwable t) {
+            golden.botc_mc.botc_mc.botc.LOGGER.warn("VoiceRegionManager: parseLegacyArray error: {}", t.toString());
+        }
+    }
+
+    private BlockPos parseCorner(JsonElement el) {
+        if (el == null || !el.isJsonObject()) return null;
+        JsonObject o = el.getAsJsonObject();
+        try {
+            int x = o.has("x") ? o.get("x").getAsInt() : 0;
+            int y = o.has("y") ? o.get("y").getAsInt() : 0;
+            int z = o.has("z") ? o.get("z").getAsInt() : 0;
+            return new BlockPos(x, y, z);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    private String optString(JsonObject o, String key) {
+        if (o == null || !o.has(key)) return null;
+        try { return o.get(key).getAsString(); } catch (Throwable ignored) { return null; }
+    }
+
+
     public void save() {
         // Save to per-map config first (backwards compatible)
         try {
             if (configPath.getParent() != null) Files.createDirectories(configPath.getParent());
-            List<VoiceRegion> list = new ArrayList<>(regions.values());
-            String s = gson.toJson(list);
-            Files.write(configPath, s.getBytes());
+            // Start with existing object if present to preserve voice_groups
+            JsonObject root = new JsonObject();
+            if (Files.exists(configPath)) {
+                String raw = new String(Files.readAllBytes(configPath));
+                if (raw.trim().startsWith("{")) {
+                    try { root = JsonParser.parseString(raw).getAsJsonObject(); } catch (Throwable ignored) {}
+                }
+            }
+            // Ensure 'voice' section exists and write regions there
+            JsonObject voiceSection = root.has("voice") && root.get("voice").isJsonObject() ? root.getAsJsonObject("voice") : new JsonObject();
+            JsonElement regionsElem = gson.toJsonTree(new ArrayList<>(regions.values()), new TypeToken<List<VoiceRegion>>(){}.getType());
+            voiceSection.add("voice_regions", regionsElem);
+            // Preserve voice_groups if already present inside voice section
+            if (!voiceSection.has("voice_groups")) voiceSection.add("voice_groups", new com.google.gson.JsonArray());
+            root.add("voice", voiceSection);
+            String out = gson.toJson(root);
+            Files.write(configPath, out.getBytes());
         } catch (IOException ex) { golden.botc_mc.botc_mc.botc.LOGGER.warn("VoiceRegionManager save failed: {}", ex.toString()); }
 
         // Also write an override datapack entry so the regions are stored alongside the map JSON for portability
@@ -244,12 +347,12 @@ public class VoiceRegionManager {
                 }
 
                 if (obj == null) obj = new JsonObject();
-                // Ensure type and map_id are present
-                if (!obj.has("type")) obj.addProperty("type", "botc-mc:game");
-                obj.addProperty("map_id", mapId.toString());
-
+                // Write voice section only (avoid writing type/map_id to prevent creating phantom maps)
+                JsonObject voiceSection = obj.has("voice") && obj.get("voice").isJsonObject() ? obj.getAsJsonObject("voice") : new JsonObject();
                 JsonElement regionsElem = gson.toJsonTree(new ArrayList<>(regions.values()), new TypeToken<List<VoiceRegion>>(){}.getType());
-                obj.add("voice_regions", regionsElem);
+                voiceSection.add("voice_regions", regionsElem);
+                if (!voiceSection.has("voice_groups")) voiceSection.add("voice_groups", new com.google.gson.JsonArray());
+                obj.add("voice", voiceSection);
 
                 String out = gson.toJson(obj);
                 Files.write(target, out.getBytes());

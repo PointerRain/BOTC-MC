@@ -252,9 +252,10 @@ public final class SvcBridge {
         if (voiceConfigLoaded) return;
         voiceConfigLoaded = true;
         try {
-            java.io.File cfgDir = new java.io.File("run/config");
-            if (!cfgDir.exists()) cfgDir.mkdirs();
-            java.io.File f = new java.io.File(cfgDir, "botc-voice.properties");
+            java.nio.file.Path botcCfg = VoiceRegionService.botcConfigRoot();
+            java.nio.file.Path voiceCfgDir = botcCfg.resolve("voice");
+            java.nio.file.Files.createDirectories(voiceCfgDir);
+            java.io.File f = voiceCfgDir.resolve("botc-voice.properties").toFile();
             java.util.Properties props = new java.util.Properties();
             if (f.exists()) {
                 try (java.io.FileInputStream in = new java.io.FileInputStream(f)) {

@@ -12,9 +12,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Map discovery/registry. Loads manifests from runtime folder `run/config/plasmid/maps/*` and
@@ -46,49 +48,42 @@ public class MapManager {
 
     public void discoverRuntimeMaps() {
         registry.clear();
-
-        // First, load packaged index (if present) from classpath. Packaged entries are default and
-        // may be overridden by runtime manifests with the same id.
-        loadPackagedIndex();
-
-        // Then discover runtime maps under run/config/plasmid/maps/*
+        Set<String> runtimeIds = new HashSet<>();
         Path mapsRoot = Paths.get("run", "config", "plasmid", "maps");
-        if (!Files.exists(mapsRoot) || !Files.isDirectory(mapsRoot)) return;
-
-        try {
-            try (var stream = Files.list(mapsRoot)) {
-                stream.forEach(p -> {
-                    try {
-                        Path manifest = p.resolve("manifest.json");
-                        if (Files.exists(manifest)) {
-                            String text = Files.readString(manifest);
-                            String idRaw = extractString(text, "id").orElse(null);
-                            // normalize id: if no namespace provided, assume 'botc'
-                            String id = null;
-                            if (idRaw != null) {
-                                id = idRaw.contains(":") ? idRaw : ("botc:" + idRaw);
-                            }
-                            String name = extractString(text, "name").orElse(id);
-                            String description = extractString(text, "description").orElse("");
-                            List<String> authors = extractStringArray(text, "authors");
-                            String nbtFile = extractString(text, "nbt_file").orElse(null);
-                            if (id != null) {
-                                MapInfo info = new MapInfo(id, name, authors, description, nbtFile);
-                                // runtime manifests override packaged entries
-                                registry.put(id, info);
-                                LOGGER.info("Discovered runtime map: {} -> {}", id, p.toString());
-                            } else {
-                                LOGGER.warn("Manifest at {} has no 'id' field, skipping", manifest.toString());
-                            }
-                        }
-                    } catch (Exception e) {
-                        LOGGER.warn("Failed to parse manifest for map at {}: {}", p.toString(), e.getMessage());
-                    }
-                });
-            }
-        } catch (IOException e) {
-            LOGGER.warn("Failed to read runtime maps folder: {}", e.getMessage());
+        if (!Files.exists(mapsRoot) || !Files.isDirectory(mapsRoot)) {
+            LOGGER.warn("Runtime maps root not found: {}", mapsRoot.toAbsolutePath());
+            return;
         }
+        try (var stream = Files.list(mapsRoot)) {
+            stream.forEach(dir -> {
+                try {
+                    Path manifest = dir.resolve("manifest.json");
+                    if (!Files.exists(manifest)) return;
+                    String text = Files.readString(manifest);
+                    String idRaw = extractString(text, "id").orElse(null);
+                    if (idRaw == null) return;
+                    String id = idRaw.contains(":") ? idRaw : ("botc-mc:" + idRaw); // force desired namespace
+                    // Allow only the two canonical map ids
+                    if (!id.equals("botc-mc:test") && !id.equals("botc-mc:testv2")) {
+                        LOGGER.debug("Skipping map id {} (not in allowlist)", id);
+                        return;
+                    }
+                    // Use directory name as display name to avoid internal template metadata influencing list
+                    String name = dir.getFileName().toString();
+                    MapInfo info = new MapInfo(id, name, List.of(), "", null);
+                    registry.put(id, info);
+                    runtimeIds.add(id);
+                    LOGGER.info("Registered allowlisted map: {} (display={})", id, name);
+                } catch (Exception e) {
+                    LOGGER.warn("Failed processing map dir {}: {}", dir, e.getMessage());
+                }
+            });
+        } catch (IOException e) {
+            LOGGER.warn("Failed to list runtime maps: {}", e.getMessage());
+        }
+        // Hard prune anything else just in case
+        registry.keySet().retainAll(Set.of("botc-mc:test", "botc-mc:testv2"));
+        LOGGER.info("Final pruned map ids: {}", registry.keySet());
     }
 
     private void loadPackagedIndex() {
@@ -145,7 +140,10 @@ public class MapManager {
     }
 
     public List<String> listIds() {
-        return new ArrayList<>(registry.keySet());
+        // Always return sorted allowlisted map ids for stable autocomplete
+        List<String> ids = new ArrayList<>(registry.keySet());
+        ids.sort(String::compareTo);
+        return ids;
     }
 
     public List<MapInfo> listInfos() {
