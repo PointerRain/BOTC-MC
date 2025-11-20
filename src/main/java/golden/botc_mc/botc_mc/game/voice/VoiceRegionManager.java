@@ -97,7 +97,16 @@ public class VoiceRegionManager {
         save();
         return r;
     }
-
+    /** Assign/replace the groupId for an existing region; returns true if updated. */
+    public boolean updateGroupId(String id, String newGroupId) {
+        VoiceRegion existing = regions.get(id);
+        if (existing == null) return false;
+        // Recreate region with new groupId
+        VoiceRegion updated = new VoiceRegion(existing.id, existing.groupName, newGroupId, existing.cornerA, existing.cornerB);
+        regions.put(id, updated);
+        save();
+        return true;
+    }
 
     public VoiceRegion remove(String id) {
         VoiceRegion r = regions.remove(id);

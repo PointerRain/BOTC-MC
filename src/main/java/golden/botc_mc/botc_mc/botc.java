@@ -11,6 +11,8 @@ import golden.botc_mc.botc_mc.game.botcCommands;
 import golden.botc_mc.botc_mc.game.voice.VoiceRegionManager;
 import golden.botc_mc.botc_mc.game.voice.VoiceRegionTask;
 import golden.botc_mc.botc_mc.game.voice.VoiceRegionService;
+import golden.botc_mc.botc_mc.game.voice.BotcVoicechatPlugin;
+import golden.botc_mc.botc_mc.game.voice.SvcBridge;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.server.MinecraftServer;
 
@@ -29,6 +31,8 @@ public class botc implements ModInitializer {
 
     private VoiceRegionTask voiceRegionTask;
     private VoiceRegionManager voiceRegionManager;
+
+    private static volatile boolean REGIONS_MATERIALIZED = false;
 
     @Override
     public void onInitialize() {
@@ -53,14 +57,22 @@ public class botc implements ModInitializer {
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             try { preloadOnce(server); } catch (Throwable ignored) {}
             if (voiceRegionTask != null) {
-                try {
-                    voiceRegionTask.setServer(server);
-                } catch (Throwable ignored) {}
-                try {
-                    voiceRegionTask.run();
-                } catch (Throwable ex) {
-                    LOGGER.warn("VoiceRegionTask tick error: {}", ex.toString());
+                try { voiceRegionTask.setServer(server); } catch (Throwable ignored) {}
+                try { voiceRegionTask.run(); } catch (Throwable ex) { LOGGER.warn("VoiceRegionTask tick error: {}", ex.toString()); }
+            }
+            // Deferred region materialization: ensure map-based regions create/open groups once voice chat available
+            try {
+                if (!REGIONS_MATERIALIZED && SvcBridge.isAvailableRuntime()) {
+                    VoiceRegionManager active = VoiceRegionService.getActiveManager();
+                    if (active != null) {
+                        BotcVoicechatPlugin plugin = BotcVoicechatPlugin.getInstance(server);
+                        plugin.onMapOpen(active.getMapId()); // reuse logic; it will materialize regions
+                        REGIONS_MATERIALIZED = true;
+                        LOGGER.info("Deferred voice region materialization complete for map {}", active.getMapId());
+                    }
                 }
+            } catch (Throwable t) {
+                LOGGER.warn("Deferred region materialization error: {}", t.toString());
             }
         });
     }

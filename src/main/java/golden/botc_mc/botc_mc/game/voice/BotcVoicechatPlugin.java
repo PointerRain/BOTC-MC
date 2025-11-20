@@ -3,8 +3,6 @@ package golden.botc_mc.botc_mc.game.voice;
 import golden.botc_mc.botc_mc.botc;
 import net.minecraft.server.MinecraftServer;
 
-import java.nio.file.Paths;
-import java.util.UUID;
 import net.minecraft.util.Identifier;
 
 public class BotcVoicechatPlugin {
@@ -12,8 +10,6 @@ public class BotcVoicechatPlugin {
 
     private final PersistentGroupStore store;
     private final MinecraftServer server;
-    // Use Object so compilation doesn't require voicechat API on classpath
-    private Object api = null;
 
     public static synchronized BotcVoicechatPlugin getInstance(MinecraftServer server) {
         if (INSTANCE == null) {
@@ -112,23 +108,45 @@ public class BotcVoicechatPlugin {
     public void onMapOpen(Identifier mapId) {
         if (mapId == null) return;
         try {
-            // Ensure a default per-map config exists
             VoiceRegionService.writeDefaultConfigIfMissing(mapId);
-
-            // Load voice groups from embedded or override and ensure groups exist in SVC (best-effort)
+            // Load voice groups defined in map JSON (override or embedded)
             VoiceGroupManager gm = VoiceGroupManager.forServer(this.server, mapId);
             for (PersistentGroup pg : gm.list()) {
                 try {
                     if (pg.voicechatId != null) {
                         SvcBridge.clearPasswordAndOpenById(pg.voicechatId);
-                    } else if (pg.name != null && !pg.name.isEmpty() && !SvcBridge.groupExists(pg.name)) {
+                    } else if (pg.name != null && !pg.name.isEmpty() && !SvcBridge.groupExists(pg.name) && !SvcBridge.isGroupCreationDisabled()) {
                         java.util.UUID id = SvcBridge.createOrGetGroup(pg.name, null);
                         if (id != null) {
-                            // best-effort: mark persistent/open
                             SvcBridge.clearPasswordAndOpenById(id);
                         }
                     }
                 } catch (Throwable ignored) {}
+            }
+            // Materialize region groups from active per-map manager (already set active in waiting logic)
+            VoiceRegionManager active = VoiceRegionService.getActiveManager();
+            if (active != null && mapId.equals(active.getMapId())) {
+                for (VoiceRegion r : active.list()) {
+                    try {
+                        if (r.groupName == null || r.groupName.isEmpty()) continue;
+                        boolean creationDisabled = SvcBridge.isGroupCreationDisabled();
+                        if (r.groupId != null && !r.groupId.isEmpty()) {
+                            SvcBridge.clearPasswordAndOpenByIdString(r.groupId);
+                        } else if (!creationDisabled) {
+                            if (!SvcBridge.groupExists(r.groupName)) {
+                                java.util.UUID gid = SvcBridge.createOrGetGroup(r.groupName, null);
+                                if (gid != null) {
+                                    active.updateGroupId(r.id, gid.toString());
+                                    SvcBridge.clearPasswordAndOpenById(gid);
+                                }
+                            }
+                        }
+                    } catch (Throwable t) {
+                        botc.LOGGER.warn("BotcVoicechatPlugin: region materialize error for {}: {}", r.id, t.toString());
+                    }
+                }
+            } else {
+                botc.LOGGER.debug("BotcVoicechatPlugin: active manager missing or mapId mismatch for materialization (mapId={})", mapId);
             }
         } catch (Throwable t) {
             botc.LOGGER.warn("BotcVoicechatPlugin.onMapOpen failed for {}: {}", mapId, t.toString());

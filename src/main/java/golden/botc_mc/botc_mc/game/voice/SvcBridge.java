@@ -473,8 +473,16 @@ public final class SvcBridge {
         }
         return null;
     }
-
-    private static UUID getGroupId(Object group) {
+    /** Public helper to resolve an existing group's UUID by its name, or null if not found/voice unavailable. */
+    public static java.util.UUID resolveGroupIdByName(String name) {
+        if (name == null || name.isEmpty() || !isAvailableRuntime()) return null;
+        Object g = findGroupByName(name);
+        if (g == null && aliasGroups.containsKey(name)) {
+            return aliasGroups.get(name);
+        }
+        return g == null ? null : getGroupId(g);
+    }
+    private static java.util.UUID getGroupId(Object group) {
         if (group == null) return null;
         try {
             if (groupGetId != null) {
