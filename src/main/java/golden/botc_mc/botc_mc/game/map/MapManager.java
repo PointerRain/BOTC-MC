@@ -90,14 +90,16 @@ public class MapManager {
                 List<String> authors = extractStringArray(obj, "authors");
                 String nbtFile = extractString(obj, "nbt_file").orElse(null);
 
-                // normalize packaged index id similarly: assume 'botc' namespace when missing
-                String idNorm = id != null && id.contains(":") ? id : (id != null ? "botc:" + id : null);
-                String nameNorm = name != null ? name : idNorm;
-                MapInfo info = new MapInfo(idNorm, nameNorm, authors, description, nbtFile);
-                if (idNorm != null) {
-                    registry.putIfAbsent(idNorm, info);
-                    LOGGER.info("Loaded packaged map index entry: {}", idNorm);
+                Identifier parsedId = id != null ? Identifier.tryParse(id) : null;
+                if (parsedId == null) {
+                    LOGGER.warn("Skipping packaged map entry with invalid id: {}", id);
+                    pos = objEnd + 1;
+                    continue;
                 }
+                String nameNorm = name != null ? name : parsedId.toString();
+                MapInfo info = new MapInfo(parsedId.toString(), nameNorm, authors, description, nbtFile);
+                registry.putIfAbsent(parsedId.toString(), info);
+                LOGGER.info("Loaded packaged map index entry: {}", parsedId);
                 pos = objEnd + 1;
             }
         } catch (IOException e) {
