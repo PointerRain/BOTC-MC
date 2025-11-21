@@ -130,6 +130,13 @@ public class Map {
     }
 
     public record Meta(String name, java.util.List<String> authors, Optional<String> description, Optional<String> url) {
+        /**
+         * Describes the human-facing metadata surfaced in menus/tooltips when a map is
+         * selected. {@code name} is the display name, {@code authors} credits map creators,
+         * {@code description} is optional flavor text, and {@code url} can link to docs or
+         * download info. These fall back to defaults when absent so older templates keep
+         * loading.
+         */
         public static final Meta DEFAULT = new Meta("Unknown Map", java.util.List.of("Unknown Authors"), Optional.empty(), Optional.empty());
 
         public static final MapCodec<Meta> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(

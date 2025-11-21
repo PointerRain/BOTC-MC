@@ -15,7 +15,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 /**
  * Map discovery/registry. Loads manifests from runtime folder `run/config/plasmid/maps/*` and
@@ -48,17 +47,16 @@ public class MapManager {
                     String text = Files.readString(manifest);
                     String idRaw = extractString(text, "id").orElse(null);
                     if (idRaw == null) return;
-                    String id = idRaw.contains(":") ? idRaw : ("botc-mc:" + idRaw); // force desired namespace
-                    // Allow only the two canonical map ids
-                    if (!id.equals("botc-mc:test") && !id.equals("botc-mc:testv2")) {
-                        LOGGER.debug("Skipping map id {} (not in allowlist)", id);
+                    String normalizedId = idRaw.contains(":") ? idRaw : ("botc-mc:" + idRaw);
+                    Identifier parsedId = Identifier.tryParse(normalizedId);
+                    if (parsedId == null) {
+                        LOGGER.warn("Skipping map {} due to invalid id: {}", dir.getFileName(), idRaw);
                         return;
                     }
-                    // Use directory name as display name to avoid internal template metadata influencing list
                     String name = dir.getFileName().toString();
-                    MapInfo info = new MapInfo(id, name, List.of(), "", null);
-                    registry.put(id, info);
-                    LOGGER.info("Registered allowlisted map: {} (display={})", id, name);
+                    MapInfo info = new MapInfo(parsedId.toString(), name, List.of(), "", null);
+                    registry.put(parsedId.toString(), info);
+                    LOGGER.info("Registered runtime map: {} (display={})", parsedId, name);
                 } catch (Exception e) {
                     LOGGER.warn("Failed processing map dir {}: {}", dir, e.getMessage());
                 }
@@ -66,9 +64,7 @@ public class MapManager {
         } catch (IOException e) {
             LOGGER.warn("Failed to list runtime maps: {}", e.getMessage());
         }
-        // Hard prune anything else just in case
-        registry.keySet().retainAll(Set.of("botc-mc:test", "botc-mc:testv2"));
-        LOGGER.info("Final pruned map ids: {}", registry.keySet());
+        LOGGER.info("Runtime map ids discovered: {}", registry.keySet());
     }
 
     private void loadPackagedIndex() {
@@ -150,6 +146,7 @@ public class MapManager {
         return Optional.of(raw);
     }
 
+    @SuppressWarnings("SameParameterValue")
     private static List<String> extractStringArray(String json, String key) {
         List<String> out = new ArrayList<>();
         String qKey = '"' + key + '"';
