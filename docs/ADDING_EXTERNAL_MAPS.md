@@ -1,11 +1,17 @@
 # Adding External Maps to BOTC
 
-This document explains how to add maps to BOTC using **map templates**, either
-bundled inside the mod JAR or provided as separate datapacks.
+This document explains the **minimum** you need to do for BOTC to see and open
+maps via Plasmid. It focuses only on behaviour that is guaranteed by the
+current code: file layout, IDs, and the optional `map_format` version check.
 
 At runtime, BOTC discovers map templates via Minecraft's normal data pack
 mechanism. There is no longer a separate `run/config/plasmid/maps` manifest
 system.
+
+> Required steps:
+> 1. Place your NBT file in `data/.../map_template/`.
+> 2. Point a Plasmid game JSON at it by resource ID.
+> 3. (Optional) Provide a `map_format` integer in the template metadata for versioning.
 
 ---
 
@@ -30,7 +36,7 @@ Examples:
 
 The internal loader (`MapTemplateWrapper` and related code) also supports some
 shorthand forms, but using the full `namespace:map_template/name` id is the most
-reliable.
+reliable and is the only form this document relies on.
 
 ---
 
@@ -40,8 +46,6 @@ To ship a map **with the mod JAR**, place the NBT file under
 `src/main/resources` in the correct data-pack layout.
 
 ### 2.1. Directory layout
-
-In the source tree:
 
 ```text
 src/
@@ -78,11 +82,7 @@ Each game definition can point to a specific map id. A minimal example:
 ```json
 {
   "type": "botc-mc:game_type_id",
-  "map": "botc-mc:map_template/testv2",
-  "settings": {
-    "players": 8,
-    "time_limit": 300
-  }
+  "map": "botc-mc:map_template/testv2"
 }
 ```
 
@@ -103,12 +103,12 @@ Once the JAR is on the server and loaded:
    /game open botc-mc:testv2
    ```
 
-   or, to be explicit about the full map id in the game config, ensure the
-   relevant `plasmid/game/*.json` points at `botc-mc:map_template/testv2`.
+   This opens the Plasmid game whose JSON id is `botc-mc:testv2`, which in turn
+   points at the map template id `botc-mc:map_template/testv2`.
 
-The BOTC game logic will load the map template via `MapTemplateWrapper`, build a
-world using `TemplateChunkGenerator`, and then apply its own spawn/region
-handling.
+As long as the file and id are correct, BOTC will ask
+`MapTemplateSerializer.loadFromResource` for that id and generate the game
+world from the template.
 
 ---
 
@@ -162,10 +162,7 @@ Your Plasmid game JSON in the datapack should reference this id, for example:
 ```json
 {
   "type": "botc-mc:game_type_id",
-  "map": "botc-mc:map_template/custom_map_1",
-  "settings": {
-    "players": 10
-  }
+  "map": "botc-mc:map_template/custom_map_1"
 }
 ```
 
@@ -203,50 +200,23 @@ BOTC will load it.
 
 ---
 
-## 4. Map metadata and versioning
+## 4. Map metadata and versioning (minimum required)
 
-`MapTemplateWrapper` enforces a simple format version via a `track_format`
-integer stored in the template's metadata.
+BOTC can read an optional format version field from map template metadata.
+`MapTemplateWrapper` looks for an integer field named `map_format`. If present,
+it is compared against an internal `CURRENT_MAP_FORMAT` constant and a warning
+is logged when they differ. These warnings do **not** prevent the map from
+loading.
 
-During construction, it does:
-
-```java
-int mapFormat = template.getMetadata()
-        .getData()
-        .getInt("track_format", 0);
-
-if (mapFormat < CURRENT_MAP_FORMAT) {
-    throw new GameOpenException(Text.of("This map was built for an earlier version of the mod."));
-} else if (mapFormat > CURRENT_MAP_FORMAT) {
-    throw new GameOpenException(Text.of("This map was built for a future version of the mod."));
-}
-```
-
-Where `CURRENT_MAP_FORMAT` is currently `1`.
-
-To avoid version errors:
-
-- Ensure your exported map templates include a `track_format` metadata field set
-  to the correct value (currently `1`).
-- If you intentionally change the map format later, update
-  `CURRENT_MAP_FORMAT` and re-export your maps.
-
-If you see in-game errors like:
-
-> This map was built for an earlier version of the mod.
-
-or
-
-> This map was built for a future version of the mod.
-
-then the map's `track_format` does not match `CURRENT_MAP_FORMAT` and you may
-need to re-export or adjust the metadata.
+This field is **not required**; if you omit `map_format`, BOTC treats the map
+as format `0` and still attempts to load it. Supplying `map_format` helps with
+future compatibility but is optional.
 
 ---
 
 ## 5. Quick reference
 
-- **Bundled (JAR) map**
+- **Bundled (JAR) map)**
   - NBT: `src/main/resources/data/botc-mc/map_template/<name>.nbt`
   - Map id: `botc-mc:map_template/<name>`
   - Game JSON: `src/main/resources/data/botc-mc/plasmid/game/<game-id>.json`
@@ -258,6 +228,33 @@ need to re-export or adjust the metadata.
   - Game JSON: `<world>/datapacks/<pack>/data/botc-mc/plasmid/game/<game-id>.json`
   - Open: `/game open botc-mc:<game-id>`
 
-This reflects the current map loading system in the code (`MapTemplateWrapper`,
-`Map`, and Plasmid game definitions) and replaces the old
-`run/config/plasmid/maps` manifest-based approach.
+That is the guaranteed behaviour today: if the files are in the right place
+and referenced by the right id, BOTC will be able to open the map via Plasmid.
+
+---
+
+## 6. Minimal step-by-step example
+
+This example shows the smallest working setup for a custom map called
+`town_square`.
+
+### 6.1. Export the map template
+
+1. Build your map in a normal Minecraft world.
+2. Use your map-template export tool to save the build area as
+   `town_square.nbt`.
+3. (Optional) Add a `map_format` integer in the template metadata, for example:
+   - `map_format = 1`.
+
+### 6.3. Enable the datapack and open the game
+
+The map will load if all of the following are true:
+
+- `town_square.nbt` is at `data/mymaps/map_template/town_square.nbt`.
+- `town_square.json` is at `data/mymaps/plasmid/game/town_square.json`.
+- `config.map_id` is exactly `"mymaps:map_template/town_square"`.
+
+In that case, BOTC will load the map and generate a game world from it. Any
+additional behaviour (spawn logic, regions, layout, voice regions, etc.) is
+implemented by higher-level systems and may evolve in future versions, but this
+minimal contract remains stable.

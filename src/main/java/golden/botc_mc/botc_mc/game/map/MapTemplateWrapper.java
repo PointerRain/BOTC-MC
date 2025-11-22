@@ -14,6 +14,8 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.gen.chunk.ChunkGenerator;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import xyz.nucleoid.map_templates.BlockBounds;
 import xyz.nucleoid.map_templates.MapTemplate;
 import xyz.nucleoid.map_templates.MapTemplateSerializer;
@@ -24,7 +26,7 @@ import xyz.nucleoid.plasmid.api.game.world.generator.TemplateChunkGenerator;
 /** Lightweight map template wrapper. Provides access to template metadata and regions. */
 @SuppressWarnings("unused")
 public class MapTemplateWrapper {
-    private static final org.apache.logging.log4j.Logger LOGGER = org.apache.logging.log4j.LogManager.getLogger("botc.MapTemplate");
+    private static final Logger LOGGER = LogManager.getLogger("botc.MapTemplate");
     private final Regions regions;
     private final Meta meta;
     private final Attributes attributes;
@@ -33,17 +35,17 @@ public class MapTemplateWrapper {
 
     private static final int CURRENT_MAP_FORMAT = 1;
 
-    private MapTemplateWrapper(xyz.nucleoid.map_templates.MapTemplate template) {
+    private MapTemplateWrapper(MapTemplate template) {
         this.template = template;
 
         int mapFormat = template.getMetadata()
                 .getData()
-                .getInt("track_format", 0);
+                .getInt("map_format", 0);
 
         if (mapFormat < CURRENT_MAP_FORMAT) {
-            throw new GameOpenException(Text.of("This map was built for an earlier version of the mod."));
+            LOGGER.warn("Map template is from an older format ({} < {}), continuing anyway.", mapFormat, CURRENT_MAP_FORMAT);
         } else if (mapFormat > CURRENT_MAP_FORMAT) {
-            throw new GameOpenException(Text.of("This map was built for a future version of the mod."));
+            LOGGER.warn("Map template is from a newer format ({} > {}), continuing anyway.", mapFormat, CURRENT_MAP_FORMAT);
         }
 
         this.meta = template.getMetadata()
