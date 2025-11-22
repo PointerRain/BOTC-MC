@@ -14,6 +14,8 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.gen.chunk.ChunkGenerator;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import xyz.nucleoid.map_templates.BlockBounds;
 import xyz.nucleoid.map_templates.MapTemplate;
 import xyz.nucleoid.map_templates.MapTemplateSerializer;
@@ -25,7 +27,7 @@ import xyz.nucleoid.plasmid.api.game.world.generator.TemplateChunkGenerator;
  * A BOTC map loaded from a map template resource.
  */
 public class Map {
-    private static final org.apache.logging.log4j.Logger LOGGER = org.apache.logging.log4j.LogManager.getLogger("botc.Map");
+    private static final Logger LOGGER = LogManager.getLogger("botc.Map");
 
     private final Regions regions;
     private final Meta meta;
@@ -129,7 +131,7 @@ public class Map {
         ).apply(instance, Attributes::new));
     }
 
-    public record Meta(String name, java.util.List<String> authors, Optional<String> description, Optional<String> url) {
+    public record Meta(String name, List<String> authors, Optional<String> description, Optional<String> url) {
         /**
          * Describes the human-facing metadata surfaced in menus/tooltips when a map is
          * selected. {@code name} is the display name, {@code authors} credits map creators,
