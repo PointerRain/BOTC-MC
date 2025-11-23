@@ -21,7 +21,8 @@ import static net.minecraft.server.command.CommandManager.literal;
 public final class botcCommands {
     public static void register() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            LiteralArgumentBuilder<ServerCommandSource> root = literal("botc");
+            LiteralArgumentBuilder<ServerCommandSource> root = literal("botc")
+                    .requires(src -> src.hasPermissionLevel(4)); // admin-only
 
             root.then(literal("settings").executes(ctx -> {
                 ServerCommandSource src = ctx.getSource();
@@ -68,6 +69,8 @@ public final class botcCommands {
                             )
                     )
             );
+
+            // Intentionally no map subcommands; maps are chosen via game configs (e.g., /game open botc-mc:testv2)
 
             dispatcher.register(root);
         });

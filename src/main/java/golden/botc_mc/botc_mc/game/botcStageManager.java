@@ -41,15 +41,31 @@ public class botcStageManager {
     }
 
     public void onOpen(long time, botcConfig config) {
+        // align to next whole second and add a short countdown buffer
         this.startTime = time - (time % 20) + (4 * 20) + 19;
-        this.finishTime = this.startTime + (config.timeLimitSecs() * 20L);
+
+        // use independent game settings for time limits instead of the map config
+        botcSettings settings = botcSettingsManager.get();
+        int timeLimitSecs = settings.timeLimitSecs > 0 ? settings.timeLimitSecs : 300;
+        this.finishTime = this.startTime + (timeLimitSecs * 20L);
+
         this.stateMachine.start(time, this.stateContext);
         this.lifecycleStatus = GameLifecycleStatus.STOPPED;
     }
 
     public void attachContext(GameSpace space, botcConfig config) {
         this.stateContext = new BotcStateContext(space);
-        this.configureStates(config.phaseDurations());
+
+        // derive phase durations from the independent settings config
+        botcSettings settings = botcSettingsManager.get();
+        botcPhaseDurations durations = new botcPhaseDurations(
+                settings.dayDiscussionSecs,
+                settings.nominationSecs,
+                settings.executionSecs,
+                settings.nightSecs
+        );
+
+        this.configureStates(durations);
     }
 
     /**

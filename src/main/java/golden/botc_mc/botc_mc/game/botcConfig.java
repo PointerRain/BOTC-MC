@@ -3,25 +3,17 @@ package golden.botc_mc.botc_mc.game;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import golden.botc_mc.botc_mc.game.map.botcMapConfig;
+import net.minecraft.util.Identifier;
 
-public record botcConfig(botcMapConfig mapConfig,
-                          int players,
-                          int timeLimitSecs,
-                          botcPhaseDurations phaseDurations) {
+/**
+ * Lightweight config decoded from Plasmid game JSON. It only selects which map to use.
+ * Timing, phase durations, and player counts are provided by independent settings
+ * (botcSettings and/or a dedicated game-settings config), not by this structure.
+ */
+public record botcConfig(Identifier mapId) {
     public static final MapCodec<botcConfig> MAP_CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-            botcMapConfig.CODEC.fieldOf("map").forGetter(botcConfig::mapConfig),
-            Codec.INT.fieldOf("players").orElse(8).forGetter(botcConfig::players),
-            Codec.INT.fieldOf("timeLimitSecs").orElse(300).forGetter(botcConfig::timeLimitSecs),
-            botcPhaseDurations.MAP_CODEC.fieldOf("phase_durations").orElse(botcPhaseDurations.defaults()).forGetter(botcConfig::phaseDurations)
+            Identifier.CODEC.fieldOf("map_id").forGetter(botcConfig::mapId)
     ).apply(instance, botcConfig::new));
 
     public static final Codec<botcConfig> CODEC = MAP_CODEC.codec();
-
-    public int timeLimitSecs() { return this.timeLimitSecs; }
-
-    // utility factory to simplify programmatic construction from helpers
-    public static botcConfig of(botcMapConfig mapConfig, int players, int timeLimitSecs, botcPhaseDurations phaseDurations) {
-        return new botcConfig(mapConfig, players, timeLimitSecs, phaseDurations);
-    }
 }
