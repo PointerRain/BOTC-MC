@@ -46,6 +46,7 @@ public class VoiceGroupManager {
 
     private final List<PersistentGroup> groups = new ArrayList<>();
 
+    /** Internal constructor; use {@link #forServer(MinecraftServer, Identifier)}. */
     private VoiceGroupManager(Identifier mapId, MinecraftServer server) {
         this.mapId = mapId;
         this.server = server;
@@ -62,7 +63,7 @@ public class VoiceGroupManager {
     }
 
     /** Immutable snapshot of loaded groups.
-     * @return unmodifiable list
+     * @return unmodifiable list of persistent groups declared in map JSON
      */
     public java.util.List<PersistentGroup> list() { return java.util.Collections.unmodifiableList(groups); }
 

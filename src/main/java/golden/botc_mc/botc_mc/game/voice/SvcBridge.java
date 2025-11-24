@@ -1,20 +1,25 @@
 package golden.botc_mc.botc_mc.game.voice;
 
-import golden.botc_mc.botc_mc.botc;
-import net.fabricmc.loader.api.FabricLoader; // added for mod version lookup
-import net.minecraft.server.network.ServerPlayerEntity;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.UUID;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Collections;
+import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.server.network.ServerPlayerEntity;
+import golden.botc_mc.botc_mc.botc;
 
 /**
- * Reflection integration bridge for the Simple Voice Chat mod. Discovers runtime classes &amp; methods,
+ * Reflection integration bridge for the Simple Voice Chat mod. Discovers runtime classes & methods,
  * exposes minimal higher-level helpers (group create/join/leave, password clearing, presence checks)
  * while avoiding a hard compile-time dependency. All operations are best-effort and fail soft.
  * <p>
- * Callers should treat all return values as hints: if integration is unavailable or fails, the
- * rest of the BOTC game should continue to function without voice features.
+ * <b>Caution:</b> Because this relies on reflection across multiple potential versions of the
+ * voice chat mod, callers must tolerate null/false returns. Every public method below documents
+ * its parameters and return semantics explicitly.
  */
 public final class SvcBridge {
     private static boolean available = false;
@@ -52,7 +57,7 @@ public final class SvcBridge {
     private static final Map<String, UUID> aliasGroups = new HashMap<>();
     private static boolean groupCreationUnavailable = false;
     // removed unused groupCreationWarned
-    private static final Set<String> failedCreationNames = new java.util.HashSet<>(); // names for which creation already failed
+    private static final Set<String> failedCreationNames = new HashSet<>(); // names for which creation already failed
 
     private static void diag(String msg) {
         // Lower verbosity: use debug unless first attempt or important
@@ -72,7 +77,7 @@ public final class SvcBridge {
     private SvcBridge() {}
 
     /** Attempt lazy initialization and report availability.
-     * @return true if available after (possibly) attempting init
+     * @return true if integration ready after attempting init
      */
     public static boolean isAvailableRuntime() {
         if (permanentlyMissing) return false;
@@ -81,8 +86,8 @@ public final class SvcBridge {
     }
 
     /** Indicates whether player's voice state appears connected.
-     * @param player server player entity
-     * @return true if considered connected or uncertain
+     * @param player server player entity (nullable)
+     * @return true if considered connected or unknown (never blocks gameplay)
      */
     public static boolean isPlayerConnected(ServerPlayerEntity player) {
         if (!isAvailableRuntime() || player == null) return true; // default permissive
@@ -417,7 +422,7 @@ public final class SvcBridge {
 
     /** Get group by UUID via reflected manager.
      * @param id group id
-     * @return group object or null
+     * @return group object or null if not found/unavailable
      */
     public static Object getGroupById(UUID id) {
         if (gmGetGroup == null || id == null) return null;
@@ -432,7 +437,7 @@ public final class SvcBridge {
     }
 
     /** Mark group persistent best-effort.
-     * @param group group instance
+     * @param group group instance (ignored if null)
      */
     public static void markPersistent(Object group) {
         if (group == null) return;
@@ -462,10 +467,9 @@ public final class SvcBridge {
         return null;
     }
     /**
-     * Create the voice chat group with the given name if absent, or return the existing group's id.
-     * Attempts several reflection strategies (builder, constructor, salvage) to be resilient across mod versions.
-     * @param desiredName desired group name (must be non-empty)
-     * @return UUID of created or existing group, or null on failure
+     * Create the voice chat group with the given name if absent.
+     * @param desiredName desired group name (non-empty)
+     * @return UUID of created or existing group, or null on failure/unavailable
      */
     public static UUID createOrGetGroup(String desiredName) {
         if (desiredName == null || desiredName.isEmpty() || !isAvailableRuntime()) return null;
@@ -626,17 +630,17 @@ public final class SvcBridge {
         if (g == null) return;
         clearPasswordAndOpen(g);
     }
-    /** Clear password and mark open for a group found by UUID string.
+    /** Clear password and open by UUID string.
      * @param idStr UUID string
-     * @return true if group found and sanitized
+     * @return true if group found & sanitized
      */
     public static boolean clearPasswordAndOpenByIdString(String idStr) {
         if (idStr == null) return false;
         try { return clearPasswordAndOpenById(UUID.fromString(idStr)); } catch (Throwable ignored) { return false; }
     }
-    /** Clear password and mark open for a group found by UUID.
+    /** Clear password and open by UUID.
      * @param id group id
-     * @return true if group found and sanitized
+     * @return true if operation succeeded
      */
     public static boolean clearPasswordAndOpenById(UUID id) {
         if (!isAvailableRuntime() || id == null) return false;
@@ -648,7 +652,7 @@ public final class SvcBridge {
 
     /** Check if a group exists by name or alias.
      * @param name group name
-     * @return true if exists
+     * @return true if present
      */
     public static boolean isGroupPresent(String name) {
         if (name == null || name.isEmpty() || !isAvailableRuntime()) return false;
@@ -656,15 +660,8 @@ public final class SvcBridge {
         UUID alias = aliasGroups.get(name);
         return alias != null && getGroupById(alias) != null;
     }
-
-    /** Convenience inverse of isGroupPresent to improve readability at call sites where absence is tested.
-     * @param name group name
-     * @return true if group is absent or voice integration unavailable
-     */
-    public static boolean isGroupMissing(String name) { return !isGroupPresent(name); }
-
-    /** Indicates whether automatic voice group creation has been disabled due to missing builders or mod absence.
-     * @return true if auto-creation is currently disabled
+    /** Whether automatic voice group creation is disabled.
+     * @return true if auto-creation disabled
      */
     public static boolean isGroupCreationDisabled() { return groupCreationUnavailable; }
 
@@ -732,8 +729,8 @@ public final class SvcBridge {
     }
 
     /** Get the UUID of the group that the player is currently in, if any.
-     * @param player target player
-     * @return group UUID or null if not in a group or integration unavailable
+     * @param player target player (nullable)
+     * @return group UUID or null if none/unavailable
      */
     public static UUID getPlayerGroupId(ServerPlayerEntity player) {
         if (!isAvailableRuntime() || player == null) return null;

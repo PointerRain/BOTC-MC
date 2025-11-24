@@ -101,7 +101,7 @@ public final class VoiceRegionService {
 
     /** Copy bundled default config.
      * @param mapId map identifier
-     * @param overwrite true to replace existing file
+     * @param overwrite true to replace existing file if present
      */
     public static void copyDefault(Identifier mapId, boolean overwrite) {
         String res = String.format("assets/%s/voice_defaults/%s.json", mapId.getNamespace(), mapId.getPath());
@@ -142,23 +142,21 @@ public final class VoiceRegionService {
     }
 
     /**
-     * Register a {@link VoiceRegionManager} as the globally active manager for a particular world + map.
-     * The active manager is what runtime systems will operate on when adjusting player voice membership.
-     * @param manager manager instance
+     * Register a {@link VoiceRegionManager} as the globally active manager.
+     * @param manager manager instance (may be null to clear)
      */
     public static synchronized void setActive(VoiceRegionManager manager) {
         activeManager = manager;
     }
 
     /** Currently active manager accessor.
-     * @return active VoiceRegionManager or null
+     * @return active VoiceRegionManager or null if none set
      */
     public static VoiceRegionManager getActiveManager() { return activeManager; }
 
     /** Ensure a minimal pack.mcmeta exists for the overrides datapack.
-     * Centralizes creation logic used by both VoiceGroupManager and VoiceRegionManager.
-     * @param datapackBase base path of overrides datapack (run/world/datapacks/botc_overrides)
-     * @param description human readable description
+     * @param datapackBase base path of overrides datapack
+     * @param description human readable description for pack.mcmeta
      */
     public static void ensureOverridesPackMeta(Path datapackBase, String description) {
         try {

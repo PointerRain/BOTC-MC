@@ -134,17 +134,43 @@ public class VoiceRegionManager {
 
     /** Build a concise context tag for logging (map id or GLOBAL). */
     private String ctx() { return mapId == null ? "GLOBAL" : mapId.toString(); }
-    /** Unified load-phase logger with code tokens for grep. */
-    private void logLoad(String code, String fmt, Object... args) {
-        golden.botc_mc.botc_mc.botc.LOGGER.info("[VRM:{}:{}] {}", code, ctx(), fmt, args);
+
+    /** Simple curly-brace formatter supporting '{}' tokens; extras left as-is. */
+    private static String fmt(String pattern, Object... args) {
+        if (pattern == null) return "";
+        StringBuilder sb = new StringBuilder(pattern.length() + 32);
+        int argIndex = 0;
+        for (int i = 0; i < pattern.length(); i++) {
+            char c = pattern.charAt(i);
+            if (c == '{' && i + 1 < pattern.length() && pattern.charAt(i + 1) == '}') {
+                if (argIndex < args.length) {
+                    Object a = args[argIndex++];
+                    sb.append(a == null ? "null" : a);
+                } else {
+                    sb.append("{}");
+                }
+                i++; // skip closing brace
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
     }
-    /** Unified debug-phase logger. */
-    private void logDebug(String code, String fmt, Object... args) {
-        golden.botc_mc.botc_mc.botc.LOGGER.debug("[VRM:{}:{}] {}", code, ctx(), fmt, args);
+
+    /** Unified load-phase logger with code tokens for grep (pre-formatted to avoid placeholder warnings). */
+    private void logLoad(String code, String fmtPattern, Object... args) {
+        String msg = "[VRM:" + code + ":" + ctx() + "] " + fmt(fmtPattern, args);
+        golden.botc_mc.botc_mc.botc.LOGGER.info(msg);
     }
-    /** Unified warn-phase logger. */
-    private void logWarn(String code, String fmt, Object... args) {
-        golden.botc_mc.botc_mc.botc.LOGGER.warn("[VRM:{}:{}] {}", code, ctx(), fmt, args);
+    /** Unified debug-phase logger (pre-formatted). */
+    private void logDebug(String code, String fmtPattern, Object... args) {
+        String msg = "[VRM:" + code + ":" + ctx() + "] " + fmt(fmtPattern, args);
+        golden.botc_mc.botc_mc.botc.LOGGER.debug(msg);
+    }
+    /** Unified warn-phase logger (pre-formatted). */
+    private void logWarn(String code, String fmtPattern, Object... args) {
+        String msg = "[VRM:" + code + ":" + ctx() + "] " + fmt(fmtPattern, args);
+        golden.botc_mc.botc_mc.botc.LOGGER.warn(msg);
     }
 
     private boolean tryParseAndImport(String raw, Identifier mapIdContext, boolean saveAfter) {

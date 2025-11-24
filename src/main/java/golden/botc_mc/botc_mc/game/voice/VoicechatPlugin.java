@@ -46,15 +46,7 @@ public class VoicechatPlugin {
 
     /**
      * Best-effort preload/repair of persisted groups into Simple Voice Chat on server start.
-     * <p>
-     * The algorithm:
-     * <ol>
-     *   <li>Check global group creation configuration via {@link SvcBridge#isGroupCreationDisabled()}.</li>
-     *   <li>Iterate all {@link PersistentGroup} entries from {@link PersistentGroupStore} and attempt to
-     *       reopen or recreate missing groups, caching newly assigned ids.</li>
-     *   <li>Optionally scan legacy {@link VoiceRegionManager} data and ensure any referenced groups also exist.</li>
-     * </ol>
-     * Any failures are logged but do not abort server startup.
+     * See class Javadoc for algorithm details.
      */
     public void preload() {
         try {
@@ -91,7 +83,7 @@ public class VoicechatPlugin {
                             repaired = SvcBridge.clearPasswordAndOpenByIdString(r.groupId());
                             if (repaired) ok++;
                         }
-                        if (!creationDisabled && !repaired && r.groupName() != null && !r.groupName().isEmpty() && SvcBridge.isGroupMissing(r.groupName())) {
+                        if (!creationDisabled && !repaired && r.groupName() != null && !r.groupName().isEmpty() && !SvcBridge.isGroupPresent(r.groupName())) {
                             java.util.UUID id = SvcBridge.createOrGetGroup(r.groupName());
                             if (id != null) {
                                 SvcBridge.clearPasswordAndOpenById(id);
@@ -116,11 +108,8 @@ public class VoicechatPlugin {
     }
 
     /**
-     * Called when a BOTC map is opened. Ensures per-map defaults exist, preloads any groups that are
-     * defined either in the per-map voice JSON or region configuration, and attempts to repair region
-     * group identifiers where possible.
-     *
-     * @param mapId identifier of the map that has just been opened
+     * Called when a BOTC map is opened. Ensures per-map defaults exist and materializes region groups.
+     * @param mapId identifier of the map that has just been opened (ignored if null)
      */
     public void onMapOpen(Identifier mapId) {
         if (mapId == null) return;
@@ -132,7 +121,7 @@ public class VoicechatPlugin {
                 try {
                     if (pg.getVoicechatId() != null) {
                         SvcBridge.clearPasswordAndOpenById(pg.getVoicechatId());
-                    } else if (pg.getName() != null && !pg.getName().isEmpty() && SvcBridge.isGroupMissing(pg.getName()) && !SvcBridge.isGroupCreationDisabled()) {
+                    } else if (pg.getName() != null && !pg.getName().isEmpty() && !SvcBridge.isGroupPresent(pg.getName()) && !SvcBridge.isGroupCreationDisabled()) {
                         java.util.UUID id = SvcBridge.createOrGetGroup(pg.getName());
                         if (id != null) {
                             SvcBridge.clearPasswordAndOpenById(id);
@@ -150,7 +139,7 @@ public class VoicechatPlugin {
                         if (r.groupId() != null && !r.groupId().isEmpty()) {
                             SvcBridge.clearPasswordAndOpenByIdString(r.groupId());
                         } else if (!creationDisabled) {
-                            if (SvcBridge.isGroupMissing(r.groupName())) {
+                            if (!SvcBridge.isGroupPresent(r.groupName())) {
                                 java.util.UUID gid = SvcBridge.createOrGetGroup(r.groupName());
                                 if (gid != null) {
                                     active.updateGroupId(r.id(), gid.toString());
@@ -177,7 +166,7 @@ public class VoicechatPlugin {
      */
     private boolean attemptCreate(PersistentGroup g, boolean creationDisabled) {
         if (creationDisabled || g == null || g.getName() == null || g.getName().isEmpty()) return false;
-        if (!SvcBridge.isGroupMissing(g.getName())) return false;
+        if (SvcBridge.isGroupPresent(g.getName())) return false; // group already exists
         java.util.UUID id = SvcBridge.createOrGetGroup(g.getName());
         if (id == null) return false;
         store.cacheGroup(id, g);

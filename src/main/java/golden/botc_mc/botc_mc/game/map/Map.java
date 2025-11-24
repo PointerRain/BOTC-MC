@@ -3,7 +3,6 @@ package golden.botc_mc.botc_mc.game.map;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
-
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -20,6 +19,7 @@ import xyz.nucleoid.plasmid.api.game.world.generator.TemplateChunkGenerator;
 
 /**
  * Represents loaded map metadata, regions, and attributes used for a BOTC session.
+ * Maintains spawn and checkpoint respawn regions extracted from the template.
  */
 public final class Map {
     private static final Logger LOGGER = LogManager.getLogger("botc.Map");
@@ -30,6 +30,7 @@ public final class Map {
 
     private static final int CURRENT_MAP_FORMAT = 1;
 
+    /** Internal constructor building region lists from a loaded template. */
     private Map(MapTemplate template) {
         this.template = template;
 
@@ -66,9 +67,10 @@ public final class Map {
 
     /**
      * Load map metadata and resources by identifier.
-     * @param server minecraft server instance
-     * @param identifier namespaced map id
-     * @return loaded Map instance or null if missing
+     * @param server Minecraft server instance used to access resource manager
+     * @param identifier namespaced map id (e.g. <code>botc-mc:test</code>)
+     * @return loaded Map instance
+     * @throws xyz.nucleoid.plasmid.api.game.GameOpenException if the underlying template cannot be read
      */
     public static Map load(MinecraftServer server, Identifier identifier) {
         MapTemplate template;
@@ -86,7 +88,7 @@ public final class Map {
 
     /**
      * Creates a chunk generator that will serve blocks from this loaded template.
-     * @param server minecraft server instance for context
+     * @param server Minecraft server instance (world/dimension context)
      * @return template-backed chunk generator
      */
     public ChunkGenerator asGenerator(MinecraftServer server) {
@@ -108,6 +110,12 @@ public final class Map {
     public record RespawnRegion(BlockBounds bounds, float yaw, float pitch) {
         public static final RespawnRegion DEFAULT = new RespawnRegion(BlockBounds.ofBlock(BlockPos.ORIGIN), 0.0f, 0.0f);
 
+        /**
+         * Factory converting a template region to a respawn region, applying default yaw/pitch
+         * if not explicitly provided in region metadata.
+         * @param templateRegion source template region
+         * @return respawn region instance
+         */
         private static RespawnRegion of(TemplateRegion templateRegion) {
             return new RespawnRegion(
                     templateRegion.getBounds(),

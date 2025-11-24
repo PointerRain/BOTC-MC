@@ -17,17 +17,30 @@ import java.util.UUID;
  * persisted data is resilient across voice chat mod updates.
  */
 public final class PersistentGroup {
+    /** Stable display name used to locate or recreate the voice chat group at runtime. */
     private final String name; // made final
+    /** Runtime Simple Voice Chat assigned UUID for the group (nullable until created). */
     private UUID voicechatId; // remains mutable
     private static final String DEFAULT_TYPE = "NORMAL";
 
+    /**
+     * Construct a persistent group descriptor.
+     * @param name human-readable group name
+     * @param voicechatId existing voice chat UUID or null if group not yet materialized
+     */
     public PersistentGroup(String name, UUID voicechatId) {
         this.name = name;
         this.voicechatId = voicechatId;
     }
 
+    /** @return persistent group name */
     public String getName() { return name; }
+    /** @return current associated Simple Voice Chat UUID (may be null) */
     public UUID getVoicechatId() { return voicechatId; }
+    /**
+     * Update the runtime voice chat UUID after creation/repair.
+     * @param id new UUID (nullable to clear association)
+     */
     public void setVoicechatId(UUID id) { this.voicechatId = id; }
 
     /**

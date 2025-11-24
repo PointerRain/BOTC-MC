@@ -111,14 +111,14 @@ public class PersistentGroupStore {
     }
 
     /** Immutable snapshot of all known groups.
-     * @return list copy
+     * @return unmodifiable list of persistent groups
      */
     public synchronized java.util.List<PersistentGroup> list() {
         return Collections.unmodifiableList(groups);
     }
-
     /** Add a new group to the store.
-     * @param g persistent group instance
+     * Replaces any existing group with the same case-insensitive name.
+     * @param g persistent group instance (ignored if null or name missing)
      */
     public synchronized void addGroup(PersistentGroup g) {
         if (g == null || g.getName() == null) return;
@@ -127,17 +127,15 @@ public class PersistentGroupStore {
         if (g.getVoicechatId() != null) cache.put(g.getVoicechatId(), g);
         save();
     }
-
     /** Lookup a group by name.
-     * @param name group name
-     * @return optional containing found group
+     * @param name group name (case-insensitive)
+     * @return optional containing found group or empty if absent
      */
     public synchronized java.util.Optional<PersistentGroup> getByName(String name) { return groups.stream().filter(g->g.getName().equalsIgnoreCase(name)).findFirst(); }
-
     /**
      * Cache a runtime voice chat UUID against the persistent group instance and persist change.
-     * @param id assigned voice chat group UUID
-     * @param g persistent group descriptor
+     * @param id assigned voice chat group UUID (ignored if null)
+     * @param g persistent group descriptor (ignored if null)
      */
     public synchronized void cacheGroup(java.util.UUID id, PersistentGroup g) {
         if (id == null || g == null) return;
@@ -145,10 +143,9 @@ public class PersistentGroupStore {
         cache.put(id, g);
         save();
     }
-
     /** Lookup a group by runtime voice UUID.
      * @param id voice chat UUID
-     * @return matching persistent group or null
+     * @return matching persistent group or null if not cached
      */
     public synchronized PersistentGroup getByVoiceId(java.util.UUID id) { return cache.get(id); }
 }

@@ -41,7 +41,7 @@ public record VoiceRegion(String id, String groupName, String groupId, BlockPos 
     }
 
     /** Debug-friendly bounds string for logging.
-     * @return formatted bounds string
+     * @return formatted bounds string like <code>[minX,minY,minZ]..[maxX,maxY,maxZ]</code>
      */
     public String boundsDebug() {
         int[] b = normalizedBounds();

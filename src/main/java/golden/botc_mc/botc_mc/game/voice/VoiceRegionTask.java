@@ -4,19 +4,18 @@ import golden.botc_mc.botc_mc.botc;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.text.Text;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Periodic task that inspects player positions, determines current voice region membership,
- * and performs join/leave operations with throttling &amp; stability windows to reduce churn.
+ * and performs join/leave operations with throttling & stability windows to reduce churn.
  * <p>
- * It is typically driven once per server tick from {@link golden.botc_mc.botc_mc.botc#onInitialize()} via
- * {@link net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents#END_SERVER_TICK}. The task is designed
- * to be safe even when voice integration is unavailable: in that case it only tracks regions in-memory.
+ * Designed to run once per server tick; all operations are best-effort and tolerate missing
+ * voice integration (in which case only internal tracking occurs).
  */
 public class VoiceRegionTask implements Runnable {
     private MinecraftServer server; // restored mutable server reference
@@ -37,8 +36,8 @@ public class VoiceRegionTask implements Runnable {
     private static final Set<UUID> WATCH_PLAYERS = java.util.Collections.newSetFromMap(new ConcurrentHashMap<>()); // players for verbose position/region watch
 
     /** Create task bound initially to server (may be null) and manager.
-     * @param server minecraft server (can be replaced later)
-     * @param manager voice region manager
+     * @param server minecraft server (can be null until later set)
+     * @param manager voice region manager for baseline lookups
      */
     public VoiceRegionTask(MinecraftServer server, VoiceRegionManager manager) {
         this.server = server; // assign incoming server
@@ -46,7 +45,7 @@ public class VoiceRegionTask implements Runnable {
     }
 
     /** Update server reference after availability.
-     * @param srv server instance
+     * @param srv live server instance
      */
     public void setServer(MinecraftServer srv) {
         this.server = srv;
@@ -87,13 +86,16 @@ public class VoiceRegionTask implements Runnable {
                 }
 
                 VoiceRegion detected = mgr.regionForPlayer(p); // may log internally
+                // Pre-compute derived fields once
+                final String detectedName = detected == null ? null : detected.groupName();
+                final String detectedGroupId = detected == null ? null : detected.groupId();
+
                 if (watching) {
-                    // Build detailed watch log regardless of region presence
                     StringBuilder sb = new StringBuilder();
                     sb.append("WATCH player=").append(p.getName().getString())
                       .append(" pos=").append(p.getBlockX()).append(',').append(p.getBlockY()).append(',').append(p.getBlockZ());
-                    if (detected != null) {
-                        sb.append(" region=").append(detected.id()).append(" group=").append(detected.groupName())
+                    if (detectedName != null) {
+                        sb.append(" region=").append(detected.id()).append(" group=").append(detectedName)
                           .append(" bounds=").append(detected.boundsDebug());
                     } else {
                         sb.append(" region=<none>");
@@ -106,12 +108,10 @@ public class VoiceRegionTask implements Runnable {
                     }
                     botc.LOGGER.info(sb.toString());
                 }
-                // If no region matched and debug enabled log once every few ticks (rate limit by cooldown logic already)
-                if (detected == null && DEBUG_TASK && !watching) {
+                if (detectedName == null && DEBUG_TASK && !watching) {
                     botc.LOGGER.trace("VoiceRegionTask: player {} in no voice region (blockPos={},{} ,{})", p.getName().getString(), p.getBlockX(), p.getBlockY(), p.getBlockZ());
                 }
                 String previousDetected = lastDetectedRegion.get(pu);
-                String detectedName = (detected == null ? null : detected.groupName());
                 if ((previousDetected == null && detectedName != null) || (previousDetected != null && !previousDetected.equals(detectedName))) {
                     lastDetectedRegion.put(pu, detectedName);
                     lastDetectedRegionMs.put(pu, nowMs);
@@ -185,8 +185,7 @@ public class VoiceRegionTask implements Runnable {
                         }
                         boolean joined = false;
                         try {
-                            if (detected != null && detected.groupId() != null) SvcBridge.clearPasswordAndOpenByIdString(detected.groupId());
-                            else SvcBridge.clearPasswordAndOpenByName(detectedName);
+                            if (detectedGroupId != null) SvcBridge.clearPasswordAndOpenByIdString(detectedGroupId); else SvcBridge.clearPasswordAndOpenByName(detectedName);
                             joined = SvcBridge.joinGroupByName(p, detectedName);
                         } catch (Throwable t) {
                             botc.LOGGER.warn("VoiceRegionTask: join error {}", t.toString());
@@ -230,8 +229,7 @@ public class VoiceRegionTask implements Runnable {
                             if (jAttempts >= MAX_JOIN_ATTEMPTS) return;
                             boolean joined = false;
                             try {
-                                if (detected != null && detected.groupId() != null) SvcBridge.clearPasswordAndOpenByIdString(detected.groupId());
-                                else SvcBridge.clearPasswordAndOpenByName(detectedName);
+                                if (detectedGroupId != null) SvcBridge.clearPasswordAndOpenByIdString(detectedGroupId); else SvcBridge.clearPasswordAndOpenByName(detectedName);
                                 joined = SvcBridge.joinGroupByName(p, detectedName);
                             } catch (Throwable t) { botc.LOGGER.warn("VoiceRegionTask: switch join error {}", t.toString()); }
                             if (joined) {
