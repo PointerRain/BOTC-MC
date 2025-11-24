@@ -16,5 +16,6 @@
     "nomination_secs": 45,
     "execution_secs": 20,
     "night_secs": 60
-  }
+  },
+  "scriptId": "botc-mc:trouble_brewing"
 }
