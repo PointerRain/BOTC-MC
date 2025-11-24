@@ -25,23 +25,16 @@ public class SpawnLogic {
         this.world = world;
     }
 
+    /**
+     * Resets some player state upon respawn.
+     * Resets player gamemode, velocity, and negates fall damage.
+     * @param player
+     * @param gameMode
+     */
     public void resetPlayer(ServerPlayerEntity player, GameMode gameMode) {
         player.changeGameMode(gameMode);
         player.setVelocity(Vec3d.ZERO);
         player.fallDistance = 0.0f;
-
-        player.addStatusEffect(new StatusEffectInstance(
-                StatusEffects.NIGHT_VISION,
-                20 * 60 * 60,
-                1,
-                true,
-                false
-        ));
-
-        // Give the player ~3 seconds of invulnerability on spawn, then clear
-        player.setInvulnerable(true);
-        // Schedule clearing invulnerability after 60 ticks
-        this.world.getServer().execute(() -> this.world.getServer().getOverworld().getServer().execute(() -> player.setInvulnerable(false)));
     }
 
     // Return a safe spawn location near the map's respawn region center.
@@ -105,9 +98,12 @@ public class SpawnLogic {
         return best;
     }
 
+    /**
+     * Determines if the given block state at the position can serve as a spawn surface.
+     * Any block with a collision shape counts as a surface the player can stand on,
+     * which includes glass and stained glass.
+     */
     private boolean isSpawnSurface(BlockPos pos, BlockState state) {
-        // Any block with a collision shape counts as a surface the player can stand on,
-        // which includes glass and stained glass.
         return !state.getCollisionShape(this.world, pos).isEmpty();
     }
 
@@ -117,4 +113,3 @@ public class SpawnLogic {
         return this.world.isAir(above) && this.world.isAir(above2);
     }
 }
-

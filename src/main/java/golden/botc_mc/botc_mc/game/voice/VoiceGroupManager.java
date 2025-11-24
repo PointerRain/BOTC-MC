@@ -24,7 +24,6 @@ import java.util.List;
  * Manages persistent voice chat groups stored inside the map JSON under key "voice_groups".
  * Load precedence: override datapack -> embedded resource; Save target: override datapack only.
  */
-@SuppressWarnings({"unused", "FieldMayBeFinal"})
 public class VoiceGroupManager {
     private static final org.apache.logging.log4j.Logger LOGGER = org.apache.logging.log4j.LogManager.getLogger("botc.VoiceGroupManager");
 
@@ -95,7 +94,6 @@ public class VoiceGroupManager {
         }
     }
 
-    @SuppressWarnings("unused")
     public void save() {
         if (mapId == null) return;
         Path datapackBase = Paths.get("run", "world", "datapacks", "botc_overrides");

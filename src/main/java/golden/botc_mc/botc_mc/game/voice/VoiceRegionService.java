@@ -67,7 +67,6 @@ public final class VoiceRegionService {
     }
 
     /** Returns true if a bundled default asset exists for the given map id. */
-    @SuppressWarnings("unused")
     public static boolean defaultAssetExists(Identifier mapId) {
         String res = String.format("assets/%s/voice_defaults/%s.json", mapId.getNamespace(), mapId.getPath());
         try (InputStream in = VoiceRegionService.class.getClassLoader().getResourceAsStream(res)) {
@@ -76,7 +75,6 @@ public final class VoiceRegionService {
     }
 
     /** Copy bundled default to per-map config. overwrite==true replaces existing file. */
-    @SuppressWarnings("unused")
     public static void copyDefault(Identifier mapId, boolean overwrite) {
         String res = String.format("assets/%s/voice_defaults/%s.json", mapId.getNamespace(), mapId.getPath());
         try (InputStream in = VoiceRegionService.class.getClassLoader().getResourceAsStream(res)) {
@@ -94,7 +92,6 @@ public final class VoiceRegionService {
     }
 
     /** If per-map config missing or empty, attempt to write the bundled default. Writes file if needed. */
-    @SuppressWarnings("unused")
     public static void writeDefaultConfigIfMissing(Identifier mapId) {
         try {
             Path target = configPathForMap(mapId);
@@ -125,8 +122,6 @@ public final class VoiceRegionService {
     }
 
     // Accessors added so assigned fields are accessible and to silence warnings
-    @SuppressWarnings("unused")
     public static Identifier getActiveMapId() { return activeMapId; }
-    @SuppressWarnings("unused")
     public static ServerWorld getActiveWorld() { return activeWorld; }
 }

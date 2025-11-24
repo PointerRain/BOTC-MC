@@ -399,7 +399,6 @@ public final class SvcBridge {
     }
 
     // Utility: fetch groups map
-    @SuppressWarnings("unchecked")
     private static Map<UUID,Object> rawGroups() {
         if (!isAvailableRuntime() || gmGetGroups == null) return Collections.emptyMap();
         try {
