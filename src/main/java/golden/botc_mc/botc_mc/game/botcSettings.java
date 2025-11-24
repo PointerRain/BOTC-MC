@@ -1,5 +1,6 @@
 package golden.botc_mc.botc_mc.game;
 
+import golden.botc_mc.botc_mc.Script;
 import golden.botc_mc.botc_mc.game.map.botcMapConfig;
 import net.minecraft.block.Blocks;
 
@@ -88,7 +89,8 @@ public final class botcSettings {
         int timeLimit = this.timeLimitSecs > 0 ? this.timeLimitSecs : (base == null ? 300 : base.timeLimitSecs());
 
         botcPhaseDurations durations = new botcPhaseDurations(this.dayDiscussionSecs, this.nominationSecs, this.executionSecs, this.nightSecs);
+        Script script = Script.empty();
 
-        return botcConfig.of(mapCfg, players, timeLimit, durations);
+        return botcConfig.of(mapCfg, players, timeLimit, durations, script);
     }
 }

@@ -30,6 +30,7 @@ public class botcWaiting {
         this.config = config;
         this.world = world;
         this.spawnLogic = new botcSpawnLogic(gameSpace, world, map);
+        System.out.println(this.config.toString());
     }
 
     public static GameOpenProcedure open(GameOpenContext<botcConfig> context) {

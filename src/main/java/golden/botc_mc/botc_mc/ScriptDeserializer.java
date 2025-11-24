@@ -27,6 +27,7 @@ public class ScriptDeserializer implements JsonDeserializer<Script> {
         boolean hideTitle = false;
         String background = null;
         String almanac = null;
+        String flavor = null;
         List<String> bootlegger = null;
         List<String> firstNight = null;
         List<String> otherNight = null;
@@ -41,6 +42,7 @@ public class ScriptDeserializer implements JsonDeserializer<Script> {
                 hideTitle = metaObj.has("hide_title") && metaObj.get("hide_title").getAsBoolean();
                 background = getString(metaObj, "background");
                 almanac = getString(metaObj, "almanac");
+                flavor = getString(metaObj, "flavor");
                 bootlegger = getStringList(metaObj, "bootlegger");
                 firstNight = getStringList(metaObj, "first_night");
                 otherNight = getStringList(metaObj, "other_night");
@@ -54,7 +56,7 @@ public class ScriptDeserializer implements JsonDeserializer<Script> {
             }
         }
 
-        return new Script(name, author, logo, hideTitle, background, almanac, bootlegger, firstNight, otherNight,
+        return new Script(name, author, logo, hideTitle, background, almanac, flavor, bootlegger, firstNight, otherNight,
                 characters);
     }
 

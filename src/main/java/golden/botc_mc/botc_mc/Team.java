@@ -1,5 +1,7 @@
 package golden.botc_mc.botc_mc;
 
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
@@ -12,6 +14,12 @@ public enum Team {
     FABLED,
     LORIC,
     TRAVELLER;
+
+
+
+    public static final Codec<Team> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            Codec.STRING.fieldOf("team").forGetter(Team::toString)
+    ).apply(instance, Team::fromString));
 
 //    /**
 //     * Get the string representation of the team.

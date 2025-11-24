@@ -1,6 +1,8 @@
 package golden.botc_mc.botc_mc;
 
 import com.google.gson.Gson;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.resource.Resource;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
@@ -25,9 +27,25 @@ public record Character(String id,
                         List<String> reminders,
                         List<String> remindersGlobal,
                         boolean setup,
-                        List<Script.Jinx> jinxes,
-                        Object special) {
+                        List<Script.Jinx> jinxes) {
 
+    public static final Codec<Character> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            Codec.STRING.fieldOf("id").forGetter(Character::id),
+            Codec.STRING.fieldOf("name").forGetter(Character::name),
+            Team.CODEC.fieldOf("team").forGetter(Character::team),
+            Codec.STRING.fieldOf("ability").forGetter(Character::ability),
+            Codec.STRING.fieldOf("image").forGetter(Character::image),
+            Codec.STRING.fieldOf("edition").forGetter(Character::edition),
+            Codec.STRING.fieldOf("flavor").forGetter(Character::flavor),
+            Codec.INT.fieldOf("firstNight").forGetter(Character::firstNight),
+            Codec.STRING.fieldOf("firstNightReminder").forGetter(Character::firstNightReminder),
+            Codec.INT.fieldOf("otherNight").forGetter(Character::otherNight),
+            Codec.STRING.fieldOf("otherNightReminder").forGetter(Character::otherNightReminder),
+            Codec.STRING.listOf().fieldOf("reminders").forGetter(Character::reminders),
+            Codec.STRING.listOf().fieldOf("remindersGlobal").forGetter(Character::remindersGlobal),
+            Codec.BOOL.fieldOf("setup").forGetter(Character::setup),
+            Script.Jinx.CODEC.listOf().fieldOf("jinxes").forGetter(Character::jinxes)
+    ).apply(instance, Character::new));
     /** The base characters loaded from the JSON resource. */
     public static Character[] baseCharacters;
 
@@ -54,8 +72,7 @@ public record Character(String id,
              character.reminders,
              character.remindersGlobal,
              character.setup,
-             character.jinxes,
-             character.special);
+             character.jinxes);
     }
 
     /**
