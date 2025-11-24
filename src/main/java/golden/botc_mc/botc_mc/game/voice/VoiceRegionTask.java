@@ -10,35 +10,68 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Periodic per-tick task: evaluates player position, maps to voice region, and runs join/leave with throttling and stability delays. */
+/**
+ * Periodic task that evaluates player positions and ensures they are joined to the correct
+ * Simple Voice Chat group for their current {@link VoiceRegion}.
+ * <p>
+ * Responsibilities and algorithm:
+ * <p> 1. For each online player, resolve the active {@link VoiceRegion} via the configured
+ *     {@link VoiceRegionManager}. If none is matched, the player should not be in any map-linked
+ *     voice group.
+ * <p> 2. Apply a short stability window before acting on a region detection to avoid churn when
+ *     players briefly cross region boundaries.
+ * <p> 3. When a change is stable, perform join/leave actions via {@link SvcBridge}. Joins are
+ *     retried up to a bounded number of attempts; leaves are retried with a pending-cleanup counter.
+ * <p> 4. Throttle actions per-player with a cooldown to avoid rapid repeated calls to the voice server.
+ * <p>
+ * Implementation details:
+ * <p>- Uses in-memory maps to track current assigned region (by name), pending leave attempts,
+ *   join retry counts, and time of last action per player.
+ * <p>- Designed to be executed from the server tick loop. It is resilient to API errors; exceptions
+ *   are logged and do not interrupt iteration over players.
+ */
 public class VoiceRegionTask implements Runnable {
-    private MinecraftServer server; // restored mutable server reference
-    private final VoiceRegionManager manager;
+    private MinecraftServer server; // mutable server reference (set when server is available)
+    private final VoiceRegionManager manager; // fallback manager if no active manager is set
+
+    // current tracked region names for players (keyed by player UUID)
     private final Map<UUID, String> current = new HashMap<>();
+    // pending leave attempts map (player -> attempts)
     private final Map<UUID, Integer> pendingCleanup = new HashMap<>();
+    // join retry counts (player -> attempts)
     private final Map<UUID, Integer> joinRetries = new HashMap<>();
+    // last action timestamp per player (ms) used for cooldown
     private final Map<UUID, Long> lastActionMs = new HashMap<>();
-    private static final int MAX_PENDING_ATTEMPTS = 6;
-    private static final int MAX_JOIN_ATTEMPTS = 4;
-    private static final long ACTION_COOLDOWN_MS = 300;
-    private static final long REGION_STABLE_MS = 500; // require region to be stable for smoother experience
+
+    private static final int MAX_PENDING_ATTEMPTS = 6; // abandon leave after this many failed tries
+    private static final int MAX_JOIN_ATTEMPTS = 4; // abandon join after this many failed tries
+    private static final long ACTION_COOLDOWN_MS = 300; // per-player cooldown between actions
+    private static final long REGION_STABLE_MS = 500; // require region to be stable for this duration
+
+    // temporary detection buffers used to implement stability windows
     private final Map<UUID, String> lastDetectedRegion = new HashMap<>();
     private final Map<UUID, Long> lastDetectedRegionMs = new HashMap<>();
-    private static final boolean DEBUG_TASK = false; // toggle via command later (default off)
-    private static final boolean REQUIRE_STABILITY = true; // can disable to make more snappy
-    private static final boolean AUTOJOIN_ENABLED = true; // global toggle
-    private static final Set<UUID> WATCH_PLAYERS = java.util.Collections.newSetFromMap(new ConcurrentHashMap<>()); // players for verbose position/region watch
 
-    /** Create task bound initially to server (may be null) and manager.
-     * @param server minecraft server (can be null until later set)
-     * @param manager voice region manager for baseline lookups
+    // runtime flags
+    private static final boolean DEBUG_TASK = false; // verbose logging
+    private static final boolean REQUIRE_STABILITY = true; // enable stability window
+    private static final boolean AUTOJOIN_ENABLED = true; // enable autojoin behavior
+
+    // watchlist for debugging specific players (concurrent set)
+    private static final Set<UUID> WATCH_PLAYERS = java.util.Collections.newSetFromMap(new ConcurrentHashMap<>());
+
+    /**
+     * Construct the task.
+     * @param server may be null initially; set later with {@link #setServer}
+     * @param manager fallback VoiceRegionManager used when no active manager is set
      */
     public VoiceRegionTask(MinecraftServer server, VoiceRegionManager manager) {
         this.server = server; // assign incoming server
         this.manager = manager;
     }
 
-    /** Update server reference after availability.
+    /**
+     * Update server reference after server becomes available. Safe to call multiple times.
      * @param srv live server instance
      */
     public void setServer(MinecraftServer srv) {
@@ -46,21 +79,14 @@ public class VoiceRegionTask implements Runnable {
     }
 
     /**
-     * Main work loop executed each tick:
-     * <ol>
-     *   <li>Skip quickly if the server or active manager is missing.</li>
-     *   <li>For each player, determine their current {@link VoiceRegion} (if any), applying
-     *       a short stability window so brief boundary crossings don't cause audio thrash.</li>
-     *   <li>Use {@link SvcBridge} to join or leave Simple Voice Chat groups as needed, with retry
-     *       and cooldown logic to avoid hammering the voice server.</li>
-     * </ol>
-     * All failures are logged; the game loop is never interrupted.
+     * Primary tick method executed from the server tick loop.
+     * Iterates players and performs stability detection, throttling and join/leave actions.
      */
-    @Override
     public void run() {
         long nowMs = System.currentTimeMillis();
-        if (server == null) return; // safety
-        // Resolve the current manager: prefer active per-map, fallback to the constructed one
+        if (server == null) return; // safety: server must be present
+
+        // Prefer active per-map manager when set; fallback to the manager passed at construction
         VoiceRegionManager resolved = VoiceRegionService.getActiveManager();
         final VoiceRegionManager mgr = (resolved != null) ? resolved : this.manager;
 
@@ -68,22 +94,26 @@ public class VoiceRegionTask implements Runnable {
             try {
                 UUID pu = p.getUuid();
                 boolean watching = WATCH_PLAYERS.contains(pu);
+
+                // Cooldown gate: skip players that acted recently (unless explicitly watched)
                 Long last = lastActionMs.get(pu);
                 if (!watching && last != null && (nowMs - last) < ACTION_COOLDOWN_MS) {
                     if (DEBUG_TASK) botc.LOGGER.trace("VoiceRegionTask: cooldown skip for {} ({}ms)", p.getName().getString(), nowMs - last);
                     return;
                 }
 
+                // Ensure voice runtime available and the player connected to voice before attempting join/leave
                 if (SvcBridge.isAvailableRuntime() && !SvcBridge.isPlayerConnected(p)) {
                     if (DEBUG_TASK) botc.LOGGER.trace("VoiceRegionTask: player {} not yet connected to voice", p.getName().getString());
                     return;
                 }
 
-                VoiceRegion detected = mgr.regionForPlayer(p); // may log internally
-                // Pre-compute derived fields once
+                // Determine which region (if any) the player currently occupies
+                VoiceRegion detected = mgr.regionForPlayer(p); // may be null
                 final String detectedName = detected == null ? null : detected.groupName();
                 final String detectedGroupId = detected == null ? null : detected.groupId();
 
+                // Verbose watch logging that dumps all known region bounds for diagnosing edge cases
                 if (watching) {
                     StringBuilder sb = new StringBuilder();
                     sb.append("WATCH player=").append(p.getName().getString())
@@ -102,15 +132,20 @@ public class VoiceRegionTask implements Runnable {
                     }
                     botc.LOGGER.info(sb.toString());
                 }
+
                 if (detectedName == null && DEBUG_TASK && !watching) {
                     botc.LOGGER.trace("VoiceRegionTask: player {} in no voice region (blockPos={},{} ,{})", p.getName().getString(), p.getBlockX(), p.getBlockY(), p.getBlockZ());
                 }
+
+                // Track raw detection transitions with a timestamp for the stability window
                 String previousDetected = lastDetectedRegion.get(pu);
                 if ((previousDetected == null && detectedName != null) || (previousDetected != null && !previousDetected.equals(detectedName))) {
                     lastDetectedRegion.put(pu, detectedName);
                     lastDetectedRegionMs.put(pu, nowMs);
                     if (DEBUG_TASK) botc.LOGGER.debug("VoiceRegionTask: raw region change {} -> {} for player {}", previousDetected, detectedName, p.getName().getString());
                 }
+
+                // If stability is required, ensure the region has been observed for the threshold duration
                 if (detectedName != null && REQUIRE_STABILITY) {
                     Long firstSeenMs = lastDetectedRegionMs.get(pu);
                     if (firstSeenMs == null || (nowMs - firstSeenMs) < REGION_STABLE_MS) {
@@ -119,11 +154,13 @@ public class VoiceRegionTask implements Runnable {
                     }
                 }
 
+                // Handle pending cleanup: attempts to force the player out of a stale voice group
                 if (pendingCleanup.containsKey(pu)) {
                     try {
                         UUID still = SvcBridge.getPlayerGroupId(p);
                         if (DEBUG_TASK) botc.LOGGER.debug("VoiceRegionTask: pendingCleanup active for {} stillGroup={}", p.getName().getString(), still);
                         if (still == null) {
+                            // Cleaned up successfully
                             pendingCleanup.remove(pu);
                             if (DEBUG_TASK) botc.LOGGER.debug("VoiceRegionTask: cleanup resolved for {}", p.getName().getString());
                         } else {
@@ -143,10 +180,12 @@ public class VoiceRegionTask implements Runnable {
                     }
                 }
 
+                // Current tracked membership (our logical state)
                 String previous = current.get(pu);
                 UUID currentSvcGroup = SvcBridge.isAvailableRuntime() ? SvcBridge.getPlayerGroupId(p) : null;
                 if (DEBUG_TASK && !watching) botc.LOGGER.trace("VoiceRegionTask: state player={} region={} trackedPrev={} svcCurrent={}", p.getName().getString(), detectedName, previous, currentSvcGroup);
 
+                // If player now in no region but in a voice group, attempt to force leave
                 if (detectedName == null && SvcBridge.isAvailableRuntime()) {
                     try {
                         if (currentSvcGroup != null) {
@@ -165,6 +204,7 @@ public class VoiceRegionTask implements Runnable {
                     }
                 }
 
+                // If we previously tracked no region and now have one -> attempt join
                 if (previous == null && detectedName != null) {
                     if (!AUTOJOIN_ENABLED) {
                         if (DEBUG_TASK) botc.LOGGER.debug("VoiceRegionTask: autojoin disabled, skipping join for {} -> {}", p.getName().getString(), detectedName);
@@ -194,11 +234,13 @@ public class VoiceRegionTask implements Runnable {
                             if (DEBUG_TASK || watching) botc.LOGGER.info("VoiceRegionTask: JOIN failed player={} group={} attempt={}", p.getName().getString(), detectedName, attempts + 1);
                         }
                     } else {
+                        // Voice runtime not present; still track logical presence so we don't repeatedly attempt
                         current.put(pu, detectedName);
                     }
                     return;
                 }
 
+                // Previous was non-null and either left the region or switched regions -> handle leave+optional join
                 if (previous != null && (detectedName == null || !detectedName.equals(previous))) {
                     if (!AUTOJOIN_ENABLED && detectedName != null) {
                         current.put(pu, detectedName);

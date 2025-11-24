@@ -36,23 +36,24 @@ public class botc implements ModInitializer {
         Identifier id = Identifier.of(ID, "game");
         try {
             // Reflectively obtain (possibly deprecated) register method: register(Identifier, MapCodec, GameType.Open)
-            java.lang.reflect.Method legacy = GameType.class.getDeclaredMethod(
+            java.lang.reflect.Method registerMethod = GameType.class.getDeclaredMethod(
                     "register",
                     Identifier.class,
                     com.mojang.serialization.MapCodec.class,
                     GameType.Open.class
             );
-            legacy.setAccessible(true);
+            registerMethod.setAccessible(true);
             // Explicit lambda wrapped in a variable avoids method reference varargs inference issues.
             GameType.Open<botcConfig> openFn = botcWaiting::open;
-            legacy.invoke(null, id, botcConfig.MAP_CODEC, openFn);
-            LOGGER.info("Registered BOTC GameType reflectively (legacy method)." );
+            registerMethod.invoke(null, id, botcConfig.MAP_CODEC, openFn);
+            LOGGER.info("Registered BOTC GameType reflectively." );
         } catch (Throwable t) {
             LOGGER.error("Failed to register BOTC GameType reflectively: {}", t.toString());
         }
     }
 
-    /** Default constructor required by Fabric loader. */
+
+    /** Default constructor required by the Fabric loader. */
     public botc() {}
 
     @Override
@@ -61,9 +62,7 @@ public class botc implements ModInitializer {
         LOGGER.debug("botcConfig CODEC loaded: {}", botcConfig.CODEC);
 
         botcCommands.register();
-        // Migrate legacy region file path if needed (double run directory)
-        VoiceRegionService.migrateLegacyGlobalRegionsIfNeeded();
-        VoiceRegionManager voiceRegionManager = new VoiceRegionManager(VoiceRegionService.legacyGlobalConfigPath());
+        VoiceRegionManager voiceRegionManager = new VoiceRegionManager(VoiceRegionService.botcConfigRoot().resolve("voice/global.json"));
 
         try {
             Class<?> cmdCls = Class.forName("golden.botc_mc.botc_mc.game.voice.VoiceRegionCommands");

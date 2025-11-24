@@ -10,17 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 
-/**
- * Static service utilities for locating, migrating, and tracking active voice region managers.
- * <p>
- * At a high level this class:
- * <ul>
- *   <li>Defines the canonical BOTC config root (under the Minecraft {@code config/} directory).</li>
- *   <li>Exposes helper methods for per-map voice JSON paths and legacy migration.</li>
- *   <li>Tracks the currently "active" {@link VoiceRegionManager} and its associated world + map id
- *       so that runtime tasks (like {@link VoiceRegionTask}) can query it without additional wiring.</li>
- * </ul>
- */
+/** Voice region path utilities and active manager tracking. */
 public final class VoiceRegionService {
     private static volatile VoiceRegionManager activeManager;
 
@@ -40,37 +30,11 @@ public final class VoiceRegionService {
         return gameDir().resolve("config");
     }
 
-    /** Root BOTC configuration path.
-     * @return {@code <gameDir>/config/botc} path
+    /** BOTC config root path.
+     * @return path to {@code gameDir/config/botc}
      */
     public static Path botcConfigRoot() {
         return configRoot().resolve("botc");
-    }
-
-    /** Legacy global regions config path.
-     * @return legacy file path
-     */
-    public static Path legacyGlobalConfigPath() {
-        // legacy location for global regions (kept for migration)
-        return configRoot().resolve("voice_regions.json");
-    }
-
-    /**
-     * Attempt migration from a historical double-run path ({@code gameDir/run/config/voice_regions.json})
-     * to the new canonical location if a file is not already present there.
-     */
-    public static void migrateLegacyGlobalRegionsIfNeeded() {
-        try {
-            Path target = legacyGlobalConfigPath();
-            if (!java.nio.file.Files.exists(target)) {
-                Path legacy = gameDir().resolve(Paths.get("run","config","voice_regions.json"));
-                if (java.nio.file.Files.exists(legacy)) {
-                    java.nio.file.Files.createDirectories(target.getParent());
-                    java.nio.file.Files.copy(legacy, target);
-                    golden.botc_mc.botc_mc.botc.LOGGER.info("Migrated legacy voice_regions.json from double-run path.");
-                }
-            }
-        } catch (Throwable ignored) {}
     }
 
     /** Per-map config path for voice JSON.
@@ -80,7 +44,7 @@ public final class VoiceRegionService {
     public static Path configPathForMap(Identifier mapId) {
         String ns = mapId.getNamespace();
         String path = mapId.getPath();
-        // New layout: <gameDir>/config/botc/voice/<ns>/<path>.json
+        // New layout: {@code gameDir/config/botc/voice/<ns>/<path>.json}
         return botcConfigRoot().resolve(Paths.get("voice", ns, path + ".json"));
     }
 
@@ -125,19 +89,15 @@ public final class VoiceRegionService {
     public static void writeDefaultConfigIfMissing(Identifier mapId) {
         try {
             Path target = configPathForMap(mapId);
-            boolean needs = !Files.exists(target);
+            boolean needs = !Files.exists(target) || Files.size(target)==0;
             if (!needs) {
-                long size = Files.size(target);
-                if (size == 0) needs = true; else {
-                    String raw = new String(Files.readAllBytes(target));
-                    String trimmed = raw.trim();
-                    if (trimmed.isEmpty() || trimmed.equals("{}") || trimmed.equals("[]")) needs = true;
-                }
+                String raw = new String(Files.readAllBytes(target));
+                String trimmed = raw.trim();
+                if (trimmed.isEmpty() || trimmed.equals("{}") || trimmed.equals("[]")) needs = true;
             }
-            if (!needs) return;
-            copyDefault(mapId, true);
+            if (needs) copyDefault(mapId, true);
         } catch (Throwable t) {
-            golden.botc_mc.botc_mc.botc.LOGGER.warn("Failed to write default voice config for {}: {}", mapId, t.toString());
+            golden.botc_mc.botc_mc.botc.LOGGER.debug("writeDefaultConfigIfMissing error {}", t.toString());
         }
     }
 
@@ -155,22 +115,22 @@ public final class VoiceRegionService {
     public static VoiceRegionManager getActiveManager() { return activeManager; }
 
     /** Ensure a minimal pack.mcmeta exists for the overrides datapack.
-     * @param datapackBase base path of overrides datapack
-     * @param description human readable description for pack.mcmeta
+     * @param base overrides datapack base directory
+     * @param desc pack description text
      */
-    public static void ensureOverridesPackMeta(Path datapackBase, String description) {
+    public static void ensureOverridesPackMeta(Path base, String desc) {
         try {
-            Path packMeta = datapackBase.resolve("pack.mcmeta");
-            if (java.nio.file.Files.exists(packMeta)) return;
+            Path packMeta = base.resolve("pack.mcmeta");
+            if (Files.exists(packMeta)) return;
             com.google.gson.JsonObject pack = new com.google.gson.JsonObject();
             com.google.gson.JsonObject inner = new com.google.gson.JsonObject();
-            inner.addProperty("pack_format", 12); // 1.21.x
-            inner.addProperty("description", description == null ? "BOTC overrides" : description);
+            inner.addProperty("pack_format", 12);
+            inner.addProperty("description", desc == null ? "BOTC overrides" : desc);
             pack.add("pack", inner);
-            java.nio.file.Files.createDirectories(datapackBase);
-            java.nio.file.Files.write(packMeta, new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(pack).getBytes());
+            Files.createDirectories(base);
+            Files.write(packMeta, new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(pack).getBytes());
         } catch (Throwable t) {
-            golden.botc_mc.botc_mc.botc.LOGGER.warn("ensureOverridesPackMeta failed: {}", t.toString());
+            golden.botc_mc.botc_mc.botc.LOGGER.debug("ensureOverridesPackMeta error {}", t.toString());
         }
     }
 }

@@ -2,16 +2,19 @@ package golden.botc_mc.botc_mc.game.voice;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializer;
 import com.google.gson.reflect.TypeToken;
 import golden.botc_mc.botc_mc.botc;
-import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.lang.reflect.Type;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 
 /**
@@ -20,8 +23,7 @@ import java.util.*;
  * This class provides a simple, process-wide registry of named voice chat groups that BOTC
  * should attempt to keep alive across restarts. Key behaviors:
  * <ul>
- *   <li>Stores data as JSON at {@code <gameDir>/config/botc/config/botc-persistent-groups.json}.</li>
- *   <li>On construction, transparently migrates older installs that wrote to a double {@code run/} path.</li>
+ *   <li>Stores data as JSON at {@code gameDir/config/botc/config/botc-persistent-groups.json}.</li>
  *   <li>Maintains an in-memory list and a UUID → group cache for quick lookups by Simple Voice Chat id.</li>
  *   <li>All mutating methods are {@code synchronized} to provide basic thread-safety.</li>
  * </ul>
@@ -34,38 +36,53 @@ public class PersistentGroupStore {
 
     /** Construct an empty store for persistent voice groups. */
     public PersistentGroupStore() {
-        // Use BOTC config root: <gameDir>/config/botc/
+        // Use BOTC config root: {@code gameDir/config/botc/}
         Path botcRoot = VoiceRegionService.botcConfigRoot();
         // Ensure root directory exists so subsequent writes don't fail.
         try { java.nio.file.Files.createDirectories(botcRoot); } catch (Throwable ignored) {}
-        // Ensure voice/voice_groups exists under run/config/botc; this directory is also used by
-        // other tooling and serves as a conventional home for voice-related config.
-        Path voiceGroupsDir = botcRoot.resolve(Paths.get("voice", "voice_groups"));
-        try { java.nio.file.Files.createDirectories(voiceGroupsDir); } catch (Throwable ignored) {}
-        // Global persistent groups file: <gameDir>/config/botc/config/botc-persistent-groups.json
+
+        // Global persistent groups file: {@code gameDir/config/botc/config/botc-persistent-groups.json}
         Path cfgDir = botcRoot.resolve("config");
         try { java.nio.file.Files.createDirectories(cfgDir); } catch (Throwable ignored) {}
         this.file = cfgDir.resolve("botc-persistent-groups.json").toFile();
-        migrateLegacyDoubleRunIfNeeded();
-        this.gson = new GsonBuilder().setPrettyPrinting().create();
+
+        // Register a type adapter so Gson can deserialize into the immutable PersistentGroup
+        JsonDeserializer<PersistentGroup> deserializer = (JsonElement json, Type typeOfT, com.google.gson.JsonDeserializationContext context) -> {
+            try {
+                JsonObject obj = json.getAsJsonObject();
+                String name = "";
+                if (obj.has("name") && !obj.get("name").isJsonNull()) name = obj.get("name").getAsString();
+                UUID id = null;
+                // Accept multiple common key names for historical compatibility
+                if (obj.has("voicechatId") && !obj.get("voicechatId").isJsonNull()) {
+                    try { id = UUID.fromString(obj.get("voicechatId").getAsString()); } catch (Throwable ignored) {}
+                } else if (obj.has("voicechat_id") && !obj.get("voicechat_id").isJsonNull()) {
+                    try { id = UUID.fromString(obj.get("voicechat_id").getAsString()); } catch (Throwable ignored) {}
+                } else if (obj.has("id") && !obj.get("id").isJsonNull()) {
+                    try { id = UUID.fromString(obj.get("id").getAsString()); } catch (Throwable ignored) {}
+                }
+                return new PersistentGroup(name, id);
+            } catch (Throwable t) {
+                throw new JsonParseException(t);
+            }
+        };
+
+        JsonSerializer<PersistentGroup> serializer = (PersistentGroup src, Type typeOfSrc, com.google.gson.JsonSerializationContext context) -> {
+            JsonObject obj = new JsonObject();
+            obj.addProperty("name", src.getName());
+            obj.addProperty("voicechatId", src.getVoicechatId() == null ? null : src.getVoicechatId().toString());
+            return obj;
+        };
+
+        this.gson = new GsonBuilder()
+                .registerTypeAdapter(PersistentGroup.class, deserializer)
+                .registerTypeAdapter(PersistentGroup.class, serializer)
+                .setPrettyPrinting()
+                .create();
+
         load();
     }
 
-    /**
-     * Migrates from an older layout where the file was accidentally written below {@code run/config}
-     * into the stable {@code <gameDir>/config/botc/config} tree. The migration only runs if the new
-     * file does not exist yet.
-     */
-    private void migrateLegacyDoubleRunIfNeeded() {
-        try {
-            File legacy = FabricLoader.getInstance().getGameDir().resolve("run/config/botc-persistent-groups.json").toFile();
-            if (!file.exists() && legacy.exists()) {
-                java.nio.file.Files.createDirectories(file.getParentFile().toPath());
-                java.nio.file.Files.copy(legacy.toPath(), file.toPath());
-                golden.botc_mc.botc_mc.botc.LOGGER.info("Migrated legacy persistent group file from double-run path.");
-            }
-        } catch (Throwable ignored) {}
-    }
 
     /**
      * Load all persisted {@link PersistentGroup} entries from disk into memory. If the file does not
@@ -116,22 +133,7 @@ public class PersistentGroupStore {
     public synchronized java.util.List<PersistentGroup> list() {
         return Collections.unmodifiableList(groups);
     }
-    /** Add a new group to the store.
-     * Replaces any existing group with the same case-insensitive name.
-     * @param g persistent group instance (ignored if null or name missing)
-     */
-    public synchronized void addGroup(PersistentGroup g) {
-        if (g == null || g.getName() == null) return;
-        groups.removeIf(x->x.getName().equalsIgnoreCase(g.getName()));
-        groups.add(g);
-        if (g.getVoicechatId() != null) cache.put(g.getVoicechatId(), g);
-        save();
-    }
-    /** Lookup a group by name.
-     * @param name group name (case-insensitive)
-     * @return optional containing found group or empty if absent
-     */
-    public synchronized java.util.Optional<PersistentGroup> getByName(String name) { return groups.stream().filter(g->g.getName().equalsIgnoreCase(name)).findFirst(); }
+
     /**
      * Cache a runtime voice chat UUID against the persistent group instance and persist change.
      * @param id assigned voice chat group UUID (ignored if null)

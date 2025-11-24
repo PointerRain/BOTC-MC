@@ -14,7 +14,14 @@ import golden.botc_mc.botc_mc.game.map.Map.RespawnRegion;
 
 import java.util.Set;
 
-/** Spawn logic helper.
+/**
+ * Spawn logic helper.
+ * <p>
+ * Encapsulates safe spawn selection and player reset operations. The helper tries to
+ * find a suitable standing surface within a small radius of the respawn region center
+ * and falls back to a deterministic location if none is found.
+ * <p>
+ * Record components:
  * @param world server world
  * @param map active map
  */
@@ -22,6 +29,11 @@ public record SpawnLogic(ServerWorld world, Map map) {
     private static final int SEARCH_RADIUS = 8;
 
     /** Reset player before spawn.
+     * <p>
+     * Prepares the player for spawning by changing their game mode, clearing velocity,
+     * resetting fall distance, and applying temporary night vision. The player is also
+     * made invulnerable for a short period to prevent immediate damage upon spawning.
+     *
      * @param player player
      * @param gameMode target game mode
      */
@@ -45,6 +57,12 @@ public record SpawnLogic(ServerWorld world, Map map) {
     }
 
     /** Determine a safe spawn position (e.g. avoid void).
+     * <p>
+     * Searches for a safe spawn position by looking for the highest spawnable block
+     * around the respawn region's center. It avoids positions that are too close to
+     * the world bottom to prevent void spawns. If no suitable position is found, it
+     * falls back to the center of the respawn region, one block above the ground.
+     *
      * @return position vector
      */
     public Vec3d getSafeSpawnPosition() {
@@ -57,6 +75,11 @@ public record SpawnLogic(ServerWorld world, Map map) {
     }
 
     /** Spawn player at map respawn location.
+     * <p>
+     * Teleports the player to the determined safe spawn position within the respawn
+     * region. If no suitable position is found, the player is teleported to a random
+     * location within a small radius around the respawn region's center.
+     *
      * @param player target player
      */
     public void spawnPlayer(ServerPlayerEntity player) {

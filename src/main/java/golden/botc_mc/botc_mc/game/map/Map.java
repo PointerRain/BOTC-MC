@@ -18,44 +18,51 @@ import xyz.nucleoid.plasmid.api.game.GameOpenException;
 import xyz.nucleoid.plasmid.api.game.world.generator.TemplateChunkGenerator;
 
 /**
- * Represents loaded map metadata, regions, and attributes used for a BOTC session.
- * Maintains spawn and checkpoint respawn regions extracted from the template.
+ * Loaded map wrapper for a BOTC game instance.
+ * <p>Holds a {@link MapTemplate} and derived respawn regions (spawn + ordered checkpoints).
+ * No block mutation logic is kept here: world generation is delegated to {@link #asGenerator(MinecraftServer)}.
  */
 public final class Map {
+    /** Logger scoped to map loading and region extraction. */
     private static final Logger LOGGER = LogManager.getLogger("botc.Map");
-
+    /** Derived respawn regions (immutable after construction). */
     private final Regions regions;
-
+    /** Underlying immutable template returned by the map templates API. */
     private final MapTemplate template;
-
+    /** Current expected map_format integer. Used for soft version compatibility warnings only. */
     private static final int CURRENT_MAP_FORMAT = 1;
 
-    /** Internal constructor building region lists from a loaded template. */
+    /**
+     * Internal constructor building region lists from a loaded template.
+     * Extraction rules:
+     * <ul>
+     *   <li><b>Spawn</b>: first region tagged "spawn"; falls back to {@link RespawnRegion#DEFAULT} if absent.</li>
+     *   <li><b>Checkpoints</b>: all regions tagged "checkpoint" that define an integer <code>index</code>; sorted ascending. If none found, a single DEFAULT is used.</li>
+     *   <li>Yaw/Pitch: taken from region metadata keys <code>yaw</code> and <code>pitch</code>, defaulting to the DEFAULT region values.</li>
+     * </ul>
+     * @param template loaded map template
+     */
     private Map(MapTemplate template) {
         this.template = template;
 
-        int mapFormat = template.getMetadata()
-                .getData()
-                .getInt("map_format", 0);
-
-        // Allow loading even if map_format mismatches for now.
+        int mapFormat = template.getMetadata().getData().getInt("map_format", 0);
+        // Mismatch warnings only; never blocks load. Allows forward/backward compatible experimentation.
         if (mapFormat < CURRENT_MAP_FORMAT) {
-            LOGGER.warn("Map template is from an older format ({} < {}), continuing anyway.", mapFormat, CURRENT_MAP_FORMAT);
+            LOGGER.warn("Map template older format ({} < {}), continuing.", mapFormat, CURRENT_MAP_FORMAT);
         } else if (mapFormat > CURRENT_MAP_FORMAT) {
-            LOGGER.warn("Map template is from a newer format ({} > {}), continuing anyway.", mapFormat, CURRENT_MAP_FORMAT);
+            LOGGER.warn("Map template newer format ({} > {}), continuing.", mapFormat, CURRENT_MAP_FORMAT);
         }
 
+        // Collect checkpoint regions with defined index; ensure stable ordering by numeric index.
         List<RespawnRegion> checkpoints = template.getMetadata()
                 .getRegions("checkpoint")
                 .filter(cp -> cp.getData().getInt("index").isPresent())
                 .sorted(Comparator.comparingInt(cp -> cp.getData().getInt("index").orElseThrow()))
                 .map(RespawnRegion::of)
                 .toList();
+        if (checkpoints.isEmpty()) checkpoints = java.util.List.of(RespawnRegion.DEFAULT);
 
-        if (checkpoints.isEmpty()) {
-            checkpoints = java.util.List.of(RespawnRegion.DEFAULT);
-        }
-
+        // Single spawn region; first match or DEFAULT.
         RespawnRegion spawn = template.getMetadata()
                 .getRegions("spawn")
                 .map(RespawnRegion::of)
@@ -66,29 +73,27 @@ public final class Map {
     }
 
     /**
-     * Load map metadata and resources by identifier.
-     * @param server Minecraft server instance used to access resource manager
-     * @param identifier namespaced map id (e.g. <code>botc-mc:test</code>)
-     * @return loaded Map instance
-     * @throws xyz.nucleoid.plasmid.api.game.GameOpenException if the underlying template cannot be read
+     * Load map template and derive respawn metadata.
+     * @param server Minecraft server for resource access
+     * @param identifier namespaced id (e.g. {@code botc-mc:test})
+     * @return new Map instance
+     * @throws GameOpenException if template resource cannot be read
      */
     public static Map load(MinecraftServer server, Identifier identifier) {
         MapTemplate template;
         try {
             template = MapTemplateSerializer.loadFromResource(server, identifier);
         } catch (IOException e) {
-            // Log a clear error and throw a GameOpenException so only this game open is aborted.
             String msg = "Map load failed for " + identifier + ": " + e.getMessage();
             LOGGER.error(msg, e);
             throw new GameOpenException(Text.of(msg));
         }
-
         return new Map(template);
     }
 
     /**
-     * Creates a chunk generator that will serve blocks from this loaded template.
-     * @param server Minecraft server instance (world/dimension context)
+     * Create a chunk generator serving blocks directly from the template.
+     * @param server server instance providing dimension context
      * @return template-backed chunk generator
      */
     public ChunkGenerator asGenerator(MinecraftServer server) {
@@ -96,25 +101,25 @@ public final class Map {
     }
 
     /**
-     * Access the spawn and checkpoint regions contained in this map.
-     * @return regions record (spawn + ordered checkpoints)
+     * Access respawn region set.
+     * @return spawn + ordered checkpoints
      */
     public Regions getRegions() { return this.regions; }
 
     /**
      * Spawn/respawn region definition.
-     * @param bounds block bounds of the region
-     * @param yaw default facing yaw for player spawn
-     * @param pitch default facing pitch for player spawn
+     * @param bounds region bounds
+     * @param yaw default player facing yaw
+     * @param pitch default player facing pitch
      */
     public record RespawnRegion(BlockBounds bounds, float yaw, float pitch) {
+        /** Fallback region at origin with zero orientation. */
         public static final RespawnRegion DEFAULT = new RespawnRegion(BlockBounds.ofBlock(BlockPos.ORIGIN), 0.0f, 0.0f);
 
         /**
-         * Factory converting a template region to a respawn region, applying default yaw/pitch
-         * if not explicitly provided in region metadata.
-         * @param templateRegion source template region
-         * @return respawn region instance
+         * Convert template region metadata to a RespawnRegion, applying default yaw/pitch if missing.
+         * @param templateRegion source region
+         * @return converted respawn region
          */
         private static RespawnRegion of(TemplateRegion templateRegion) {
             return new RespawnRegion(
@@ -123,18 +128,15 @@ public final class Map {
                     templateRegion.getData().getFloat("pitch", DEFAULT.pitch()));
         }
 
-        /**
-         * Compute the center block position used for spawning players into this region.
-         * @return center block position
+        /** Center block used for teleport/spawn operations.
+         * @return block position at bounds center
          */
-        public BlockPos centerBlock() {
-            return BlockPos.ofFloored(this.bounds.center());
-        }
+        public BlockPos centerBlock() { return BlockPos.ofFloored(this.bounds.center()); }
     }
 
     /**
      * Region container grouping checkpoints and spawn.
-     * @param checkpoints ordered checkpoint respawn regions
+     * @param checkpoints ordered respawn checkpoints
      * @param spawn primary spawn region
      */
     public record Regions(List<RespawnRegion> checkpoints, RespawnRegion spawn) {}

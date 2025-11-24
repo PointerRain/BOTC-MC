@@ -3,57 +3,48 @@ package golden.botc_mc.botc_mc.game.voice;
 import java.util.UUID;
 
 /**
- * Models a single, long‑lived Simple Voice Chat group as BOTC understands it.
+ * Models a single, long-lived Simple Voice Chat group as BOTC understands it.
  * <p>
- * These objects are:
- * <ul>
- *   <li>Loaded and saved by {@link PersistentGroupStore} to a JSON file under the BOTC config root.</li>
- *   <li>Used by {@link VoicechatPlugin} to "preload" or repair groups when the server starts
- *       or when a map is opened (ensuring the matching Simple Voice Chat groups exist).</li>
- *   <li>Mapped to actual runtime voice chat groups via {@link SvcBridge}, which operates purely
- *       through reflection and uses {@link #voicechatId} where available.</li>
- * </ul>
- * Only a very small, stable subset of Simple Voice Chat properties is captured here so that
- * persisted data is resilient across voice chat mod updates.
+ * These objects are persisted to disk and may be deserialized by Gson (using a
+ * registered adapter). They are intentionally small: {@code name} is immutable
+ * while {@code voicechatId} remains mutable so runtime code can cache/update
+ * the associated UUID.
  */
 public final class PersistentGroup {
-    /** Stable display name used to locate or recreate the voice chat group at runtime. */
-    private final String name; // made final
     /** Runtime Simple Voice Chat assigned UUID for the group (nullable until created). */
-    private UUID voicechatId; // remains mutable
+    private UUID voicechatId;
     private static final String DEFAULT_TYPE = "NORMAL";
 
+    // Group display name (may be empty). Made final for immutability; deserialized via adapter.
+    private final String name;
+
     /**
-     * Construct a persistent group descriptor.
-     * @param name human-readable group name
-     * @param voicechatId existing voice chat UUID or null if group not yet materialized
+     * Construct a persistent group descriptor with the given name and (optional) voicechat id.
+     * @param name persisted display name (may be empty, non-null)
+     * @param voicechatId runtime UUID or null
      */
     public PersistentGroup(String name, UUID voicechatId) {
-        this.name = name;
+        this.name = name == null ? "" : name;
         this.voicechatId = voicechatId;
     }
 
-    /** Group name.
-     * @return name
+    /** Get the persisted group name (never null).
+     * @return group name (empty string when not set)
      */
     public String getName() { return name; }
-    /** Runtime UUID (nullable).
-     * @return uuid or null
+
+    /** Get the runtime UUID assigned by the voice mod, or {@code null} if not assigned.
+     * @return runtime UUID or {@code null}
      */
     public UUID getVoicechatId() { return voicechatId; }
-    /** Update runtime UUID.
-     * @param id new id or null
+
+    /** Update the runtime UUID assigned to this persistent group.
+     * @param id new runtime UUID or {@code null} to clear
      */
     public void setVoicechatId(UUID id) { this.voicechatId = id; }
 
-    /**
-     * Human‑readable summary useful for debug logging.
-     * <p>
-     * The format is compact but includes enough detail (name, id, hidden, type) to
-     * understand which group entry is being referenced when printed in server logs.
-     */
     @Override
     public String toString() {
-        return "PersistentGroup[name=" + name + ",id=" + voicechatId + ",type=" + DEFAULT_TYPE + "]";
+        return "PersistentGroup[name=" + getName() + ",id=" + voicechatId + ",type=" + DEFAULT_TYPE + "]";
     }
 }

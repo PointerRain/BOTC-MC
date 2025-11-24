@@ -5,7 +5,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
@@ -17,39 +16,84 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Loads and manages voice chat regions for a specific map or global scope.
- * <p>
- * Responsibilities:
+ * Manager for voice regions tied to a specific map or a global scope.
+ *
+ * <p>Overview
+ * <p>This class loads voice-region definitions from multiple potential sources, normalizes them into
+ * {@link VoiceRegion} records and provides two primary runtime services:
+ *
  * <ul>
- *   <li>Reads region definitions from multiple possible locations (per-map config under {@code config/botc},
- *       legacy global files, and optional datapack overrides / embedded JSON in a map's game file).</li>
- *   <li>Normalizes the data into {@link VoiceRegion} records and answers fast spatial queries such as
- *       {@link #regionForPlayer(net.minecraft.server.network.ServerPlayerEntity)}.</li>
- *   <li>Persists the active region set back to both the primary config file and a portable datapack override
- *       so voice regions can travel with a world or map.</li>
+ *   <li>Spatial lookup: given a {@link ServerPlayerEntity} it can return the matching VoiceRegion
+ *       containing the player (method {@link #regionForPlayer}).</li>
+ *   <li>Persistence: read/write of the per-map JSON config and an optional world datapack override
+ *       (methods {@link #save} / internal write helpers).</li>
  * </ul>
- * The manager is intentionally tolerant of missing or malformed data: it logs and skips bad entries instead
- * of failing hard, so a misconfigured map cannot bring down the whole server.
+ *
+ * <p>File / JSON format expectations
+ * <p>Voice region JSON is expected in one of two shapes:
+ * <ol>
+ *   <li>An object with a <code>voice</code> section containing <code>voice_regions</code> (preferred):
+ *     <pre>
+ *     {
+ *       "voice": {
+ *         "voice_regions": [ { "id":"foo", "groupName":"G", "groupId":"&lt;uuid&gt;", "cornerA":{...}, "cornerB":{...} }, ... ],
+ *         "voice_groups": [ ... ]
+ *       }
+ *     }
+ *     </pre>
+ *   </li>
+ *   <li>A plain array of region objects (portable shape):
+ *     <pre>[ { "id":"foo", "groupName":"G", "cornerA":{...}, "cornerB":{...} }, ... ]</pre>
+ *   </li>
+ * </ol>
+ *
+ * <p>Each region object must include an <code>id</code> and two corners (<code>cornerA</code>, <code>cornerB</code>)
+ * describing an axis-aligned bounding box; optional fields include <code>groupName</code> and <code>groupId</code>.
+ * Missing yaw/pitch or other metadata is tolerated.
+ *
+ * <p>Thread-safety and runtime behaviour
+ * <p>- Uses a concurrent map for fast concurrent reads. Mutating operations that touch files are not globally
+ *   synchronized; callers should avoid heavy concurrent writes.
+ * <p>- Parsing is robust: malformed entries are skipped and logged; a single bad entry will not abort loading.
+ *
+ * <p>High-level data shapes (in memory):
+ * <p>- <code>regions</code>: Map&lt;String, VoiceRegion&gt; keyed by region id. Each VoiceRegion contains bounds and
+ *   optional group linkage.
+ *
+ * <p>Usage contract
+ * <p>- Use {@link #forMap} to create a manager bound to a server-world and map id; the factory will write a default
+ *   config if missing.
+ * <p>- Call {@link #reload} to refresh runtime data after external edits.
  */
 public class VoiceRegionManager {
+    // Concurrent container for fast spatial lookup and listings. Keys are region ids.
     private final Map<String, VoiceRegion> regions = new ConcurrentHashMap<>();
+
+    // Backing config file path (per-map or global)
     private final Path configPath;
+
+    // JSON serializer used for reading/writing config files
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+
     // Debug flag (can be toggled at runtime via command later if needed)
     private static final boolean DEBUG_REGIONS = false;
 
-    private final Identifier mapId; // optional map association
-    private final ServerWorld world; // optional world association
+    // Optional map association - null when this manager is global/legacy
+    private final Identifier mapId;
+    // Optional server world reference - used for datapack / embedded resource fallback
+    private final ServerWorld world;
 
-    /** Manager bound to map &amp; world, auto-writing default if missing.
-     * @param world server world
-     * @param mapId map identifier
-     * @return new manager instance
+    /**
+     * Create or open a manager for a specific map. If the per-map config is missing, a default
+     * copy will be created by consulting the bundled assets for that map id.
+     *
+     * @param world server world instance used when resolving embedded map resources
+     * @param mapId namespaced map identifier
+     * @return new VoiceRegionManager bound to the map
      */
     public static VoiceRegionManager forMap(ServerWorld world, Identifier mapId) {
         try { VoiceRegionService.writeDefaultConfigIfMissing(mapId); } catch (Throwable ignored) {}
@@ -57,38 +101,45 @@ public class VoiceRegionManager {
         return new VoiceRegionManager(path, world, mapId);
     }
 
-    /** Construct legacy/global manager.
-     * @param configPath path to config file
+    /**
+     * Create a manager backed by an explicit config path (global manager)
+     *
+     * @param configPath path to a JSON config file
      */
     public VoiceRegionManager(Path configPath) {
         this(configPath, null, null);
     }
 
-    /** Construct full manager.
-     * @param configPath config file path
-     * @param world optional world
-     * @param mapId optional map id
+    /**
+     * Internal constructor used by factories.
+     *
+     * @param configPath path to per-map or global JSON config
+     * @param world optional server world used for embedded resource fallback
+     * @param mapId optional map identifier
      */
     public VoiceRegionManager(Path configPath, ServerWorld world, Identifier mapId) {
         this.configPath = configPath;
         this.world = world;
         this.mapId = mapId;
+        // Load any existing regions on construction
         this.load();
     }
 
-    /** Map id this manager targets.
-     * @return map identifier or null
+    /**
+     * Get the configured map identifier for this manager, or {@code null} when this manager is global.
+     * @return configured map id or {@code null} if manager is global
      */
     public Identifier getMapId() { return mapId; }
 
-    /** Config path backing this manager.
-     * @return path to JSON
+    /**
+     * Get the file system path used for the per-map configuration file backing this manager.
+     * @return file path used for per-map config
      */
     public Path getConfigPath() { return configPath; }
 
     /**
-     * Reload regions from disk, returning new count.
-     * @return count of loaded regions
+     * Reload the on-disk config and return the new region count. Useful when the file was edited externally.
+     * @return number of loaded regions after reload
      */
     public synchronized int reload() {
         regions.clear();
@@ -96,9 +147,13 @@ public class VoiceRegionManager {
         return regions.size();
     }
 
-    /** Determine region for player.
-     * @param player server player
-     * @return region or null
+    /**
+     * Spatial query: find the voice region containing the player's block coordinates.
+     * This is a simple linear scan over regions; the number of regions is expected to be small
+     * (typically less than 50) so this is acceptable. If you need large-scale maps, consider a spatial index.
+     *
+     * @param player server player entity
+     * @return matching VoiceRegion or null if player is not inside any region
      */
     public VoiceRegion regionForPlayer(ServerPlayerEntity player) {
         int bx = player.getBlockX();
@@ -107,7 +162,9 @@ public class VoiceRegionManager {
         for (VoiceRegion r : regions.values()) {
             if (r.containsBlock(bx, by, bz)) {
                 if (DEBUG_REGIONS) {
-                    golden.botc_mc.botc_mc.botc.LOGGER.debug("VoiceRegionManager: player {} in region {} group={} bounds= {}", player.getName().getString(), r.id(), r.groupName(), r.boundsDebug());
+                    // When debugging, print a concise single-line record that helps trace which region matched
+                    golden.botc_mc.botc_mc.botc.LOGGER.debug("VoiceRegionManager: player {} in region {} group={} bounds= {}",
+                            player.getName().getString(), r.id(), r.groupName(), r.boundsDebug());
                 }
                 return r;
             }
@@ -115,14 +172,20 @@ public class VoiceRegionManager {
         return null;
     }
 
-    /** List all regions.
-     * @return collection view of regions
+    /**
+     * Return an iterable view of all currently known voice regions. The returned collection is backed by
+     * the internal map values view and should be treated as read-only by callers.
+     *
+     * @return collection of known VoiceRegion objects
      */
     public Collection<VoiceRegion> list() { return regions.values(); }
 
-    /** Update group id for region.
-     * @param id region id
-     * @param newGroupId new group UUID string
+    /**
+     * Update the stored group id for the region with the provided id and persist the change.
+     * This is used when the voice group is created or repaired and the runtime UUID becomes known.
+     *
+     * @param id region id to update
+     * @param newGroupId new group UUID string or null to clear
      */
     public void updateGroupId(String id, String newGroupId) {
         VoiceRegion existing = regions.get(id);
@@ -132,10 +195,8 @@ public class VoiceRegionManager {
         save();
     }
 
-    /** Build a concise context tag for logging (map id or GLOBAL). */
+    // --- internal logging helpers -------------------------------------------------
     private String ctx() { return mapId == null ? "GLOBAL" : mapId.toString(); }
-
-    /** Simple curly-brace formatter supporting '{}' tokens; extras left as-is. */
     private static String fmt(String pattern, Object... args) {
         if (pattern == null) return "";
         StringBuilder sb = new StringBuilder(pattern.length() + 32);
@@ -156,103 +217,57 @@ public class VoiceRegionManager {
         }
         return sb.toString();
     }
+    private void logLoad(String code, String fmtPattern, Object... args) { String msg = "[VRM:" + code + ":" + ctx() + "] " + fmt(fmtPattern, args); golden.botc_mc.botc_mc.botc.LOGGER.info(msg); }
+    private void logDebug(String code, String fmtPattern, Object... args) { String msg = "[VRM:" + code + ":" + ctx() + "] " + fmt(fmtPattern, args); golden.botc_mc.botc_mc.botc.LOGGER.debug(msg); }
+    private void logWarn(String code, String fmtPattern, Object... args) { String msg = "[VRM:" + code + ":" + ctx() + "] " + fmt(fmtPattern, args); golden.botc_mc.botc_mc.botc.LOGGER.warn(msg); }
 
-    /** Unified load-phase logger with code tokens for grep (pre-formatted to avoid placeholder warnings). */
-    private void logLoad(String code, String fmtPattern, Object... args) {
-        String msg = "[VRM:" + code + ":" + ctx() + "] " + fmt(fmtPattern, args);
-        golden.botc_mc.botc_mc.botc.LOGGER.info(msg);
-    }
-    /** Unified debug-phase logger (pre-formatted). */
-    private void logDebug(String code, String fmtPattern, Object... args) {
-        String msg = "[VRM:" + code + ":" + ctx() + "] " + fmt(fmtPattern, args);
-        golden.botc_mc.botc_mc.botc.LOGGER.debug(msg);
-    }
-    /** Unified warn-phase logger (pre-formatted). */
-    private void logWarn(String code, String fmtPattern, Object... args) {
-        String msg = "[VRM:" + code + ":" + ctx() + "] " + fmt(fmtPattern, args);
-        golden.botc_mc.botc_mc.botc.LOGGER.warn(msg);
-    }
-
-    private boolean tryParseAndImport(String raw, Identifier mapIdContext, boolean saveAfter) {
+    // --- parsing and loading ----------------------------------------------------
+    /**
+     * Try to interpret a raw config string. Supports object-shaped config (with "voice" section)
+     * or a plain array of regions. Returns true when regions were successfully parsed and loaded.
+     */
+    private boolean tryParseAndImport(String raw) {
         String trimmed = raw.trim();
         if (trimmed.startsWith("{")) {
             JsonObject obj = JsonParser.parseString(trimmed).getAsJsonObject();
             JsonObject voiceSection = obj.has("voice") && obj.get("voice").isJsonObject() ? obj.getAsJsonObject("voice") : obj;
-            if (parseRegionsFromVoiceSection(voiceSection)) {
-                if (saveAfter) save();
-                if (mapIdContext != null) logLoad("IMPORT-GLOBAL-OBJ", "Imported {} region(s) into map", regions.size());
-                return true;
-            }
+            return parseRegionsFromVoiceSection(voiceSection);
         } else if (trimmed.startsWith("[")) {
-            parseLegacyArray(trimmed);
-            if (!regions.isEmpty()) {
-                if (saveAfter) save();
-                if (mapIdContext != null) logLoad("IMPORT-GLOBAL-ARR", "Imported {} region(s) into map", regions.size());
-                return true;
-            }
+            // legacy portable array form
+            parseArray(trimmed);
+            return !regions.isEmpty();
         }
         return false;
     }
 
-    private boolean importGlobalLegacyIfPossible() {
-        if (mapId == null) return false;
-        Path global = VoiceRegionService.legacyGlobalConfigPath();
-        if (!Files.exists(global)) return false;
-        try {
-            String s = new String(Files.readAllBytes(global));
-            return tryParseAndImport(s, mapId, true);
-        } catch (Throwable t) {
-            logWarn("IMPORT-GLOBAL-ERR", "Failed importing global regions: {}", t.toString());
-            return false;
-        }
-    }
-
-    private boolean importLegacyDoubleRunIfPossible() {
-        if (mapId != null) return false; // only for global manager mode
-        Path legacy = FabricLoader.getInstance().getGameDir().resolve(Paths.get("run","config","voice_regions.json"));
-        if (!Files.exists(legacy)) return false;
-        try {
-            String s = new String(Files.readAllBytes(legacy));
-            boolean imported = tryParseAndImport(s, null, false);
-            if (imported) logLoad("IMPORT-LEGACY", "Loaded legacy double-run path regions (count={})", regions.size());
-            return imported;
-        } catch (Throwable ignored) { return false; }
-    }
-
     /**
-     * Internal loader that chooses the best available source based on the current {@link #configPath},
-     * {@link #mapId} and {@link #world}:
-     * <ol>
-     *   <li>Explicit per-map config under {@code config/botc/voice/&lt;ns&gt;/&lt;path&gt;.json}.</li>
-     *   <li>Legacy global file (optionally imported into per-map config for migration).</li>
-     *   <li>Legacy double-run path for older setups.</li>
-     *   <li>Datapack override and then embedded JSON inside the map's game definition.</li>
-     * </ol>
-     * Any valid regions discovered are accumulated into {@link #regions}.
+     * Load strategy summary:
+     * <p>1) If the explicit per-map config file (configPath) exists, parse it and return early.
+     * <p>2) If a datapack override exists, read and parse its voice section.
+     * <p>3) Fallback: attempt to read the embedded game JSON for the map (plasmid/game/&lt;path&gt;.json)
+     *    and parse its voice section.
+     *
+     * <p>All parsed regions are added to the internal map; malformed entries are skipped.
      */
     private void load() {
         try {
             // Priority 1: explicit per-map config file (run/config/botc/voice/..)
             if (Files.exists(configPath)) {
                 String s = new String(Files.readAllBytes(configPath));
-                if (tryParseAndImport(s, null, false)) return;
+                if (tryParseAndImport(s)) return;
             }
 
-            // Global fallback for per-map managers: if map-specific file missing, import legacy global file
-            if (importGlobalLegacyIfPossible()) return;
-
-            // Fallback: legacy double-run path (gameDir/run/config/voice_regions.json) for global manager only
-            if (importLegacyDoubleRunIfPossible()) return;
-
-            // Priority 2: world datapack override (run/world/datapacks/botc_overrides/...)
+            // Datapack override & embedded resource fallback only
             if (world != null && mapId != null) {
+                // Try datapack override file next
                 Path override = VoiceRegionService.datapackOverrideGameFile(mapId);
                 if (Files.exists(override)) {
                     String s = new String(Files.readAllBytes(override));
                     JsonObject obj = gson.fromJson(s, JsonObject.class);
                     JsonObject voiceSection = obj != null && obj.has("voice") && obj.get("voice").isJsonObject() ? obj.getAsJsonObject("voice") : obj;
-                    if (parseRegionsFromVoiceSection(voiceSection)) { logLoad("OVERRIDE", "Loaded override regions count={}", regions.size()); return; }
+                    if (parseRegionsFromVoiceSection(voiceSection)) { logLoad("OVERRIDE", "Loaded override regions count={}", regions.size()); }
                 }
+                // Embedded map JSON fallback (plasmid/game/<path>.json inside map asset)
                 try {
                     Identifier resourceId = Identifier.of(mapId.getNamespace(), "plasmid/game/" + mapId.getPath() + ".json");
                     var optional = world.getServer().getResourceManager().getResource(resourceId);
@@ -260,21 +275,19 @@ public class VoiceRegionManager {
                         try (InputStream is = optional.get().getInputStream(); Reader r = new InputStreamReader(is)) {
                             JsonObject obj = gson.fromJson(r, JsonObject.class);
                             JsonObject voiceSection = obj != null && obj.has("voice") && obj.get("voice").isJsonObject() ? obj.getAsJsonObject("voice") : obj;
-                            if (parseRegionsFromVoiceSection(voiceSection)) { logLoad("EMBEDDED", "Loaded embedded regions count={}", regions.size());
-                            }
+                            parseRegionsFromVoiceSection(voiceSection);
+                            if (!regions.isEmpty()) { logLoad("EMBED", "Loaded embedded regions count={}", regions.size()); }
                         }
                     }
-                } catch (Exception ex) {
-                    golden.botc_mc.botc_mc.botc.LOGGER.debug("VoiceRegionManager: failed to read embedded map game json: {}", ex.toString());
-                }
+                } catch (Throwable ignored) {}
             }
-
-            // No explicit data found — leave empty
-        } catch (Exception ex) {
-            logWarn("LOAD-FAIL", "General load failure: {}", ex.toString());
-        }
+        } catch (Throwable t) { logWarn("LOAD-ERR", "load error {}", t.toString()); }
     }
 
+    /**
+     * Attempt to create a region from a JSON object and put it into the map.
+     * Returns true when a region was successfully constructed and added.
+     */
     private boolean addRegionFromJson(JsonObject o) {
         if (o == null) return false;
         String id = optString(o, "id");
@@ -289,6 +302,10 @@ public class VoiceRegionManager {
         return true;
     }
 
+    /**
+     * Parse and load the 'voice_regions' array inside a voice section object.
+     * Returns true when one or more regions were added.
+     */
     private boolean parseRegionsFromVoiceSection(JsonObject voiceSection) {
         if (voiceSection == null || !voiceSection.has("voice_regions")) return false;
         try {
@@ -310,7 +327,12 @@ public class VoiceRegionManager {
         return false;
     }
 
-    private void parseLegacyArray(String json) {
+    /**
+     * Parse the simple array-of-objects format and add any valid regions found.
+     * Kept for robustness when encountering portable map configs that embed only
+     * an array (no top-level "voice" container).
+     */
+    private void parseArray(String json) {
         try {
             JsonElement root = JsonParser.parseString(json);
             if (!root.isJsonArray()) return;
@@ -319,12 +341,15 @@ public class VoiceRegionManager {
                 if (!el.isJsonObject()) continue;
                 if (addRegionFromJson(el.getAsJsonObject())) added++;
             }
-            if (added > 0) logDebug("PARSE-LEGACY", "Parsed legacy array regions added={}", added);
+            if (added > 0) logDebug("PARSE-ARRAY", "Parsed array regions added={}", added);
         } catch (Throwable t) {
-            logWarn("PARSE-LEGACY-ERR", "Error parsing legacy array: {}", t.toString());
+            logWarn("PARSE-ARRAY-ERR", "Error parsing array: {}", t.toString());
         }
     }
 
+    /**
+     * Parse a corner object with x/y/z int fields. Returns null on parse failure.
+     */
     private BlockPos parseCorner(JsonElement el) {
         if (el == null || !el.isJsonObject()) return null;
         JsonObject o = el.getAsJsonObject();
@@ -343,6 +368,11 @@ public class VoiceRegionManager {
         try { return o.get(key).getAsString(); } catch (Throwable ignored) { return null; }
     }
 
+    /**
+     * Build the contained "voice" JSON section for writing files.
+     * Preserves any existing top-level fields in the base object by attaching
+     * (or replacing) a "voice" element containing the current state.
+     */
     private JsonObject buildVoiceSection(JsonObject base) {
         JsonObject voiceSection = base != null && base.has("voice") && base.get("voice").isJsonObject() ? base.getAsJsonObject("voice") : new JsonObject();
         JsonElement regionsElem = gson.toJsonTree(new ArrayList<>(regions.values()));
@@ -351,6 +381,11 @@ public class VoiceRegionManager {
         return voiceSection;
     }
 
+    /**
+     * Write the per-map config file, preserving unrelated JSON fields when possible. This
+     * rewrites only the "voice" child of the root object to keep the rest of the map
+     * JSON intact (authors, metadata, etc.).
+     */
     private void writePerMapConfig() throws IOException {
         if (configPath.getParent() != null) Files.createDirectories(configPath.getParent());
         JsonObject root = new JsonObject();
@@ -366,6 +401,11 @@ public class VoiceRegionManager {
         logDebug("SAVE-CONFIG", "Wrote per-map config regions={}", regions.size());
     }
 
+    /**
+     * Write a datapack override file mirroring the map's game JSON so regions can be bundled with
+     * a world. This method attempts to preserve existing content in the target file when present,
+     * but will create a new JSON structure if necessary.
+     */
     private void writeOverrideDatapack() throws IOException {
         if (world == null || mapId == null) return;
         Path datapackBase = VoiceRegionService.datapackOverrideBase();
@@ -395,16 +435,8 @@ public class VoiceRegionManager {
     }
 
     /**
-     * Persist the current region list.
-     * <p>
-     * Two write targets are used:
-     * <ul>
-     *   <li>The primary per-map config file under {@code config/botc/voice/...} (backwards-compatible)</li>
-     *   <li>A world datapack override that mirrors the map's game JSON, ensuring regions are bundled
-     *       with the world so they can be moved between servers.</li>
-     * </ul>
-     * Existing JSON in both places is preserved as much as possible; only the {@code voice.voice_regions}
-     * section is rewritten.
+     * Persist the current region list to disk.
+     * Writes both the per-map config and a datapack override so the data can be portable.
      */
     public void save() {
         try { writePerMapConfig(); } catch (IOException ex) { logWarn("SAVE-CONFIG-ERR", "Per-map save failed: {}", ex.toString()); }

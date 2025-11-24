@@ -23,6 +23,11 @@ import java.util.Set;
 
 /**
  * Manages timed transitions between game states and lobby lifecycle.
+ * <p>
+ * This class owns the BOTC finite state machine (via {@link BotcStateMachine}), tracks
+ * lifecycle timing (start, finish, close) and provides per-tick evaluation logic
+ * (method {@link #tick(long, GameSpace)}). It also contains helpers used during
+ * the pre-start waiting period to freeze and present countdowns to joining players.
  */
 public class botcStageManager {
     /** Tick time when current state finishes (-1 if indefinite). */

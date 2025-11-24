@@ -33,14 +33,10 @@ import golden.botc_mc.botc_mc.botc;
 
 /**
  * Active game session controller for a Blood on the Clocktower match.
- * Handles:
- * <ul>
- *   <li>Participant/spectator spawning and respawn logic.</li>
- *   <li>Lifecycle phase progression via {@link botcStageManager}.</li>
- *   <li>Player damage/death interception in early prototype state.</li>
- *   <li>Boss bar timer updates per phase.</li>
- * </ul>
- * The static {@code open} method installs listeners on the provided {@link GameSpace}.
+ * <p>
+ * Controls participant/spectator lifecycle and connects the stage manager to the Plasmid game loop.
+ * The {@link #open(GameSpace, ServerWorld, Map)} method registers listeners and rules; the instance
+ * manages per-tick updates and shutdown semantics.
  */
 public class botcActive {
     private static final Logger LOG = LoggerFactory.getLogger("botc-mc");
@@ -73,6 +69,9 @@ public class botcActive {
 
     /**
      * Open an active game using provided map and configuration.
+     * <p>
+     * This method registers all required listeners on the provided {@link GameSpace} and
+     * sets Plasmid game rules to make the session suitable for a BOTC match (no crafting, PVP off, etc.).
      * @param gameSpace game space to bind
      * @param world backing overworld instance
      * @param map loaded map metadata
@@ -113,9 +112,7 @@ public class botcActive {
         });
     }
 
-    /**
-     * Game open hook: spawn existing participants/spectators and initialize the state machine.
-     */
+    /** Game open hook: spawn existing participants/spectators and initialize the state machine. */
     private void onOpen() {
         for (var participant : this.gameSpace.getPlayers().participants()) this.spawnParticipant(participant);
         for (var spectator : this.gameSpace.getPlayers().spectators()) this.spawnSpectator(spectator);
@@ -124,9 +121,7 @@ public class botcActive {
         this.stageManager.onOpen(this.world.getTime());
     }
 
-    /**
-     * Game close hook; placeholder for teardown logic (voice region cleanup, etc.).
-     */
+    /** Game close hook; placeholder for teardown logic (voice region cleanup, etc.). */
     private void onClose() {
         int participantsCount = this.gameSpace.getPlayers().participants().size();
         int spectatorsCount = this.gameSpace.getPlayers().spectators().size();
@@ -152,7 +147,7 @@ public class botcActive {
     }
 
     /** Intercepts damage; prototype logic respawns player and cancels damage.
-     * Converted to void; listener lambda always returns {@link EventResult#DENY}.
+     * Listener registration expects EventResult.DENY to suppress default handling.
      */
     private void onPlayerDamage(ServerPlayerEntity player, DamageSource source, float amount) {
         LOG.debug("[BOTC:DAMAGE] player={} amount={} source={}", player.getGameProfile().getName(), amount, source.getName());
@@ -160,7 +155,7 @@ public class botcActive {
     }
 
     /** Intercepts death; prototype respawn and cancels death handling.
-     * Converted to void; listener lambda always returns {@link EventResult#DENY}.
+     * Listener registration expects EventResult.DENY to suppress default handling.
      */
     private void onPlayerDeath(ServerPlayerEntity player, DamageSource source) {
         LOG.debug("[BOTC:DEATH] player={} source={}", player.getGameProfile().getName(), source.getName());

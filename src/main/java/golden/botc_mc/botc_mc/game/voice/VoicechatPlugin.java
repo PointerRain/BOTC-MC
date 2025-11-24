@@ -60,9 +60,7 @@ public class VoicechatPlugin {
                     if (g.getVoicechatId() != null) {
                         // touch cache to justify its presence
                         PersistentGroup existing = store.getByVoiceId(g.getVoicechatId());
-                        if (existing != null) {
-                            botc.LOGGER.debug("VoicechatPlugin preload existing cached group: {}", existing);
-                        }
+                        if (existing != null) { botc.LOGGER.debug("VoicechatPlugin preload existing cached group: {}", existing); }
                         if (SvcBridge.clearPasswordAndOpenById(g.getVoicechatId())) ok++; // repair existing
                         if (attemptCreate(g, creationDisabled)) ok++; // optional creation if name missing at runtime
                         continue;
@@ -72,36 +70,7 @@ public class VoicechatPlugin {
                     botc.LOGGER.warn("VoicechatPlugin preload failed for {}: {}", g.getName(), t.toString());
                 }
             }
-            // Legacy/global regions import
-            try {
-                VoiceRegionManager vrm = new VoiceRegionManager(VoiceRegionService.legacyGlobalConfigPath());
-                for (VoiceRegion r : vrm.list()) {
-                    try {
-                        total++;
-                        boolean repaired = false;
-                        if (r.groupId() != null && !r.groupId().isEmpty()) {
-                            repaired = SvcBridge.clearPasswordAndOpenByIdString(r.groupId());
-                            if (repaired) ok++;
-                        }
-                        if (!creationDisabled && !repaired && r.groupName() != null && !r.groupName().isEmpty() && !SvcBridge.isGroupPresent(r.groupName())) {
-                            java.util.UUID id = SvcBridge.createOrGetGroup(r.groupName());
-                            if (id != null) {
-                                SvcBridge.clearPasswordAndOpenById(id);
-                                store.getByName(r.groupName()).ifPresentOrElse(g -> store.cacheGroup(id, g), () -> {
-                                    PersistentGroup pg = new PersistentGroup(r.groupName(), id);
-                                    store.addGroup(pg);
-                                });
-                                ok++;
-                            }
-                        }
-                    } catch (Throwable t) {
-                        botc.LOGGER.warn("Region preload error for {}: {}", r.id(), t.toString());
-                    }
-                }
-            } catch (Throwable t) {
-                botc.LOGGER.debug("VoiceRegionManager not available during preload: {}", t.toString());
-            }
-            botc.LOGGER.info("VoicechatPlugin: preloaded {}/{} voice groups (store+regions)", ok, total);
+            botc.LOGGER.info("VoicechatPlugin: preloaded {}/{} persistent voice groups", ok, total);
         } catch (Throwable t) {
             botc.LOGGER.warn("VoicechatPlugin preload error: {}", t.toString());
         }
@@ -121,7 +90,7 @@ public class VoicechatPlugin {
                 try {
                     if (pg.getVoicechatId() != null) {
                         SvcBridge.clearPasswordAndOpenById(pg.getVoicechatId());
-                    } else if (pg.getName() != null && !pg.getName().isEmpty() && !SvcBridge.isGroupPresent(pg.getName()) && !SvcBridge.isGroupCreationDisabled()) {
+                    } else if (!pg.getName().isEmpty() && !SvcBridge.isGroupPresent(pg.getName()) && !SvcBridge.isGroupCreationDisabled()) {
                         java.util.UUID id = SvcBridge.createOrGetGroup(pg.getName());
                         if (id != null) {
                             SvcBridge.clearPasswordAndOpenById(id);
@@ -165,7 +134,7 @@ public class VoicechatPlugin {
      * @return true if a group was created and opened
      */
     private boolean attemptCreate(PersistentGroup g, boolean creationDisabled) {
-        if (creationDisabled || g == null || g.getName() == null || g.getName().isEmpty()) return false;
+        if (creationDisabled || g == null || g.getName().isEmpty()) return false;
         if (SvcBridge.isGroupPresent(g.getName())) return false; // group already exists
         java.util.UUID id = SvcBridge.createOrGetGroup(g.getName());
         if (id == null) return false;

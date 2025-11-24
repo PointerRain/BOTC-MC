@@ -622,13 +622,17 @@ public final class SvcBridge {
         if (g == null) return;
         clearPasswordAndOpen(g);
     }
-    /** Clear password and open by UUID string.
+    /**
+     * Clear password and open by UUID string.
+     *
      * @param idStr UUID string
-     * @return true if group found and sanitized
      */
-    public static boolean clearPasswordAndOpenByIdString(String idStr) {
-        if (idStr == null) return false;
-        try { return clearPasswordAndOpenById(UUID.fromString(idStr)); } catch (Throwable ignored) { return false; }
+    public static void clearPasswordAndOpenByIdString(String idStr) {
+        if (idStr == null) return;
+        try {
+            clearPasswordAndOpenById(UUID.fromString(idStr));
+        } catch (Throwable ignored) {
+        }
     }
     /** Clear password and open by UUID.
      * @param id group id
