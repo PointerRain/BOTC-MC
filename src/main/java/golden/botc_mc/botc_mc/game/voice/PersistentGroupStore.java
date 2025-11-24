@@ -106,7 +106,7 @@ public class PersistentGroupStore {
     private void rebuildCache() {
         cache.clear();
         for (PersistentGroup g : groups) {
-            if (g.voicechatId != null) cache.put(g.voicechatId, g);
+            if (g.getVoicechatId() != null) cache.put(g.getVoicechatId(), g);
         }
     }
 
@@ -117,62 +117,38 @@ public class PersistentGroupStore {
         return Collections.unmodifiableList(groups);
     }
 
-    /** Backwards-compatible accessor returning immutable snapshot of groups.
-     * @return unmodifiable list of persistent groups
-     */
-    public synchronized java.util.List<PersistentGroup> getGroups() { return java.util.Collections.unmodifiableList(groups); }
-
     /** Add a new group to the store.
      * @param g persistent group instance
      */
     public synchronized void addGroup(PersistentGroup g) {
-        groups.removeIf(x->x.name.equalsIgnoreCase(g.name));
+        if (g == null || g.getName() == null) return;
+        groups.removeIf(x->x.getName().equalsIgnoreCase(g.getName()));
         groups.add(g);
-        if (g.voicechatId != null) cache.put(g.voicechatId, g);
+        if (g.getVoicechatId() != null) cache.put(g.getVoicechatId(), g);
         save();
     }
-
-    /** Remove a group by its name (case-insensitive).
-     * @param name group name
-     * @return true if removed
-     */
-    public synchronized boolean removeGroupByName(String name) {
-        Optional<PersistentGroup> opt = groups.stream().filter(g->g.name.equalsIgnoreCase(name)).findFirst();
-        if (opt.isEmpty()) return false;
-        PersistentGroup g = opt.get();
-        groups.remove(g);
-        if (g.voicechatId != null) cache.remove(g.voicechatId);
-        save();
-        return true;
-    }
-
-    /** Cache a voice UUID to group mapping for quick lookup.
-     * @param id voice chat UUID
-     * @param g persistent group
-     */
-    public synchronized void addCached(UUID id, PersistentGroup g) {
-        if (id == null || g == null) return;
-        g.voicechatId = id;
-        cache.put(id, g);
-        save();
-    }
-
-    /** Lookup a group by voice UUID.
-     * @param id voice chat UUID
-     * @return group or null
-     */
-    public synchronized PersistentGroup getByVoiceId(UUID id) { return cache.get(id); }
 
     /** Lookup a group by name.
      * @param name group name
      * @return optional containing found group
      */
-    public synchronized Optional<PersistentGroup> getByName(String name) { return groups.stream().filter(g->g.name.equalsIgnoreCase(name)).findFirst(); }
+    public synchronized java.util.Optional<PersistentGroup> getByName(String name) { return groups.stream().filter(g->g.getName().equalsIgnoreCase(name)).findFirst(); }
 
     /**
-     * Remove all groups from memory and disk. Primarily useful for administrative tools or in tests.
-     *
-     * @return number of groups that were cleared
+     * Cache a runtime voice chat UUID against the persistent group instance and persist change.
+     * @param id assigned voice chat group UUID
+     * @param g persistent group descriptor
      */
-    public synchronized int clearAll() { int s = groups.size(); groups.clear(); cache.clear(); save(); return s; }
+    public synchronized void cacheGroup(java.util.UUID id, PersistentGroup g) {
+        if (id == null || g == null) return;
+        g.setVoicechatId(id);
+        cache.put(id, g);
+        save();
+    }
+
+    /** Lookup a group by runtime voice UUID.
+     * @param id voice chat UUID
+     * @return matching persistent group or null
+     */
+    public synchronized PersistentGroup getByVoiceId(java.util.UUID id) { return cache.get(id); }
 }

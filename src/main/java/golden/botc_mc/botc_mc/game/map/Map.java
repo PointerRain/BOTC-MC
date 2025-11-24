@@ -3,11 +3,6 @@ package golden.botc_mc.botc_mc.game.map;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
-
-import com.mojang.serialization.Codec;
-import com.mojang.serialization.MapCodec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.text.Text;
@@ -26,12 +21,10 @@ import xyz.nucleoid.plasmid.api.game.world.generator.TemplateChunkGenerator;
 /**
  * Represents loaded map metadata, regions, and attributes used for a BOTC session.
  */
-public class Map {
+public final class Map {
     private static final Logger LOGGER = LogManager.getLogger("botc.Map");
 
     private final Regions regions;
-    private final Meta meta;
-    private final Attributes attributes;
 
     private final MapTemplate template;
 
@@ -51,16 +44,6 @@ public class Map {
             LOGGER.warn("Map template is from a newer format ({} > {}), continuing anyway.", mapFormat, CURRENT_MAP_FORMAT);
         }
 
-        this.meta = template.getMetadata()
-                .getData()
-                .get("meta", Meta.CODEC.codec())
-                .orElse(Meta.DEFAULT);
-
-        this.attributes = template.getMetadata()
-                .getData()
-                .get("attributes", Attributes.CODEC.codec())
-                .orElse(Attributes.DEFAULT);
-
         List<RespawnRegion> checkpoints = template.getMetadata()
                 .getRegions("checkpoint")
                 .filter(cp -> cp.getData().getInt("index").isPresent())
@@ -69,7 +52,7 @@ public class Map {
                 .toList();
 
         if (checkpoints.isEmpty()) {
-            checkpoints = List.of(RespawnRegion.DEFAULT);
+            checkpoints = java.util.List.of(RespawnRegion.DEFAULT);
         }
 
         RespawnRegion spawn = template.getMetadata()
@@ -117,25 +100,13 @@ public class Map {
     public Regions getRegions() { return this.regions; }
 
     /**
-     * Access high-level authoring metadata for this map.
-     * @return meta information (name, authors, optional description/url)
-     */
-    public Meta getMeta() { return this.meta; }
-
-    /**
-     * Access basic gameplay attributes configured for this map.
-     * @return attributes record (e.g. time of day)
-     */
-    public Attributes getAttributes() { return this.attributes; }
-
-    /**
      * Spawn/respawn region definition.
      * @param bounds block bounds of the region
      * @param yaw default facing yaw for player spawn
      * @param pitch default facing pitch for player spawn
      */
     public record RespawnRegion(BlockBounds bounds, float yaw, float pitch) {
-        public static RespawnRegion DEFAULT = new RespawnRegion(BlockBounds.ofBlock(BlockPos.ORIGIN), 0.0f, 0.0f);
+        public static final RespawnRegion DEFAULT = new RespawnRegion(BlockBounds.ofBlock(BlockPos.ORIGIN), 0.0f, 0.0f);
 
         private static RespawnRegion of(TemplateRegion templateRegion) {
             return new RespawnRegion(
@@ -159,41 +130,4 @@ public class Map {
      * @param spawn primary spawn region
      */
     public record Regions(List<RespawnRegion> checkpoints, RespawnRegion spawn) {}
-
-    /**
-     * Basic map attributes.
-     * @param timeOfDay world time (ticks) applied on load
-     */
-    public record Attributes(int timeOfDay) {
-        public static final Attributes DEFAULT = new Attributes(6000);
-
-        public static final MapCodec<Attributes> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                Codec.INT.optionalFieldOf("time_of_day", DEFAULT.timeOfDay()).forGetter(Attributes::timeOfDay)
-        ).apply(instance, Attributes::new));
-    }
-
-    /**
-     * High-level map metadata and attribution.
-     * @param name display name of the map
-     * @param authors list of credited authors
-     * @param description optional flavor/description text
-     * @param url optional external URL for docs or download info
-     */
-    public record Meta(String name, List<String> authors, Optional<String> description, Optional<String> url) {
-        /**
-         * Describes the human-facing metadata surfaced in menus/tooltips when a map is
-         * selected. {@code name} is the display name, {@code authors} credits map creators,
-         * {@code description} is optional flavor text, and {@code url} can link to docs or
-         * download info. These fall back to defaults when absent so older templates keep
-         * loading.
-         */
-        public static final Meta DEFAULT = new Meta("Unknown Map", java.util.List.of("Unknown Authors"), Optional.empty(), Optional.empty());
-
-        public static final MapCodec<Meta> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                Codec.STRING.optionalFieldOf("name", DEFAULT.name()).forGetter(Meta::name),
-                Codec.STRING.listOf().optionalFieldOf("authors", DEFAULT.authors()).forGetter(Meta::authors),
-                Codec.STRING.optionalFieldOf("description").forGetter(Meta::description),
-                Codec.STRING.optionalFieldOf("url").forGetter(Meta::url)
-        ).apply(instance, Meta::new));
-    }
 }

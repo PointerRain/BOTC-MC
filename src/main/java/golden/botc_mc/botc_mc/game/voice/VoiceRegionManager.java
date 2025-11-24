@@ -81,11 +81,6 @@ public class VoiceRegionManager {
      */
     public Identifier getMapId() { return mapId; }
 
-    /** World this manager is attached to.
-     * @return ServerWorld or null
-     */
-    public ServerWorld getWorld() { return world; }
-
     /** Config path backing this manager.
      * @return path to JSON
      */
@@ -125,40 +120,31 @@ public class VoiceRegionManager {
      */
     public Collection<VoiceRegion> list() { return regions.values(); }
 
-    /** Get region by id.
-     * @param id region identifier
-     * @return VoiceRegion or null
-     */
-    public VoiceRegion get(String id) { return regions.get(id); }
-
-    /** Create and persist new region.
-     * @param id region identifier
-     * @param groupName voice group name
-     * @param groupId initial voice group id (optional)
-     * @param a corner A
-     * @param b corner B
-     * @return created region
-     */
-    public VoiceRegion create(String id, String groupName, String groupId, BlockPos a, BlockPos b) {
-        VoiceRegion r = new VoiceRegion(id, groupName, groupId, a, b);
-        regions.put(id, r);
-        save();
-        return r;
-    }
-
     /** Update group id for region.
      * @param id region id
      * @param newGroupId new group UUID string
-     * @return true if update applied
      */
-    public boolean updateGroupId(String id, String newGroupId) {
+    public void updateGroupId(String id, String newGroupId) {
         VoiceRegion existing = regions.get(id);
-        if (existing == null) return false;
-        // Recreate region with new groupId
+        if (existing == null) return;
         VoiceRegion updated = new VoiceRegion(existing.id(), existing.groupName(), newGroupId, existing.cornerA(), existing.cornerB());
         regions.put(id, updated);
         save();
-        return true;
+    }
+
+    /** Build a concise context tag for logging (map id or GLOBAL). */
+    private String ctx() { return mapId == null ? "GLOBAL" : mapId.toString(); }
+    /** Unified load-phase logger with code tokens for grep. */
+    private void logLoad(String code, String fmt, Object... args) {
+        golden.botc_mc.botc_mc.botc.LOGGER.info("[VRM:{}:{}] {}", code, ctx(), fmt, args);
+    }
+    /** Unified debug-phase logger. */
+    private void logDebug(String code, String fmt, Object... args) {
+        golden.botc_mc.botc_mc.botc.LOGGER.debug("[VRM:{}:{}] {}", code, ctx(), fmt, args);
+    }
+    /** Unified warn-phase logger. */
+    private void logWarn(String code, String fmt, Object... args) {
+        golden.botc_mc.botc_mc.botc.LOGGER.warn("[VRM:{}:{}] {}", code, ctx(), fmt, args);
     }
 
     private boolean tryParseAndImport(String raw, Identifier mapIdContext, boolean saveAfter) {
@@ -168,14 +154,14 @@ public class VoiceRegionManager {
             JsonObject voiceSection = obj.has("voice") && obj.get("voice").isJsonObject() ? obj.getAsJsonObject("voice") : obj;
             if (parseRegionsFromVoiceSection(voiceSection)) {
                 if (saveAfter) save();
-                if (mapIdContext != null) golden.botc_mc.botc_mc.botc.LOGGER.info("VoiceRegionManager: imported {} global region(s) into map '{}'", regions.size(), mapIdContext);
+                if (mapIdContext != null) logLoad("IMPORT-GLOBAL-OBJ", "Imported {} region(s) into map", regions.size());
                 return true;
             }
         } else if (trimmed.startsWith("[")) {
             parseLegacyArray(trimmed);
             if (!regions.isEmpty()) {
                 if (saveAfter) save();
-                if (mapIdContext != null) golden.botc_mc.botc_mc.botc.LOGGER.info("VoiceRegionManager: imported {} global region(s) into map '{}'", regions.size(), mapIdContext);
+                if (mapIdContext != null) logLoad("IMPORT-GLOBAL-ARR", "Imported {} region(s) into map", regions.size());
                 return true;
             }
         }
@@ -190,7 +176,7 @@ public class VoiceRegionManager {
             String s = new String(Files.readAllBytes(global));
             return tryParseAndImport(s, mapId, true);
         } catch (Throwable t) {
-            golden.botc_mc.botc_mc.botc.LOGGER.warn("VoiceRegionManager: failed importing global regions for map {}: {}", mapId, t.toString());
+            logWarn("IMPORT-GLOBAL-ERR", "Failed importing global regions: {}", t.toString());
             return false;
         }
     }
@@ -202,7 +188,7 @@ public class VoiceRegionManager {
         try {
             String s = new String(Files.readAllBytes(legacy));
             boolean imported = tryParseAndImport(s, null, false);
-            if (imported) golden.botc_mc.botc_mc.botc.LOGGER.info("Loaded voice regions from legacy double-run path fallback.");
+            if (imported) logLoad("IMPORT-LEGACY", "Loaded legacy double-run path regions (count={})", regions.size());
             return imported;
         } catch (Throwable ignored) { return false; }
     }
@@ -239,7 +225,7 @@ public class VoiceRegionManager {
                     String s = new String(Files.readAllBytes(override));
                     JsonObject obj = gson.fromJson(s, JsonObject.class);
                     JsonObject voiceSection = obj != null && obj.has("voice") && obj.get("voice").isJsonObject() ? obj.getAsJsonObject("voice") : obj;
-                    if (parseRegionsFromVoiceSection(voiceSection)) return;
+                    if (parseRegionsFromVoiceSection(voiceSection)) { logLoad("OVERRIDE", "Loaded override regions count={}", regions.size()); return; }
                 }
                 try {
                     Identifier resourceId = Identifier.of(mapId.getNamespace(), "plasmid/game/" + mapId.getPath() + ".json");
@@ -248,7 +234,8 @@ public class VoiceRegionManager {
                         try (InputStream is = optional.get().getInputStream(); Reader r = new InputStreamReader(is)) {
                             JsonObject obj = gson.fromJson(r, JsonObject.class);
                             JsonObject voiceSection = obj != null && obj.has("voice") && obj.get("voice").isJsonObject() ? obj.getAsJsonObject("voice") : obj;
-                            if (parseRegionsFromVoiceSection(voiceSection)) return;
+                            if (parseRegionsFromVoiceSection(voiceSection)) { logLoad("EMBEDDED", "Loaded embedded regions count={}", regions.size());
+                            }
                         }
                     }
                 } catch (Exception ex) {
@@ -258,8 +245,22 @@ public class VoiceRegionManager {
 
             // No explicit data found — leave empty
         } catch (Exception ex) {
-            golden.botc_mc.botc_mc.botc.LOGGER.warn("VoiceRegionManager load failed: {}", ex.toString());
+            logWarn("LOAD-FAIL", "General load failure: {}", ex.toString());
         }
+    }
+
+    private boolean addRegionFromJson(JsonObject o) {
+        if (o == null) return false;
+        String id = optString(o, "id");
+        if (id == null) return false;
+        String groupName = optString(o, "groupName");
+        if (groupName == null) groupName = id; // fallback to id
+        String groupId = optString(o, "groupId");
+        BlockPos a = parseCorner(o.get("cornerA"));
+        BlockPos b = parseCorner(o.get("cornerB"));
+        if (a == null || b == null) return false;
+        regions.put(id, new VoiceRegion(id, groupName, groupId, a, b));
+        return true;
     }
 
     private boolean parseRegionsFromVoiceSection(JsonObject voiceSection) {
@@ -270,25 +271,15 @@ public class VoiceRegionManager {
                 int added = 0;
                 for (JsonElement el : vrElem.getAsJsonArray()) {
                     if (!el.isJsonObject()) continue;
-                    JsonObject o = el.getAsJsonObject();
-                    String id = optString(o, "id");
-                    if (id == null) continue;
-                    String groupName = optString(o, "groupName");
-                    if (groupName == null) groupName = id; // fallback
-                    String groupId = optString(o, "groupId");
-                    BlockPos a = parseCorner(o.get("cornerA"));
-                    BlockPos b = parseCorner(o.get("cornerB"));
-                    if (a == null || b == null) continue;
-                    regions.put(id, new VoiceRegion(id, groupName, groupId, a, b));
-                    added++;
+                    if (addRegionFromJson(el.getAsJsonObject())) added++;
                 }
                 if (added > 0) {
-                    golden.botc_mc.botc_mc.botc.LOGGER.debug("VoiceRegionManager: loaded {} region(s) from voice section", added);
+                    logDebug("PARSE-SECTION", "Parsed section regions added={}", added);
                     return true;
                 }
             }
         } catch (Throwable t) {
-            golden.botc_mc.botc_mc.botc.LOGGER.warn("VoiceRegionManager: parseRegionsFromVoiceSection error: {}", t.toString());
+            logWarn("PARSE-SECTION-ERR", "Error parsing voice section: {}", t.toString());
         }
         return false;
     }
@@ -300,21 +291,11 @@ public class VoiceRegionManager {
             int added = 0;
             for (JsonElement el : root.getAsJsonArray()) {
                 if (!el.isJsonObject()) continue;
-                JsonObject o = el.getAsJsonObject();
-                String id = optString(o, "id");
-                if (id == null) continue;
-                String groupName = optString(o, "groupName");
-                if (groupName == null) groupName = id;
-                String groupId = optString(o, "groupId");
-                BlockPos a = parseCorner(o.get("cornerA"));
-                BlockPos b = parseCorner(o.get("cornerB"));
-                if (a == null || b == null) continue;
-                regions.put(id, new VoiceRegion(id, groupName, groupId, a, b));
-                added++;
+                if (addRegionFromJson(el.getAsJsonObject())) added++;
             }
-            if (added > 0) golden.botc_mc.botc_mc.botc.LOGGER.debug("VoiceRegionManager: loaded {} legacy array region(s)", added);
+            if (added > 0) logDebug("PARSE-LEGACY", "Parsed legacy array regions added={}", added);
         } catch (Throwable t) {
-            golden.botc_mc.botc_mc.botc.LOGGER.warn("VoiceRegionManager: parseLegacyArray error: {}", t.toString());
+            logWarn("PARSE-LEGACY-ERR", "Error parsing legacy array: {}", t.toString());
         }
     }
 
@@ -356,6 +337,7 @@ public class VoiceRegionManager {
         JsonObject voiceSection = buildVoiceSection(root);
         root.add("voice", voiceSection);
         Files.write(configPath, gson.toJson(root).getBytes());
+        logDebug("SAVE-CONFIG", "Wrote per-map config regions={}", regions.size());
     }
 
     private void writeOverrideDatapack() throws IOException {
@@ -383,6 +365,7 @@ public class VoiceRegionManager {
         obj.add("voice", voiceSection);
         Files.write(target, gson.toJson(obj).getBytes());
         VoiceRegionService.ensureOverridesPackMeta(datapackBase, "BOTC overrides datapack");
+        logDebug("SAVE-OVERRIDE", "Wrote override datapack regions={}", regions.size());
     }
 
     /**
@@ -398,7 +381,7 @@ public class VoiceRegionManager {
      * section is rewritten.
      */
     public void save() {
-        try { writePerMapConfig(); } catch (IOException ex) { golden.botc_mc.botc_mc.botc.LOGGER.warn("VoiceRegionManager save failed: {}", ex.toString()); }
-        try { writeOverrideDatapack(); } catch (IOException ex) { golden.botc_mc.botc_mc.botc.LOGGER.warn("VoiceRegionManager override datapack save failed: {}", ex.toString()); }
+        try { writePerMapConfig(); } catch (IOException ex) { logWarn("SAVE-CONFIG-ERR", "Per-map save failed: {}", ex.toString()); }
+        try { writeOverrideDatapack(); } catch (IOException ex) { logWarn("SAVE-OVERRIDE-ERR", "Override save failed: {}", ex.toString()); }
     }
 }

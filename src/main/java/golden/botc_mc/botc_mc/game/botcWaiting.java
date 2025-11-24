@@ -5,7 +5,6 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.BlockPos;
 import xyz.nucleoid.fantasy.RuntimeWorldConfig;
 import xyz.nucleoid.plasmid.api.game.*;
-import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.world.GameMode;
 import golden.botc_mc.botc_mc.game.map.Map;
@@ -18,7 +17,6 @@ import xyz.nucleoid.stimuli.event.EventResult;
 import xyz.nucleoid.stimuli.event.player.PlayerDeathEvent;
 import golden.botc_mc.botc_mc.game.voice.VoiceRegionManager;
 import golden.botc_mc.botc_mc.game.voice.VoiceRegionService;
-import golden.botc_mc.botc_mc.game.voice.VoicechatPlugin;
 
 /**
  * Waiting/pre-game lobby phase controller. Responsible for loading the map, applying settings,
@@ -27,22 +25,15 @@ import golden.botc_mc.botc_mc.game.voice.VoicechatPlugin;
 public class botcWaiting {
     private final GameSpace gameSpace;
     private final Map map;
-    private final botcConfig config;
     private final SpawnLogic spawnLogic;
     private final ServerWorld world;
-    private final VoiceRegionManager voiceRegions;
 
-    private botcWaiting(GameSpace gameSpace, ServerWorld world, Map map, botcConfig config) {
+    private botcWaiting(GameSpace gameSpace, ServerWorld world, Map map) {
         this.gameSpace = gameSpace;
         this.world = world;
         this.map = map;
-        this.config = config;
         // Initialize spawn logic (SpawnLogic is the available class)
         this.spawnLogic = new SpawnLogic(world, map);
-        VoiceRegionManager vrm = VoiceRegionManager.forMap(world, config.mapId());
-        // store the manager on this instance and activate it
-        this.voiceRegions = vrm;
-        VoiceRegionService.setActive(world, config.mapId(), vrm);
     }
 
     /**
@@ -65,13 +56,9 @@ public class botcWaiting {
                 .setGenerator(map.asGenerator(context.server()));
 
         return context.openWithWorld(worldConfig, (game, world) -> {
-            // Use the effective config (merged from settings + datapack) for the activity
-            botcWaiting waiting = new botcWaiting(game.getGameSpace(), world, map, effectiveConfig);
-            // Activate per-map voice groups
-            try {
-                VoicechatPlugin plugin = VoicechatPlugin.getInstance(context.server());
-                plugin.onMapOpen(mapId);
-            } catch (Throwable ignored) {}
+            botcWaiting waiting = new botcWaiting(game.getGameSpace(), world, map);
+            VoiceRegionManager vrm = VoiceRegionManager.forMap(world, mapId);
+            VoiceRegionService.setActive(vrm);
             // Set a safe spawn for the world to avoid initial void placement
             Vec3d safe = waiting.spawnLogic.getSafeSpawnPosition();
             world.setSpawnPos(BlockPos.ofFloored(safe), 0.0F);
@@ -85,27 +72,20 @@ public class botcWaiting {
             // Teleport accepted players to the map spawn (centered on the block and one block above).
             // Fallback to Vec3d.ZERO if no spawn is defined to avoid NPEs.
             game.listen(GamePlayerEvents.ACCEPT, joinAcceptor -> joinAcceptor.teleport(world, safe));
-            game.listen(PlayerDeathEvent.EVENT, waiting::onPlayerDeath);
+            game.listen(PlayerDeathEvent.EVENT, (player, source) -> { player.setHealth(20.0f); waiting.spawnPlayer(player); return EventResult.DENY; });
             // Removed DISPOSE listener; map voice groups are unloaded in botcActive.onClose
         });
     }
 
     /** Transition callback from waiting into active gameplay. */
     private GameResult requestStart() {
-        botcActive.open(this.gameSpace, this.world, this.map, this.config);
+        botcActive.open(this.gameSpace, this.world, this.map);
         return GameResult.ok();
     }
 
     /** Add a player to the lobby (respawns them). */
     private void addPlayer(ServerPlayerEntity player) {
         this.spawnPlayer(player);
-    }
-
-    /** Handle a player death in the lobby by restoring health and respawning. */
-    private EventResult onPlayerDeath(ServerPlayerEntity player, DamageSource source) {
-        player.setHealth(20.0f);
-        this.spawnPlayer(player);
-        return EventResult.DENY;
     }
 
     /** Respawn a player using the lobby spawn logic. */

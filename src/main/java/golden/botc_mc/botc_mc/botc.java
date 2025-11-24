@@ -27,29 +27,40 @@ public class botc implements ModInitializer {
     public static final String ID = "botc-mc";
     /** Structured logger for BOTC mod operations. */
     public static final Logger LOGGER = LogManager.getLogger(ID);
-    /** Registered game type for BOTC sessions. */
-    public static final GameType<botcConfig> TYPE = GameType.register(
-            Identifier.of(ID, "game"),
-            botcConfig.MAP_CODEC,
-            botcWaiting::open
-    );
 
     private VoiceRegionTask voiceRegionTask;
-    private VoiceRegionManager voiceRegionManager;
 
     private static volatile boolean REGIONS_MATERIALIZED = false;
 
-    /** No-arg constructor; Fabric uses ModInitializer for entry without explicit instantiation docs. */
-    public botc() {}
+    private void registerGameType() {
+        Identifier id = Identifier.of(ID, "game");
+        try {
+            // Reflectively obtain (possibly deprecated) register method: register(Identifier, MapCodec, GameType.Open)
+            java.lang.reflect.Method legacy = GameType.class.getDeclaredMethod(
+                    "register",
+                    Identifier.class,
+                    com.mojang.serialization.MapCodec.class,
+                    GameType.Open.class
+            );
+            legacy.setAccessible(true);
+            // Explicit lambda wrapped in a variable avoids method reference varargs inference issues.
+            GameType.Open<botcConfig> openFn = botcWaiting::open;
+            legacy.invoke(null, id, botcConfig.MAP_CODEC, openFn);
+            LOGGER.info("Registered BOTC GameType reflectively (legacy method)." );
+        } catch (Throwable t) {
+            LOGGER.error("Failed to register BOTC GameType reflectively: {}", t.toString());
+        }
+    }
 
     @Override
     public void onInitialize() {
-        LOGGER.info("GameType is present during onInitialize: {}", Identifier.of(ID, "game"));
+        registerGameType();
+        LOGGER.debug("botcConfig CODEC loaded: {}", botcConfig.CODEC);
 
         botcCommands.register();
         // Migrate legacy region file path if needed (double run directory)
         VoiceRegionService.migrateLegacyGlobalRegionsIfNeeded();
-        voiceRegionManager = new VoiceRegionManager(VoiceRegionService.legacyGlobalConfigPath());
+        VoiceRegionManager voiceRegionManager = new VoiceRegionManager(VoiceRegionService.legacyGlobalConfigPath());
 
         try {
             Class<?> cmdCls = Class.forName("golden.botc_mc.botc_mc.game.voice.VoiceRegionCommands");
@@ -117,7 +128,12 @@ public class botc implements ModInitializer {
         try {
             Class<?> pluginCls = Class.forName("golden.botc_mc.botc_mc.game.voice.VoicechatPlugin");
             java.lang.reflect.Method getInstance = pluginCls.getMethod("getInstance", MinecraftServer.class);
-            getInstance.invoke(null, server);
+            Object plugin = getInstance.invoke(null, server);
+            // Call preload() if present
+            try {
+                java.lang.reflect.Method preload = pluginCls.getMethod("preload");
+                preload.invoke(plugin);
+            } catch (Throwable ignored) {}
         } catch (Throwable ignored) {}
     }
 }

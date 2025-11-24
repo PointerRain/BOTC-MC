@@ -8,7 +8,6 @@ import com.google.gson.reflect.TypeToken;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Identifier;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -17,7 +16,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -66,7 +64,7 @@ public class VoiceGroupManager {
     /** Immutable snapshot of loaded groups.
      * @return unmodifiable list
      */
-    public List<PersistentGroup> list() { return Collections.unmodifiableList(groups); }
+    public java.util.List<PersistentGroup> list() { return java.util.Collections.unmodifiableList(groups); }
 
     /**
      * Reload groups from disk, preferring overrides and then falling back to embedded JSON.
@@ -118,46 +116,6 @@ public class VoiceGroupManager {
             }
         } catch (Exception ex) {
             LOGGER.warn("VoiceGroupManager load failed: {}", ex.toString());
-        }
-    }
-
-    /**
-     * Persist the in-memory list of {@link PersistentGroup} entries to the overrides datapack.
-     * If a base JSON file exists (either from a previous override or embedded resource), its
-     * non-voice fields are preserved and only the {@code voice.voice_groups} field is updated.
-     */
-    public void save() {
-        if (mapId == null) return;
-        Path datapackBase = Paths.get("run", "world", "datapacks", "botc_overrides");
-        Path target = datapackBase.resolve(Paths.get("data", mapId.getNamespace(), "plasmid", "game", mapId.getPath() + ".json"));
-        try {
-            Files.createDirectories(target.getParent());
-            JsonObject obj = null;
-            if (Files.exists(target)) {
-                String existing = new String(Files.readAllBytes(target));
-                obj = gson.fromJson(existing, JsonObject.class);
-            } else if (server != null) {
-                try {
-                    Identifier res = Identifier.of(mapId.getNamespace(), "plasmid/game/" + mapId.getPath() + ".json");
-                    var opt = server.getResourceManager().getResource(res);
-                    if (opt.isPresent()) {
-                        try (InputStream is = opt.get().getInputStream(); Reader r = new InputStreamReader(is)) {
-                            obj = gson.fromJson(r, JsonObject.class);
-                        }
-                    }
-                } catch (Exception ignored) {}
-            }
-            if (obj == null) obj = new JsonObject();
-            JsonObject voiceSection = obj.has("voice") && obj.get("voice").isJsonObject() ? obj.getAsJsonObject("voice") : new JsonObject();
-            JsonElement groupsElem = gson.toJsonTree(groups, new TypeToken<List<PersistentGroup>>(){}.getType());
-            voiceSection.add("voice_groups", groupsElem);
-            obj.add("voice", voiceSection);
-            String out = gson.toJson(obj);
-            Files.write(target, out.getBytes());
-            // Use centralized helper instead of duplicated pack.mcmeta logic
-            VoiceRegionService.ensureOverridesPackMeta(datapackBase, "BOTC overrides datapack");
-        } catch (IOException e) {
-            LOGGER.warn("VoiceGroupManager save failed: {}", e.toString());
         }
     }
 }

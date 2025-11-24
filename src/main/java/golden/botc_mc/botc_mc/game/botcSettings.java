@@ -16,7 +16,7 @@ import golden.botc_mc.botc_mc.game.voice.VoiceRegionService;
 /**
  * Simple file-backed settings for the BOTC game. This provides a single place to edit
  * common values (time limits, per-phase durations, player limits) without rebuilding the mod.
- *
+ * <p>
  * The settings are stored at run/config/botc/config/botc.properties relative to the project root.
  */
 public final class botcSettings {

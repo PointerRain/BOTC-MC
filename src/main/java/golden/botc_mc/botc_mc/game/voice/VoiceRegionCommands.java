@@ -25,7 +25,7 @@ public final class VoiceRegionCommands {
     /**
      * Register the {@code /botc voice} commands with Fabric's command dispatcher.
      * The supplied {@code fallback} manager is used when there is no active per-map manager
-     * bound via {@link VoiceRegionService#setActive(net.minecraft.server.world.ServerWorld, net.minecraft.util.Identifier, VoiceRegionManager)}.
+     * bound via {@link VoiceRegionService#setActive(VoiceRegionManager)}.
      * @param fallback fallback manager if no active manager
      */
     public static void register(VoiceRegionManager fallback) {

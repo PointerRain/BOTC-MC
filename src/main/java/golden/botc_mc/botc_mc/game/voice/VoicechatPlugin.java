@@ -44,11 +44,6 @@ public class VoicechatPlugin {
         this.store = new PersistentGroupStore();
     }
 
-    /** Server bound to this plugin.
-     * @return server instance
-     */
-    public MinecraftServer getServer() { return server; }
-
     /**
      * Best-effort preload/repair of persisted groups into Simple Voice Chat on server start.
      * <p>
@@ -63,44 +58,29 @@ public class VoicechatPlugin {
      */
     public void preload() {
         try {
-            boolean creationDisabled = SvcBridge.isGroupCreationDisabled();
-            // Try to detect voicechat API presence (optional)
-            try {
-                Class.forName("de.maxhenkel.voicechat.api.VoicechatServerApi");
-            } catch (ClassNotFoundException ignored) {}
+            final boolean creationDisabled = SvcBridge.isGroupCreationDisabled();
+            try { Class.forName("de.maxhenkel.voicechat.api.VoicechatServerApi"); } catch (ClassNotFoundException ignored) {}
             int ok = 0;
             int total = 0;
             for (PersistentGroup g : store.list()) {
                 total++;
                 try {
-                    if (creationDisabled && (g.voicechatId == null)) {
-                        // Skip attempts entirely if disabled and no existing id
+                    if (g.getVoicechatId() != null) {
+                        // touch cache to justify its presence
+                        PersistentGroup existing = store.getByVoiceId(g.getVoicechatId());
+                        if (existing != null) {
+                            botc.LOGGER.debug("VoicechatPlugin preload existing cached group: {}", existing);
+                        }
+                        if (SvcBridge.clearPasswordAndOpenById(g.getVoicechatId())) ok++; // repair existing
+                        if (attemptCreate(g, creationDisabled)) ok++; // optional creation if name missing at runtime
                         continue;
                     }
-                    if (g.voicechatId != null) {
-                        boolean repaired = SvcBridge.clearPasswordAndOpenById(g.voicechatId);
-                        if (!repaired && !creationDisabled && !SvcBridge.groupExists(g.name)) {
-                            java.util.UUID id = SvcBridge.createOrGetGroup(g.name, null);
-                            if (id != null) {
-                                store.addCached(id, g);
-                                SvcBridge.clearPasswordAndOpenById(id);
-                                ok++;
-                            }
-                        } else if (repaired) {
-                            ok++;
-                        }
-                        continue;
-                    }
-                    if (!creationDisabled && !SvcBridge.groupExists(g.name)) {
-                        java.util.UUID id = SvcBridge.createOrGetGroup(g.name, null);
-                        if (id != null) {
-                            store.addCached(id, g);
-                            SvcBridge.clearPasswordAndOpenById(id);
-                            ok++;
-                        }
-                    }
-                } catch (Throwable t) { botc.LOGGER.warn("VoicechatPlugin preload failed for {}: {}", g.name, t.toString()); }
+                    if (attemptCreate(g, creationDisabled)) ok++; // creation path when no id yet
+                } catch (Throwable t) {
+                    botc.LOGGER.warn("VoicechatPlugin preload failed for {}: {}", g.getName(), t.toString());
+                }
             }
+            // Legacy/global regions import
             try {
                 VoiceRegionManager vrm = new VoiceRegionManager(VoiceRegionService.legacyGlobalConfigPath());
                 for (VoiceRegion r : vrm.list()) {
@@ -109,21 +89,22 @@ public class VoicechatPlugin {
                         boolean repaired = false;
                         if (r.groupId() != null && !r.groupId().isEmpty()) {
                             repaired = SvcBridge.clearPasswordAndOpenByIdString(r.groupId());
+                            if (repaired) ok++;
                         }
-                        if (!repaired && !creationDisabled && r.groupName() != null && !r.groupName().isEmpty() && !SvcBridge.groupExists(r.groupName())) {
-                            java.util.UUID id = SvcBridge.createOrGetGroup(r.groupName(), null);
+                        if (!creationDisabled && !repaired && r.groupName() != null && !r.groupName().isEmpty() && SvcBridge.isGroupMissing(r.groupName())) {
+                            java.util.UUID id = SvcBridge.createOrGetGroup(r.groupName());
                             if (id != null) {
                                 SvcBridge.clearPasswordAndOpenById(id);
-                                store.getByName(r.groupName()).ifPresentOrElse(g -> store.addCached(id, g), () -> {
-                                    PersistentGroup pg = new PersistentGroup(r.groupName());
-                                    pg.voicechatId = id; store.addGroup(pg);
+                                store.getByName(r.groupName()).ifPresentOrElse(g -> store.cacheGroup(id, g), () -> {
+                                    PersistentGroup pg = new PersistentGroup(r.groupName(), id);
+                                    store.addGroup(pg);
                                 });
                                 ok++;
                             }
-                        } else if (repaired) {
-                            ok++;
                         }
-                    } catch (Throwable t) { botc.LOGGER.warn("Region preload error for {}: {}", r.id(), t.toString()); }
+                    } catch (Throwable t) {
+                        botc.LOGGER.warn("Region preload error for {}: {}", r.id(), t.toString());
+                    }
                 }
             } catch (Throwable t) {
                 botc.LOGGER.debug("VoiceRegionManager not available during preload: {}", t.toString());
@@ -149,10 +130,10 @@ public class VoicechatPlugin {
             VoiceGroupManager gm = VoiceGroupManager.forServer(this.server, mapId);
             for (PersistentGroup pg : gm.list()) {
                 try {
-                    if (pg.voicechatId != null) {
-                        SvcBridge.clearPasswordAndOpenById(pg.voicechatId);
-                    } else if (pg.name != null && !pg.name.isEmpty() && !SvcBridge.groupExists(pg.name) && !SvcBridge.isGroupCreationDisabled()) {
-                        java.util.UUID id = SvcBridge.createOrGetGroup(pg.name, null);
+                    if (pg.getVoicechatId() != null) {
+                        SvcBridge.clearPasswordAndOpenById(pg.getVoicechatId());
+                    } else if (pg.getName() != null && !pg.getName().isEmpty() && SvcBridge.isGroupMissing(pg.getName()) && !SvcBridge.isGroupCreationDisabled()) {
+                        java.util.UUID id = SvcBridge.createOrGetGroup(pg.getName());
                         if (id != null) {
                             SvcBridge.clearPasswordAndOpenById(id);
                         }
@@ -169,8 +150,8 @@ public class VoicechatPlugin {
                         if (r.groupId() != null && !r.groupId().isEmpty()) {
                             SvcBridge.clearPasswordAndOpenByIdString(r.groupId());
                         } else if (!creationDisabled) {
-                            if (!SvcBridge.groupExists(r.groupName())) {
-                                java.util.UUID gid = SvcBridge.createOrGetGroup(r.groupName(), null);
+                            if (SvcBridge.isGroupMissing(r.groupName())) {
+                                java.util.UUID gid = SvcBridge.createOrGetGroup(r.groupName());
                                 if (gid != null) {
                                     active.updateGroupId(r.id(), gid.toString());
                                     SvcBridge.clearPasswordAndOpenById(gid);
@@ -187,5 +168,20 @@ public class VoicechatPlugin {
         } catch (Throwable t) {
             botc.LOGGER.warn("VoicechatPlugin.onMapOpen failed for {}: {}", mapId, t.toString());
         }
+    }
+
+    /** Attempt to create and open a voice group for the persistent entry if allowed and missing.
+     * @param g persistent group descriptor
+     * @param creationDisabled global creation disabled flag
+     * @return true if a group was created and opened
+     */
+    private boolean attemptCreate(PersistentGroup g, boolean creationDisabled) {
+        if (creationDisabled || g == null || g.getName() == null || g.getName().isEmpty()) return false;
+        if (!SvcBridge.isGroupMissing(g.getName())) return false;
+        java.util.UUID id = SvcBridge.createOrGetGroup(g.getName());
+        if (id == null) return false;
+        store.cacheGroup(id, g);
+        SvcBridge.clearPasswordAndOpenById(id);
+        return true;
     }
 }

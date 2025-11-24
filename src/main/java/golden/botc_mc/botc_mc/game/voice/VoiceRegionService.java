@@ -1,7 +1,6 @@
 package golden.botc_mc.botc_mc.game.voice;
 
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 
 import java.io.InputStream;
@@ -24,8 +23,6 @@ import java.nio.file.Paths;
  */
 public final class VoiceRegionService {
     private static volatile VoiceRegionManager activeManager;
-    private static volatile Identifier activeMapId;
-    private static volatile ServerWorld activeWorld;
 
     private VoiceRegionService() {}
 
@@ -102,17 +99,6 @@ public final class VoiceRegionService {
         return datapackOverrideBase().resolve(Paths.get("data", mapId.getNamespace(), "plasmid", "game", mapId.getPath() + ".json"));
     }
 
-    /** Check if bundled default exists for map.
-     * @param mapId map identifier
-     * @return true if resource present
-     */
-    public static boolean defaultAssetExists(Identifier mapId) {
-        String res = String.format("assets/%s/voice_defaults/%s.json", mapId.getNamespace(), mapId.getPath());
-        try (InputStream in = VoiceRegionService.class.getClassLoader().getResourceAsStream(res)) {
-            return in != null;
-        } catch (Throwable ignored) { return false; }
-    }
-
     /** Copy bundled default config.
      * @param mapId map identifier
      * @param overwrite true to replace existing file
@@ -158,31 +144,16 @@ public final class VoiceRegionService {
     /**
      * Register a {@link VoiceRegionManager} as the globally active manager for a particular world + map.
      * The active manager is what runtime systems will operate on when adjusting player voice membership.
-     * @param world server world
-     * @param mapId map identifier
      * @param manager manager instance
      */
-    public static synchronized void setActive(ServerWorld world, Identifier mapId, VoiceRegionManager manager) {
-        activeWorld = world;
-        activeMapId = mapId;
+    public static synchronized void setActive(VoiceRegionManager manager) {
         activeManager = manager;
     }
 
     /** Currently active manager accessor.
      * @return active VoiceRegionManager or null
      */
-    public static VoiceRegionManager getActiveManager() {
-        return activeManager;
-    }
-
-    /** Active map identifier for current voice region context.
-     * @return map id or null if none active
-     */
-    public static Identifier getActiveMapId() { return activeMapId; }
-    /** Active world associated with the current voice region manager.
-     * @return ServerWorld or null
-     */
-    public static ServerWorld getActiveWorld() { return activeWorld; }
+    public static VoiceRegionManager getActiveManager() { return activeManager; }
 
     /** Ensure a minimal pack.mcmeta exists for the overrides datapack.
      * Centralizes creation logic used by both VoiceGroupManager and VoiceRegionManager.
