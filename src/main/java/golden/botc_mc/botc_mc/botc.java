@@ -52,6 +52,9 @@ public class botc implements ModInitializer {
         }
     }
 
+    /** Default constructor required by Fabric loader. */
+    public botc() {}
+
     @Override
     public void onInitialize() {
         registerGameType();

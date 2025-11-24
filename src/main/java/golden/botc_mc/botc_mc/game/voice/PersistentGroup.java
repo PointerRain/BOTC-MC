@@ -33,13 +33,16 @@ public final class PersistentGroup {
         this.voicechatId = voicechatId;
     }
 
-    /** @return persistent group name */
+    /** Group name.
+     * @return name
+     */
     public String getName() { return name; }
-    /** @return current associated Simple Voice Chat UUID (may be null) */
+    /** Runtime UUID (nullable).
+     * @return uuid or null
+     */
     public UUID getVoicechatId() { return voicechatId; }
-    /**
-     * Update the runtime voice chat UUID after creation/repair.
-     * @param id new UUID (nullable to clear association)
+    /** Update runtime UUID.
+     * @param id new id or null
      */
     public void setVoicechatId(UUID id) { this.voicechatId = id; }
 

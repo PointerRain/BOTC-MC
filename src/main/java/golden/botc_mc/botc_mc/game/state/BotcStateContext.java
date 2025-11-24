@@ -6,6 +6,7 @@ import xyz.nucleoid.plasmid.api.game.player.PlayerSet;
 /**
  * Encapsulates the environment/state used by the finite state machine actions.
  * Provides helpers to broadcast messages, access players, and hook into the GameSpace.
+ * @param space game space
  */
 public record BotcStateContext(GameSpace space) {
     /** Active player set wrapper.

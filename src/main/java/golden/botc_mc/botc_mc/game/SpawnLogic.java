@@ -14,16 +14,16 @@ import golden.botc_mc.botc_mc.game.map.Map.RespawnRegion;
 
 import java.util.Set;
 
-/**
- * Player spawn and safe positioning helper. Responsible for resetting status effects,
- * temporary invulnerability, and finding a safe block surface near the respawn region.
+/** Spawn logic helper.
+ * @param world server world
+ * @param map active map
  */
 public record SpawnLogic(ServerWorld world, Map map) {
     private static final int SEARCH_RADIUS = 8;
 
-    /** Reset player state before spawning.
-     * @param player target player
-     * @param gameMode destination game mode
+    /** Reset player before spawn.
+     * @param player player
+     * @param gameMode target game mode
      */
     public void resetPlayer(ServerPlayerEntity player, GameMode gameMode) {
         player.changeGameMode(gameMode);

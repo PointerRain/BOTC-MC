@@ -10,13 +10,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Periodic task that inspects player positions, determines current voice region membership,
- * and performs join/leave operations with throttling & stability windows to reduce churn.
- * <p>
- * Designed to run once per server tick; all operations are best-effort and tolerate missing
- * voice integration (in which case only internal tracking occurs).
- */
+/** Periodic per-tick task: evaluates player position, maps to voice region, and runs join/leave with throttling and stability delays. */
 public class VoiceRegionTask implements Runnable {
     private MinecraftServer server; // restored mutable server reference
     private final VoiceRegionManager manager;

@@ -12,15 +12,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.network.ServerPlayerEntity;
 import golden.botc_mc.botc_mc.botc;
 
-/**
- * Reflection integration bridge for the Simple Voice Chat mod. Discovers runtime classes & methods,
- * exposes minimal higher-level helpers (group create/join/leave, password clearing, presence checks)
- * while avoiding a hard compile-time dependency. All operations are best-effort and fail soft.
- * <p>
- * <b>Caution:</b> Because this relies on reflection across multiple potential versions of the
- * voice chat mod, callers must tolerate null/false returns. Every public method below documents
- * its parameters and return semantics explicitly.
- */
+/** Simple Voice Chat reflection bridge. Locates classes and methods at runtime and exposes helpers for group creation, joining, leaving, password clearing, and presence checks. All operations are best-effort; failures return null/false without throwing. */
 public final class SvcBridge {
     private static boolean available = false;
     private static boolean initializing = false;
@@ -632,7 +624,7 @@ public final class SvcBridge {
     }
     /** Clear password and open by UUID string.
      * @param idStr UUID string
-     * @return true if group found & sanitized
+     * @return true if group found and sanitized
      */
     public static boolean clearPasswordAndOpenByIdString(String idStr) {
         if (idStr == null) return false;

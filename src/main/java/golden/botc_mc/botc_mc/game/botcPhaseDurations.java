@@ -1,13 +1,18 @@
 package golden.botc_mc.botc_mc.game;
 
-/** Minimal phase durations record (seconds per phase). */
+/** Phase durations (seconds) for each game phase.
+ * @param dayDiscussionSecs seconds for day discussion
+ * @param nominationSecs seconds for nomination window
+ * @param executionSecs seconds for execution window
+ * @param nightSecs seconds for night phase
+ */
 public record botcPhaseDurations(int dayDiscussionSecs,
                                  int nominationSecs,
                                  int executionSecs,
                                  int nightSecs) {
-    /** Convert a state to its configured duration in ticks (20 ticks/sec).
-     * @param state game state whose duration to compute
-     * @return ticks for the state, 0 if unmapped
+    /** Compute ticks for a state.
+     * @param state game state
+     * @return duration in ticks (>=1)
      */
     public long durationTicks(golden.botc_mc.botc_mc.game.state.BotcGameState state) {
         long seconds = switch (state) {
