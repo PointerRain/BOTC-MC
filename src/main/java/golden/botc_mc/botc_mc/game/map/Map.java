@@ -24,7 +24,7 @@ import xyz.nucleoid.plasmid.api.game.GameOpenException;
 import xyz.nucleoid.plasmid.api.game.world.generator.TemplateChunkGenerator;
 
 /**
- * A BOTC map loaded from a map template resource.
+ * Represents loaded map metadata, regions, and attributes used for a BOTC session.
  */
 public class Map {
     private static final Logger LOGGER = LogManager.getLogger("botc.Map");
@@ -82,7 +82,10 @@ public class Map {
     }
 
     /**
-     * Load a BOTC map from a resource.
+     * Load map metadata and resources by identifier.
+     * @param server minecraft server instance
+     * @param identifier namespaced map id
+     * @return loaded Map instance or null if missing
      */
     public static Map load(MinecraftServer server, Identifier identifier) {
         MapTemplate template;
@@ -98,14 +101,39 @@ public class Map {
         return new Map(template);
     }
 
+    /**
+     * Creates a chunk generator that will serve blocks from this loaded template.
+     * @param server minecraft server instance for context
+     * @return template-backed chunk generator
+     */
     public ChunkGenerator asGenerator(MinecraftServer server) {
         return new TemplateChunkGenerator(server, this.template);
     }
 
+    /**
+     * Access the spawn and checkpoint regions contained in this map.
+     * @return regions record (spawn + ordered checkpoints)
+     */
     public Regions getRegions() { return this.regions; }
+
+    /**
+     * Access high-level authoring metadata for this map.
+     * @return meta information (name, authors, optional description/url)
+     */
     public Meta getMeta() { return this.meta; }
+
+    /**
+     * Access basic gameplay attributes configured for this map.
+     * @return attributes record (e.g. time of day)
+     */
     public Attributes getAttributes() { return this.attributes; }
 
+    /**
+     * Spawn/respawn region definition.
+     * @param bounds block bounds of the region
+     * @param yaw default facing yaw for player spawn
+     * @param pitch default facing pitch for player spawn
+     */
     public record RespawnRegion(BlockBounds bounds, float yaw, float pitch) {
         public static RespawnRegion DEFAULT = new RespawnRegion(BlockBounds.ofBlock(BlockPos.ORIGIN), 0.0f, 0.0f);
 
@@ -116,13 +144,26 @@ public class Map {
                     templateRegion.getData().getFloat("pitch", DEFAULT.pitch()));
         }
 
+        /**
+         * Compute the center block position used for spawning players into this region.
+         * @return center block position
+         */
         public BlockPos centerBlock() {
             return BlockPos.ofFloored(this.bounds.center());
         }
     }
 
+    /**
+     * Region container grouping checkpoints and spawn.
+     * @param checkpoints ordered checkpoint respawn regions
+     * @param spawn primary spawn region
+     */
     public record Regions(List<RespawnRegion> checkpoints, RespawnRegion spawn) {}
 
+    /**
+     * Basic map attributes.
+     * @param timeOfDay world time (ticks) applied on load
+     */
     public record Attributes(int timeOfDay) {
         public static final Attributes DEFAULT = new Attributes(6000);
 
@@ -131,6 +172,13 @@ public class Map {
         ).apply(instance, Attributes::new));
     }
 
+    /**
+     * High-level map metadata and attribution.
+     * @param name display name of the map
+     * @param authors list of credited authors
+     * @param description optional flavor/description text
+     * @param url optional external URL for docs or download info
+     */
     public record Meta(String name, List<String> authors, Optional<String> description, Optional<String> url) {
         /**
          * Describes the human-facing metadata surfaced in menus/tooltips when a map is

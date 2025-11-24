@@ -4,12 +4,31 @@ import golden.botc_mc.botc_mc.botc;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Identifier;
 
+/**
+ * High-level orchestrator for BOTC's Simple Voice Chat integration.
+ * <p>
+ * This plugin is responsible for:
+ * <ul>
+ *   <li>Loading persistent group definitions from {@link PersistentGroupStore}.</li>
+ *   <li>Ensuring those groups exist in the running Simple Voice Chat server and repairing them if needed.</li>
+ *   <li>Materializing per-map voice groups and region-linked groups when a map is opened.</li>
+ * </ul>
+ * It intentionally hides the reflection-heavy details behind {@link SvcBridge}, so the rest of the
+ * codebase interacts with voice via a stable, minimal surface.
+ */
 public class VoicechatPlugin {
     private static VoicechatPlugin INSTANCE = null;
 
     private final PersistentGroupStore store;
     private final MinecraftServer server;
 
+    /**
+     * Retrieve (or lazily create) the singleton plugin instance for the given server.
+     * Although this method stores the first server it sees, in practice BOTC targets
+     * a single-server environment, so the instance is effectively global.
+     * @param server minecraft server
+     * @return plugin instance
+     */
     public static synchronized VoicechatPlugin getInstance(MinecraftServer server) {
         if (INSTANCE == null) {
             INSTANCE = new VoicechatPlugin(server);
@@ -17,15 +36,30 @@ public class VoicechatPlugin {
         return INSTANCE;
     }
 
+    /** Construct plugin bound to server; loads persistent groups.
+     * @param server minecraft server instance
+     */
     public VoicechatPlugin(MinecraftServer server) {
         this.server = server;
         this.store = new PersistentGroupStore();
     }
 
+    /** Server bound to this plugin.
+     * @return server instance
+     */
     public MinecraftServer getServer() { return server; }
 
     /**
      * Best-effort preload/repair of persisted groups into Simple Voice Chat on server start.
+     * <p>
+     * The algorithm:
+     * <ol>
+     *   <li>Check global group creation configuration via {@link SvcBridge#isGroupCreationDisabled()}.</li>
+     *   <li>Iterate all {@link PersistentGroup} entries from {@link PersistentGroupStore} and attempt to
+     *       reopen or recreate missing groups, caching newly assigned ids.</li>
+     *   <li>Optionally scan legacy {@link VoiceRegionManager} data and ensure any referenced groups also exist.</li>
+     * </ol>
+     * Any failures are logged but do not abort server startup.
      */
     public void preload() {
         try {
@@ -36,7 +70,7 @@ public class VoicechatPlugin {
             } catch (ClassNotFoundException ignored) {}
             int ok = 0;
             int total = 0;
-            for (PersistentGroup g : store.getGroups()) {
+            for (PersistentGroup g : store.list()) {
                 total++;
                 try {
                     if (creationDisabled && (g.voicechatId == null)) {
@@ -101,7 +135,11 @@ public class VoicechatPlugin {
     }
 
     /**
-     * Called when a map is opened. Ensure per-map defaults exist and attempt to preload any groups.
+     * Called when a BOTC map is opened. Ensures per-map defaults exist, preloads any groups that are
+     * defined either in the per-map voice JSON or region configuration, and attempts to repair region
+     * group identifiers where possible.
+     *
+     * @param mapId identifier of the map that has just been opened
      */
     public void onMapOpen(Identifier mapId) {
         if (mapId == null) return;

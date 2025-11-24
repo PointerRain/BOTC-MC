@@ -14,30 +14,51 @@ import golden.botc_mc.botc_mc.game.map.Map.RespawnRegion;
 
 import java.util.Set;
 
+/**
+ * Player spawn and safe positioning helper. Responsible for resetting status effects,
+ * temporary invulnerability, and finding a safe block surface near the respawn region.
+ */
 public class SpawnLogic {
     private static final int SEARCH_RADIUS = 8;
 
     private final Map map;
     private final ServerWorld world;
 
+    /** Create spawn logic bound to world and map.
+     * @param world server world instance
+     * @param map loaded map metadata
+     */
     public SpawnLogic(ServerWorld world, Map map) {
         this.map = map;
         this.world = world;
     }
 
-    /**
-     * Resets some player state upon respawn.
-     * Resets player gamemode, velocity, and negates fall damage.
-     * @param player
-     * @param gameMode
+    /** Reset player state before spawning.
+     * @param player target player
+     * @param gameMode destination game mode
      */
     public void resetPlayer(ServerPlayerEntity player, GameMode gameMode) {
         player.changeGameMode(gameMode);
         player.setVelocity(Vec3d.ZERO);
         player.fallDistance = 0.0f;
+
+        player.addStatusEffect(new StatusEffectInstance(
+                StatusEffects.NIGHT_VISION,
+                20 * 60 * 60,
+                1,
+                true,
+                false
+        ));
+
+        // Give the player ~3 seconds of invulnerability on spawn, then clear
+        player.setInvulnerable(true);
+        // Schedule clearing invulnerability after 60 ticks
+        this.world.getServer().execute(() -> this.world.getServer().getOverworld().getServer().execute(() -> player.setInvulnerable(false)));
     }
 
-    // Return a safe spawn location near the map's respawn region center.
+    /** Determine a safe spawn position (e.g. avoid void).
+     * @return position vector
+     */
     public Vec3d getSafeSpawnPosition() {
         RespawnRegion respawn = this.map.getRegions().spawn();
         BlockPos center = respawn.centerBlock();
@@ -49,6 +70,9 @@ public class SpawnLogic {
         return new Vec3d(center.getX() + 0.5, Math.max(center.getY(), this.world.getBottomY()) + 1.0, center.getZ() + 0.5);
     }
 
+    /** Spawn player at map respawn location.
+     * @param player target player
+     */
     public void spawnPlayer(ServerPlayerEntity player) {
         RespawnRegion respawn = this.map.getRegions().spawn();
         BlockPos center = respawn.centerBlock();
@@ -104,6 +128,8 @@ public class SpawnLogic {
      * which includes glass and stained glass.
      */
     private boolean isSpawnSurface(BlockPos pos, BlockState state) {
+        // Any block with a collision shape counts as a surface the player can stand on,
+        // which includes glass and stained glass.
         return !state.getCollisionShape(this.world, pos).isEmpty();
     }
 

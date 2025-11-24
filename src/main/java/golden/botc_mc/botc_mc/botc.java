@@ -18,11 +18,16 @@ import net.minecraft.server.MinecraftServer;
 
 import java.lang.reflect.Method;
 
+/**
+ * Primary mod entrypoint and game type registration for BOTC.
+ * Responsible for creating the Plasmid game type, wiring lifecycle hooks and commands.
+ */
 public class botc implements ModInitializer {
-
+    /** Mod id namespace used for resource and game type registration. */
     public static final String ID = "botc-mc";
+    /** Structured logger for BOTC mod operations. */
     public static final Logger LOGGER = LogManager.getLogger(ID);
-
+    /** Registered game type for BOTC sessions. */
     public static final GameType<botcConfig> TYPE = GameType.register(
             Identifier.of(ID, "game"),
             botcConfig.MAP_CODEC,
@@ -33,6 +38,9 @@ public class botc implements ModInitializer {
     private VoiceRegionManager voiceRegionManager;
 
     private static volatile boolean REGIONS_MATERIALIZED = false;
+
+    /** No-arg constructor; Fabric uses ModInitializer for entry without explicit instantiation docs. */
+    public botc() {}
 
     @Override
     public void onInitialize() {
@@ -78,6 +86,11 @@ public class botc implements ModInitializer {
     }
 
     private static volatile boolean PRELOADED = false;
+    /**
+     * One-time preload hook: attempts to initialize voice chat integration reflectively if the mod is present.
+     * Silently disables voice features if detection fails.
+     * @param server the active Minecraft server instance
+     */
     private static void preloadOnce(MinecraftServer server) {
         if (PRELOADED) return;
         try {
@@ -96,6 +109,10 @@ public class botc implements ModInitializer {
         }
     }
 
+    /**
+     * Attempt to initialize the VoicechatPlugin singleton reflectively without hard dependency linkage.
+     * @param server server used to scope plugin instance
+     */
     private static void tryInitVoiceReflective(MinecraftServer server) {
         try {
             Class<?> pluginCls = Class.forName("golden.botc_mc.botc_mc.game.voice.VoicechatPlugin");

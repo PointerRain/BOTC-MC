@@ -20,24 +20,37 @@ import golden.botc_mc.botc_mc.game.voice.VoiceRegionManager;
 import golden.botc_mc.botc_mc.game.voice.VoiceRegionService;
 import golden.botc_mc.botc_mc.game.voice.VoicechatPlugin;
 
+/**
+ * Waiting/pre-game lobby phase controller. Responsible for loading the map, applying settings,
+ * activating voice regions, and spawning players safely until the storyteller starts the game.
+ */
 public class botcWaiting {
     private final GameSpace gameSpace;
     private final Map map;
     private final botcConfig config;
     private final SpawnLogic spawnLogic;
     private final ServerWorld world;
+    private final VoiceRegionManager voiceRegions;
 
     private botcWaiting(GameSpace gameSpace, ServerWorld world, Map map, botcConfig config) {
         this.gameSpace = gameSpace;
+        this.world = world;
         this.map = map;
         this.config = config;
-        this.world = world;
+        // Initialize spawn logic (SpawnLogic is the available class)
         this.spawnLogic = new SpawnLogic(world, map);
-        // Create per-map voice region manager and activate it
         VoiceRegionManager vrm = VoiceRegionManager.forMap(world, config.mapId());
+        // store the manager on this instance and activate it
+        this.voiceRegions = vrm;
         VoiceRegionService.setActive(world, config.mapId(), vrm);
     }
 
+    /**
+     * Opens the waiting lobby game procedure with map and config, installing per-map voice groups.
+     * Lobby/waiting room stage prior to active game start.
+     * @param context game open context containing server, config, and other metadata
+     * @return a GameOpenProcedure that initializes the waiting lobby world and listeners
+     */
     public static GameOpenProcedure open(GameOpenContext<botcConfig> context) {
         // Load server-side settings and merge with the datapack-provided config. Server-side
         // values (run/config/botc.properties) override the datapack when present.
@@ -77,21 +90,25 @@ public class botcWaiting {
         });
     }
 
+    /** Transition callback from waiting into active gameplay. */
     private GameResult requestStart() {
         botcActive.open(this.gameSpace, this.world, this.map, this.config);
         return GameResult.ok();
     }
 
+    /** Add a player to the lobby (respawns them). */
     private void addPlayer(ServerPlayerEntity player) {
         this.spawnPlayer(player);
     }
 
+    /** Handle a player death in the lobby by restoring health and respawning. */
     private EventResult onPlayerDeath(ServerPlayerEntity player, DamageSource source) {
         player.setHealth(20.0f);
         this.spawnPlayer(player);
         return EventResult.DENY;
     }
 
+    /** Respawn a player using the lobby spawn logic. */
     private void spawnPlayer(ServerPlayerEntity player) {
         this.spawnLogic.resetPlayer(player, GameMode.ADVENTURE);
         this.spawnLogic.spawnPlayer(player);

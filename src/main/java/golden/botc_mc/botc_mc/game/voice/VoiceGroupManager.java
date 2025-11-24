@@ -21,8 +21,23 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Manages persistent voice chat groups stored inside the map JSON under key "voice_groups".
- * Load precedence: override datapack -> embedded resource; Save target: override datapack only.
+ * Manages persistent voice chat groups attached to a specific map's game JSON.
+ * <p>
+ * Data model:
+ * <ul>
+ *   <li>Groups are stored under the {@code voice.voice_groups} array inside a Plasmid game json.</li>
+ *   <li>Each entry is a {@link PersistentGroup} describing a Simple Voice Chat group to preload.</li>
+ * </ul>
+ * Load precedence:
+ * <ol>
+ *   <li>World override datapack under {@code run/world/datapacks/botc_overrides}.</li>
+ *   <li>Embedded game JSON shipped with the mod/datapack for the given map id.</li>
+ * </ol>
+ * Save behaviour:
+ * <ul>
+ *   <li>Only writes to the overrides datapack, never back into the original embedded JSON.</li>
+ *   <li>Preserves any non-voice keys already present in the target JSON.</li>
+ * </ul>
  */
 public class VoiceGroupManager {
     private static final org.apache.logging.log4j.Logger LOGGER = org.apache.logging.log4j.LogManager.getLogger("botc.VoiceGroupManager");
@@ -39,12 +54,24 @@ public class VoiceGroupManager {
         load();
     }
 
+    /** Factory for manager tied to server &amp; map.
+     * @param server minecraft server
+     * @param mapId map identifier
+     * @return new VoiceGroupManager
+     */
     public static VoiceGroupManager forServer(MinecraftServer server, Identifier mapId) {
         return new VoiceGroupManager(mapId, server);
     }
 
+    /** Immutable snapshot of loaded groups.
+     * @return unmodifiable list
+     */
     public List<PersistentGroup> list() { return Collections.unmodifiableList(groups); }
 
+    /**
+     * Reload groups from disk, preferring overrides and then falling back to embedded JSON.
+     * Errors are logged but do not throw, so a bad overrides file will not crash the server.
+     */
     private void load() {
         groups.clear();
         try {
@@ -94,6 +121,11 @@ public class VoiceGroupManager {
         }
     }
 
+    /**
+     * Persist the in-memory list of {@link PersistentGroup} entries to the overrides datapack.
+     * If a base JSON file exists (either from a previous override or embedded resource), its
+     * non-voice fields are preserved and only the {@code voice.voice_groups} field is updated.
+     */
     public void save() {
         if (mapId == null) return;
         Path datapackBase = Paths.get("run", "world", "datapacks", "botc_overrides");
@@ -116,27 +148,14 @@ public class VoiceGroupManager {
                 } catch (Exception ignored) {}
             }
             if (obj == null) obj = new JsonObject();
-            // if (!obj.has("type")) obj.addProperty("type", "botc-mc:game");
-            // obj.addProperty("map_id", mapId.toString());
-            // Ensure we write groups inside 'voice' section to avoid creating map objects
             JsonObject voiceSection = obj.has("voice") && obj.get("voice").isJsonObject() ? obj.getAsJsonObject("voice") : new JsonObject();
             JsonElement groupsElem = gson.toJsonTree(groups, new TypeToken<List<PersistentGroup>>(){}.getType());
             voiceSection.add("voice_groups", groupsElem);
             obj.add("voice", voiceSection);
-
             String out = gson.toJson(obj);
             Files.write(target, out.getBytes());
-
-            // ensure pack.mcmeta
-            Path packMeta = datapackBase.resolve("pack.mcmeta");
-            if (!Files.exists(packMeta)) {
-                JsonObject pack = new JsonObject();
-                JsonObject inner = new JsonObject();
-                inner.addProperty("pack_format", 12);
-                inner.addProperty("description", "BOTC overrides datapack");
-                pack.add("pack", inner);
-                Files.write(packMeta, gson.toJson(pack).getBytes());
-            }
+            // Use centralized helper instead of duplicated pack.mcmeta logic
+            VoiceRegionService.ensureOverridesPackMeta(datapackBase, "BOTC overrides datapack");
         } catch (IOException e) {
             LOGGER.warn("VoiceGroupManager save failed: {}", e.toString());
         }

@@ -6,9 +6,28 @@ import net.minecraft.server.command.ServerCommandSource;
 
 import static net.minecraft.server.command.CommandManager.literal;
 
+/**
+ * Administrative commands for inspecting and reloading voice region configuration at runtime.
+ * <p>
+ * Registered under the {@code /botc voice} sub-tree, currently providing:
+ * <ul>
+ *   <li>{@code /botc voice info} – print the active manager, config path, and a list of regions.</li>
+ *   <li>{@code /botc voice reload} – reload regions from disk for the active manager or fallback.</li>
+ * </ul>
+ * These commands are intended for operators (permission level ≥ 2).
+ */
 public final class VoiceRegionCommands {
     private static boolean registered = false; // prevent duplicate registration
 
+    /** Prevent instantiation. */
+    private VoiceRegionCommands() {}
+
+    /**
+     * Register the {@code /botc voice} commands with Fabric's command dispatcher.
+     * The supplied {@code fallback} manager is used when there is no active per-map manager
+     * bound via {@link VoiceRegionService#setActive(net.minecraft.server.world.ServerWorld, net.minecraft.util.Identifier, VoiceRegionManager)}.
+     * @param fallback fallback manager if no active manager
+     */
     public static void register(VoiceRegionManager fallback) {
         if (registered) {
             golden.botc_mc.botc_mc.botc.LOGGER.debug("VoiceRegionCommands.register() called more than once; ignoring subsequent call");

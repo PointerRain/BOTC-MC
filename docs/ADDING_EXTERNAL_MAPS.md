@@ -259,23 +259,3 @@ additional behaviour (spawn logic, regions, layout, voice regions, etc.) is
 implemented by higher-level systems and may evolve in future versions, but this
 minimal contract remains stable.
 
----
-
-## 7. External tooling and references
-
-For creating or exporting map templates, you can use Nucleoid's tooling and
-reference their documentation:
-
-- Plasmid Map Concepts: https://docs.nucleoid.xyz/plasmid/maps/
-- Nucleoid Creator Tools (structure/map template exporting utilities).
-
-Typical workflow:
-1. Build your map in a creator world.
-2. Use Nucleoid Creator Tools to export a structure as a map template NBT.
-3. Ensure the exported file follows the required folder layout:
-   - `data/<namespace>/map_template/<name>.nbt`
-4. (Optional) Add `map_format` metadata if your tooling supports it.
-5. Provide or update the Plasmid game JSON pointing to the new map id.
-6. Load with `/game open <namespace>:<game-id>`.
-
-These external docs describe advanced metadata (regions, additional attributes). BOTC currently guarantees only the basic template load contract described above; any unsupported fields are safely ignored.

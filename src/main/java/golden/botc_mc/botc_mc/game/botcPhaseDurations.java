@@ -8,6 +8,11 @@ import golden.botc_mc.botc_mc.game.state.BotcGameState;
 /**
  * Describes how long each playable phase in the Blood on the Clocktower loop should last.
  * Durations are expressed in seconds inside configuration files, but exposed as ticks for runtime use.
+ * Encapsulates per-phase timing (in seconds) for the BOTC game loop.
+ * @param dayDiscussionSecs seconds allocated to day discussion phase
+ * @param nominationSecs seconds allocated for nominations phase
+ * @param executionSecs seconds allocated for execution phase
+ * @param nightSecs seconds allocated for night phase
  */
 public record botcPhaseDurations(int dayDiscussionSecs,
                                  int nominationSecs,
@@ -34,12 +39,17 @@ public record botcPhaseDurations(int dayDiscussionSecs,
 
     public static final Codec<botcPhaseDurations> CODEC = MAP_CODEC.codec();
 
-    public static botcPhaseDurations defaults() {
-        return DEFAULT;
-    }
-
-    /**
-     * Converts the configured number of seconds into ticks (20 ticks = 1 second) for the given state.
+    /** Total seconds across all phases.
+     * @return aggregated seconds for all configured phases
+     */
+    public int total() { return dayDiscussionSecs + nominationSecs + executionSecs + nightSecs; }
+    /** Default phase durations tuned for casual play.
+     * @return new instance with default seconds
+     */
+    public static botcPhaseDurations defaults() { return new botcPhaseDurations(120,45,20,60); }
+    /** Convert a state to its configured duration in ticks (20 ticks/sec).
+     * @param state game state whose duration to compute
+     * @return ticks for the state, 0 if unmapped
      */
     public long durationTicks(BotcGameState state) {
         long seconds = switch (state) {
@@ -53,4 +63,3 @@ public record botcPhaseDurations(int dayDiscussionSecs,
         return Math.max(1L, seconds * 20L);
     }
 }
-

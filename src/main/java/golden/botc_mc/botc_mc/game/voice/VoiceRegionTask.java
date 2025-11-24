@@ -11,7 +11,12 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Periodically checks players and assigns them to voice groups when they are inside regions.
+ * Periodic task that inspects player positions, determines current voice region membership,
+ * and performs join/leave operations with throttling &amp; stability windows to reduce churn.
+ * <p>
+ * It is typically driven once per server tick from {@link golden.botc_mc.botc_mc.botc#onInitialize()} via
+ * {@link net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents#END_SERVER_TICK}. The task is designed
+ * to be safe even when voice integration is unavailable: in that case it only tracks regions in-memory.
  */
 public class VoiceRegionTask implements Runnable {
     private MinecraftServer server; // restored mutable server reference
@@ -31,15 +36,33 @@ public class VoiceRegionTask implements Runnable {
     private static final boolean AUTOJOIN_ENABLED = true; // global toggle
     private static final Set<UUID> WATCH_PLAYERS = java.util.Collections.newSetFromMap(new ConcurrentHashMap<>()); // players for verbose position/region watch
 
+    /** Create task bound initially to server (may be null) and manager.
+     * @param server minecraft server (can be replaced later)
+     * @param manager voice region manager
+     */
     public VoiceRegionTask(MinecraftServer server, VoiceRegionManager manager) {
         this.server = server; // assign incoming server
         this.manager = manager;
     }
 
+    /** Update server reference after availability.
+     * @param srv server instance
+     */
     public void setServer(MinecraftServer srv) {
         this.server = srv;
     }
 
+    /**
+     * Main work loop executed each tick:
+     * <ol>
+     *   <li>Skip quickly if the server or active manager is missing.</li>
+     *   <li>For each player, determine their current {@link VoiceRegion} (if any), applying
+     *       a short stability window so brief boundary crossings don't cause audio thrash.</li>
+     *   <li>Use {@link SvcBridge} to join or leave Simple Voice Chat groups as needed, with retry
+     *       and cooldown logic to avoid hammering the voice server.</li>
+     * </ol>
+     * All failures are logged; the game loop is never interrupted.
+     */
     @Override
     public void run() {
         long nowMs = System.currentTimeMillis();

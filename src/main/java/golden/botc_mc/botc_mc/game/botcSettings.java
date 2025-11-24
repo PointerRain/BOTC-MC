@@ -22,17 +22,29 @@ import golden.botc_mc.botc_mc.game.voice.VoiceRegionService;
 public final class botcSettings {
     private static final Path CONFIG_PATH = VoiceRegionService.botcConfigRoot().resolve(Paths.get("config", "botc.properties"));
 
+    /** Mutable settings loaded from disk for customizing a session prior to start. */
+    public botcSettings() {}
+
+    /** Max time limit for lobby or overall session (seconds). */
     public int timeLimitSecs = 300;
+    /** Target player count. */
     public int players = 8;
+    /** Day discussion duration seconds. */
     public int dayDiscussionSecs = 120;
+    /** Nomination phase duration seconds. */
     public int nominationSecs = 45;
+    /** Execution phase duration seconds. */
     public int executionSecs = 20;
+    /** Night phase duration seconds. */
     public int nightSecs = 60;
+    /** Map identifier string used to resolve resources. */
     public String mapId = "botc-mc:test";
+    /** Fallback spawn position if map lacks defined spawn. */
     public BlockPos fallbackSpawn = new BlockPos(0, 65, 0);
 
-    private botcSettings() {}
-
+    /** Load settings from disk or create defaults if the file is missing.
+     * @return loaded settings or defaults if file missing.
+     */
     public static botcSettings load() {
         botcSettings s = new botcSettings();
 
@@ -64,6 +76,9 @@ public final class botcSettings {
         return s;
     }
 
+    /** Persist current settings to disk.
+     * @throws IOException if writing the properties file fails
+     */
     public void save() throws IOException {
         Properties p = new Properties();
         p.setProperty("timeLimitSecs", Integer.toString(this.timeLimitSecs));
@@ -79,6 +94,16 @@ public final class botcSettings {
         try (OutputStream out = Files.newOutputStream(CONFIG_PATH)) {
             p.store(out, "BOTC game configuration (edit to change defaults)");
         }
+    }
+
+    /**
+     * Apply these mutable settings to an immutable config.
+     * @param base base config to merge
+     * @return new config incorporating dynamic settings
+     */
+    public botcConfig applyTo(botcConfig base) {
+        Identifier selectedMap = base != null && base.mapId() != null ? base.mapId() : Identifier.of(this.mapId);
+        return new botcConfig(selectedMap);
     }
 
     private static int parseInt(String v, int fallback) {
@@ -103,15 +128,5 @@ public final class botcSettings {
 
     private static String formatBlockPos(BlockPos pos) {
         return pos.getX() + "," + pos.getY() + "," + pos.getZ();
-    }
-
-    /**
-     * Merge these settings with an existing botcConfig coming from the datapack/game open context.
-     * Currently this only updates the selected map id based on the settings file; timing and player
-     * values are managed independently from the map config.
-     */
-    public botcConfig applyTo(botcConfig base) {
-        Identifier selectedMap = base != null && base.mapId() != null ? base.mapId() : Identifier.of(this.mapId);
-        return new botcConfig(selectedMap);
     }
 }

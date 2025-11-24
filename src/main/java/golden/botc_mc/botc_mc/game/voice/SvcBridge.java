@@ -9,15 +9,12 @@ import java.lang.reflect.Method;
 import java.util.*;
 
 /**
- * Simplified reflection bridge for Simple Voice Chat.
- * Strategy:
- *  1. Fetch de.maxhenkel.voicechat.Voicechat static field SERVER (ServerVoiceEvents).
- *  2. Call getServer() -> Server (voice server thread object).
- *  3. From Server call getGroupManager() and getPlayerStateManager().
- *  4. Use ServerGroupManager methods: getGroups(), addGroup(Group, ServerPlayerEntity), joinGroup(Group, ServerPlayerEntity, String), leaveGroup(ServerPlayerEntity).
- *  5. For creating a new group: attempt to find a builder or use GroupImpl.create(PlayerState) then rename via reflection if possible.
- *
- * If any step fails, diagnostics are recorded and available returns false. Re-attempt occurs on each runtime check until successful.
+ * Reflection integration bridge for the Simple Voice Chat mod. Discovers runtime classes &amp; methods,
+ * exposes minimal higher-level helpers (group create/join/leave, password clearing, presence checks)
+ * while avoiding a hard compile-time dependency. All operations are best-effort and fail soft.
+ * <p>
+ * Callers should treat all return values as hints: if integration is unavailable or fails, the
+ * rest of the BOTC game should continue to function without voice features.
  */
 public final class SvcBridge {
     private static boolean available = false;
@@ -96,14 +93,37 @@ public final class SvcBridge {
         diagnostics.add(msg);
     }
 
-    /** Quick check whether the external voice chat mod was detected at least once. */
+    /** Utility class; no instances. */
+    private SvcBridge() {}
+
+    /** Determine if voice mod was ever detected.
+     * @return true if Simple Voice Chat classes were found at least once
+     */
     public static boolean isModPresent() { return !permanentlyMissing; }
-    /** Returns true if features are disabled due to missing mod. */
+
+    /** Determine if voice features are disabled due to missing mod.
+     * @return true if permanently disabled (mod absent)
+     */
     public static boolean isDisabledNoMod() { return permanentlyMissing; }
 
+    /** Availability flag without triggering lazy init.
+     * @return true if bridge marked available
+     */
     public static boolean isAvailable() { return available; }
 
-    /** Returns true if the players voice state indicates they are connected (not disconnected). If unknown, returns true. */
+    /** Attempt lazy initialization and report availability.
+     * @return true if available after (possibly) attempting init
+     */
+    public static boolean isAvailableRuntime() {
+        if (permanentlyMissing) return false; // hard disabled
+        if (!available) attemptInit();
+        return available;
+    }
+
+    /** Indicates whether player's voice state appears connected.
+     * @param player server player entity
+     * @return true if considered connected or uncertain
+     */
     public static boolean isPlayerConnected(ServerPlayerEntity player) {
         if (!isAvailableRuntime() || player == null) return true; // default permissive
         try {
@@ -142,13 +162,6 @@ public final class SvcBridge {
             diag("SvcBridge: isPlayerConnected error: " + t);
             return true; // dont block joins if reflection fails
         }
-    }
-
-    /** Runtime check with lazy initialization */
-    public static boolean isAvailableRuntime() {
-        if (permanentlyMissing) return false; // hard disabled
-        if (!available) attemptInit();
-        return available;
     }
 
     private static synchronized void attemptInit() {
@@ -418,6 +431,10 @@ public final class SvcBridge {
         return Collections.emptyMap();
     }
 
+    /** Get group by UUID via reflected manager.
+     * @param id group id
+     * @return group object or null
+     */
     public static Object getGroupById(UUID id) {
         if (gmGetGroup == null || id == null) return null;
         try {
@@ -430,6 +447,9 @@ public final class SvcBridge {
         }
     }
 
+    /** Mark group persistent best-effort.
+     * @param group group instance
+     */
     public static void markPersistent(Object group) {
         if (group == null) return;
         if (groupPersistentField != null) {
@@ -472,8 +492,17 @@ public final class SvcBridge {
         }
         return null;
     }
-    /** Public helper to resolve an existing group's UUID by its name, or null if not found/voice unavailable. */
+    /**
+     * Resolve an existing group's UUID by its voice chat name.
+     * Performs a direct lookup, then falls back to alias mappings if necessary.
+     * @param name group name (case-insensitive)
+     * @return group UUID or null if not found or voice integration unavailable
+     */
     public static java.util.UUID resolveGroupIdByName(String name) {
+        /** Resolve existing group's UUID by name.
+         * @param name group name
+         * @return UUID or null if not found or unavailable
+         */
         if (name == null || name.isEmpty() || !isAvailableRuntime()) return null;
         Object g = findGroupByName(name);
         if (g == null && aliasGroups.containsKey(name)) {
@@ -523,8 +552,19 @@ public final class SvcBridge {
         }
     }
 
-    /** Creates a group if missing, returning UUID (or null on failure). */
+    /**
+     * Create the voice chat group with the given name if absent, or return the existing group's id.
+     * Attempts several reflection strategies (builder, constructor, salvage) to be resilient across mod versions.
+     * @param desiredName desired group name (must be non-empty)
+     * @param creator optional player used for certain creation paths (may be null)
+     * @return UUID of created or existing group, or null on failure
+     */
     public static UUID createOrGetGroup(String desiredName, ServerPlayerEntity creator) {
+        /** Create missing group or return existing.
+         * @param desiredName desired group name
+         * @param creator optional player context for creation (can be null)
+         * @return UUID of created or existing group, or null on failure
+         */
         if (desiredName == null || desiredName.isEmpty()) return null;
         if (!isAvailableRuntime()) return null;
         // Fast path: already exists
@@ -622,7 +662,11 @@ public final class SvcBridge {
         return null;
     }
 
-    /** Join group by name (create if absent). */
+    /** Join (or create then join) a group by name.
+     * @param player player attempting to join
+     * @param groupName target group name
+     * @return true on best-effort success
+     */
     public static boolean joinGroupByName(ServerPlayerEntity player, String groupName) {
         if (player == null || groupName == null || groupName.isEmpty()) return false;
         if (!isAvailableRuntime()) return false;
@@ -691,6 +735,13 @@ public final class SvcBridge {
         return joined;
     }
 
+     /**
+      * Request that the given player leave their current voice chat group. This method attempts several
+      * strategies (group manager call, state clearing, broadcast) and includes retry logic to work
+      * around transient state races in the voice chat server.
+      * @param player target player
+      * @return true if leave considered successful
+      */
      public static boolean leaveGroup(ServerPlayerEntity player) {
          if (!isAvailableRuntime()) return false;
          boolean ok = false;
@@ -746,7 +797,11 @@ public final class SvcBridge {
         }
      }
 
-    /** Clear password and mark open for a group found by name. */
+    /** Clear password and force a group open by name, if integration is available. No-op if the
+     * group cannot be found.
+     * @param groupName voice group name
+     * @return true if operation applied
+     */
     public static boolean clearPasswordAndOpenByName(String groupName) {
         if (!isAvailableRuntime()) return false;
         Object g = findGroupByName(groupName);
@@ -756,13 +811,19 @@ public final class SvcBridge {
         return true;
     }
 
-    /** Clear password and mark open for a group found by UUID string. */
+    /** Clear password and mark open for a group found by UUID string.
+     * @param idStr UUID string
+     * @return true if applied
+     */
     public static boolean clearPasswordAndOpenByIdString(String idStr) {
         if (idStr == null) return false;
         try { return clearPasswordAndOpenById(UUID.fromString(idStr)); } catch (Throwable t) { return false; }
     }
 
-    /** Clear password and mark open for a group found by UUID. */
+    /** Clear password and mark open for a group found by UUID.
+     * @param id group id
+     * @return true if applied
+     */
     public static boolean clearPasswordAndOpenById(UUID id) {
         if (!isAvailableRuntime() || id == null) return false;
         Object g = SvcBridge.getGroupById(id);
@@ -771,11 +832,13 @@ public final class SvcBridge {
         return true;
     }
 
-     /** List existing group names for tab completion or debugging. */
-     public static List<String> listGroupNames() {
-         if (!isAvailableRuntime()) return Collections.emptyList();
-         List<String> names = new ArrayList<>();
-         for (Object g : rawGroups().values()) {
+    /** List existing group names (plus aliases).
+     * @return list of names
+     */
+    public static List<String> listGroupNames() {
+        if (!isAvailableRuntime()) return Collections.emptyList();
+        List<String> names = new ArrayList<>();
+        for (Object g : rawGroups().values()) {
              String n = extractGroupName(g);
              if (n != null) names.add(n);
          }
@@ -789,7 +852,11 @@ public final class SvcBridge {
          return names;
      }
 
-    /** Attempt to repair a group identified by UUID: clear password/open, mark persistent and optionally recreate if a creator is supplied and repairs fail. Returns the (possibly new) UUID of the repaired group or null on failure. */
+    /** Repair a group by id.
+     * @param id group id
+     * @param creator player context for recreation
+     * @return id (possibly new) or null
+     */
     public static UUID repairGroupById(UUID id, ServerPlayerEntity creator) {
         if (!isAvailableRuntime() || id == null) return null;
         Object g = SvcBridge.getGroupById(id);
@@ -819,7 +886,11 @@ public final class SvcBridge {
         } catch (Throwable t) { diag("SvcBridge: repairGroupById failed: " + t); return null; }
     }
 
-    /** Repair by group name; tries to find existing group by name then delegates to repairGroupById. */
+    /** Repair a group by name.
+     * @param name group name
+     * @param creator player context
+     * @return id (possibly new) or null
+     */
     public static UUID repairGroupByName(String name, ServerPlayerEntity creator) {
         if (!isAvailableRuntime() || name == null) return null;
         Object g = findGroupByName(name);
@@ -829,7 +900,10 @@ public final class SvcBridge {
         return repairGroupById(id, creator);
     }
 
-    /** Returns the UUID of the group the player is currently in according to the server group manager/state, or null. */
+    /** Group id currently associated with player.
+     * @param player server player
+     * @return UUID or null
+     */
     public static UUID getPlayerGroupId(ServerPlayerEntity player) {
         if (!isAvailableRuntime() || player == null) return null;
         try {
@@ -848,129 +922,9 @@ public final class SvcBridge {
          return null;
      }
 
-    /** Try to coerce various reflected objects (Group, UUID wrapper, etc.) into a UUID. */
-    private static UUID coerceUuid(Object obj) {
-        if (obj == null) return null;
-        if (obj instanceof UUID) return (UUID) obj;
-        // If we have groupGetId and the object looks like a group, try that first
-        try {
-            if (groupGetId != null) {
-                try {
-                    Object res = groupGetId.invoke(obj);
-                    if (res instanceof UUID) return (UUID) res;
-                } catch (Throwable ignored) {}
-            }
-            // Try a generic getId() method
-            try {
-                Method m = obj.getClass().getMethod("getId");
-                Object res = m.invoke(obj);
-                if (res instanceof UUID) return (UUID) res;
-            } catch (Throwable ignored) {}
-            // Try common field names
-            for (Field f : obj.getClass().getDeclaredFields()) {
-                try {
-                    f.setAccessible(true);
-                    Object v = f.get(obj);
-                    if (v instanceof UUID) return (UUID) v;
-                } catch (Throwable ignored) {}
-            }
-        } catch (Throwable ignored) {}
-        return null;
-    }
-
-    /** Extract a group UUID from a PlayerState-like object via getGroup() or a 'group' field. */
-    private static UUID extractGroupIdFromStateObject(Object state) {
-        if (state == null) return null;
-        // Try method getGroup()
-        try {
-            try {
-                Method gm = state.getClass().getMethod("getGroup");
-                Object r = gm.invoke(state);
-                if (r instanceof UUID) return (UUID) r;
-                // sometimes it could return a Group object
-                UUID maybe = coerceUuid(r);
-                if (maybe != null) return maybe;
-            } catch (Throwable ignored) {}
-            // Try fields named 'group' or 'groupId'
-            for (Field f : state.getClass().getDeclaredFields()) {
-                try {
-                    String n = f.getName().toLowerCase();
-                    if (n.contains("group")) {
-                        f.setAccessible(true);
-                        Object v = f.get(state);
-                        if (v instanceof UUID) return (UUID) v;
-                        UUID maybe = coerceUuid(v);
-                        if (maybe != null) return maybe;
-                    }
-                } catch (Throwable ignored) {}
-            }
-        } catch (Throwable ignored) {}
-        return null;
-    }
-
-    /** Aggressively ensure the authoritative group instance is clear (no password), open and persistent. Returns true if OK. */
-    private static boolean ensureAuthoritativeCleared(UUID id, ServerPlayerEntity creator) {
-        if (!isAvailableRuntime() || id == null) return false;
-        final int ATTEMPTS = 5;
-        final long SLEEP_MS = 40;
-        for (int i = 0; i < ATTEMPTS; i++) {
-            Object g = SvcBridge.getGroupById(id);
-            if (g == null) {
-                try { Thread.sleep(SLEEP_MS); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
-                continue;
-            }
-            try {
-                clearPasswordAndOpen(g);
-                markPersistent(g);
-                // verify password cleared
-                if (groupGetPassword != null) {
-                    Object pw = groupGetPassword.invoke(g);
-                    if (pw == null || pw.toString().isEmpty()) return true;
-                } else {
-                    // no getter available - assume we succeeded
-                    return true;
-                }
-            } catch (Throwable t) {
-                diag("SvcBridge: ensureAuthoritativeCleared attempt failed: " + t);
-            }
-            try { Thread.sleep(SLEEP_MS); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
-        }
-        // Last resort: remove & recreate if allowed
-        if (gmRemoveGroup != null && creator != null) {
-            try {
-                gmRemoveGroup.invoke(serverGroupManager, id);
-                diag("SvcBridge: removed group " + id + " as last-resort repair");
-            } catch (Throwable t) { diag("SvcBridge: removeGroup last-resort failed: " + t); }
-            UUID newId = createOrGetGroup((""), creator); // attempt recreation with empty logical name (caller will reconcile)
-            if (newId != null) {
-                diag("SvcBridge: recreated group as " + newId + " during last-resort repair");
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // Helper: remove a group by UUID via reflected manager (used in salvage dedup)
-    private static boolean removeGroup(UUID id) {
-        if (id == null || gmRemoveGroup == null || !isAvailableRuntime()) return false;
-        try {
-            gmRemoveGroup.invoke(serverGroupManager, id);
-            return true;
-        } catch (Throwable t) {
-            diag("SvcBridge: removeGroup failed during salvage for " + id + ": " + t.getMessage());
-            return false;
-        }
-    }
-
-    /** Best-effort: leave group for all given players to avoid stale state before wiping groups. */
-    public static void leaveAllPlayers(Collection<ServerPlayerEntity> players) {
-        if (players == null) return;
-        for (ServerPlayerEntity p : players) {
-            try { leaveGroup(p); } catch (Throwable ignored) {}
-        }
-    }
-
-    /** Remove all voice chat groups from the server manager, returning how many were removed. */
+    /** Remove all groups best effort.
+     * @return approximate count removed
+     */
     public static int removeAllGroupsBestEffort() {
         if (!isAvailableRuntime()) return 0;
         int removed = 0;
@@ -995,8 +949,15 @@ public final class SvcBridge {
         return removed;
     }
 
+    /** Diagnostics captured during bridge operations.
+     * @return immutable list of messages
+     */
     public static List<String> getDiagnostics() { return java.util.List.copyOf(diagnostics); }
 
+    /** Check if a group exists by name or alias.
+     * @param name group name
+     * @return true if exists
+     */
     public static boolean groupExists(String name) {
         if (name == null || name.isEmpty()) return false;
         // Quick check via raw groups
@@ -1010,13 +971,27 @@ public final class SvcBridge {
         return false;
     }
 
-    public static boolean isGroupCreationDisabled() { return groupCreationUnavailable; }
-
+    /** Voice chat version string if detected.
+     * @return version or "unknown"
+     */
     public static String getVoicechatVersion() { return detectedVoicechatVersion == null ? "unknown" : detectedVoicechatVersion; }
 
+    /**
+     * Check if a group name is currently suppressed due to repeated failed resolution attempts.
+     * @param name group name
+     * @return true if suppressed/backing off
+     */
     public static boolean isGroupSuppressed(String name) { return suppressedGroups.contains(name); }
+    /**
+     * Remove suppression/backoff tracking for a group, allowing immediate join attempts again.
+     * @param name group name
+     */
     public static void unsuppressGroup(String name) { suppressedGroups.remove(name); unresolvedGroupAttempts.remove(name); currentBackoffMs.remove(name); nextJoinAttemptMs.remove(name); }
 
+    /** Should skip join attempt due to backoff.
+     * @param groupName target group
+     * @return true if should skip now
+     */
     public static boolean shouldSkipJoinAttempt(String groupName) {
         if (!suppressedGroups.contains(groupName)) return false;
         long now = System.currentTimeMillis();
@@ -1053,6 +1028,128 @@ public final class SvcBridge {
         }
     }
 
+    /**
+     * Indicates whether automatic voice group creation has been disabled due to missing builders or mod absence.
+     * @return true if auto-creation is currently disabled
+     */
+    public static boolean isGroupCreationDisabled() { return groupCreationUnavailable; }
+
+    private static UUID coerceUuid(Object obj) {
+        if (obj == null) return null;
+        if (obj instanceof UUID u) return u;
+        try {
+            // If we have a cached getId method, try that first
+            if (groupGetId != null) {
+                try {
+                    Object res = groupGetId.invoke(obj);
+                    if (res instanceof UUID u2) return u2;
+                } catch (Throwable ignored) {}
+            }
+            // Generic getId() method
+            try {
+                Method m = obj.getClass().getMethod("getId");
+                Object res = m.invoke(obj);
+                if (res instanceof UUID u3) return u3;
+            } catch (Throwable ignored) {}
+            // Fallback: scan fields for a UUID value
+            for (Field f : obj.getClass().getDeclaredFields()) {
+                try {
+                    f.setAccessible(true);
+                    Object v = f.get(obj);
+                    if (v instanceof UUID u4) return u4;
+                } catch (Throwable ignored) {}
+            }
+        } catch (Throwable ignored) {}
+        return null;
+    }
+
+    // Extract a group UUID from a PlayerState-like object via getGroup() or a 'group' field.
+    private static UUID extractGroupIdFromStateObject(Object state) {
+        if (state == null) return null;
+        try {
+            // Preferred: getGroup() accessor
+            try {
+                Method gm = state.getClass().getMethod("getGroup");
+                Object r = gm.invoke(state);
+                if (r instanceof UUID u) return u;
+                UUID maybe = coerceUuid(r);
+                if (maybe != null) return maybe;
+            } catch (Throwable ignored) {}
+            // Fallback: fields named like group/groupId
+            for (Field f : state.getClass().getDeclaredFields()) {
+                try {
+                    String n = f.getName().toLowerCase();
+                    if (!n.contains("group")) continue;
+                    f.setAccessible(true);
+                    Object v = f.get(state);
+                    if (v instanceof UUID u) return u;
+                    UUID maybe = coerceUuid(v);
+                    if (maybe != null) return maybe;
+                } catch (Throwable ignored) {}
+            }
+        } catch (Throwable ignored) {}
+        return null;
+    }
+
+    // Aggressively ensure the authoritative group instance is clear (no password), open and persistent.
+    // Returns true if the group is considered usable; may attempt remove+recreate as a last resort.
+    private static boolean ensureAuthoritativeCleared(UUID id, ServerPlayerEntity creator) {
+        if (!isAvailableRuntime() || id == null) return false;
+        final int ATTEMPTS = 5;
+        final long SLEEP_MS = 40L;
+        for (int i = 0; i < ATTEMPTS; i++) {
+            Object g = SvcBridge.getGroupById(id);
+            if (g == null) {
+                try { Thread.sleep(SLEEP_MS); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+                continue;
+            }
+            try {
+                clearPasswordAndOpen(g);
+                markPersistent(g);
+                // If we can read the password, verify it is actually cleared
+                if (groupGetPassword != null) {
+                    Object pw = groupGetPassword.invoke(g);
+                    if (pw == null || pw.toString().isEmpty()) {
+                        return true;
+                    }
+                } else {
+                    // No getter available; assume best-effort success
+                    return true;
+                }
+            } catch (Throwable t) {
+                diag("SvcBridge: ensureAuthoritativeCleared attempt failed: " + t);
+            }
+            try { Thread.sleep(SLEEP_MS); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+        }
+        // Last-resort: remove & recreate if allowed and we have a creator
+        if (gmRemoveGroup != null && creator != null) {
+            try {
+                gmRemoveGroup.invoke(serverGroupManager, id);
+                diag("SvcBridge: removed group " + id + " as last-resort repair");
+            } catch (Throwable t) {
+                diag("SvcBridge: removeGroup last-resort failed: " + t);
+            }
+            UUID newId = createOrGetGroup("", creator); // name will be reconciled by caller if needed
+            if (newId != null) {
+                diag("SvcBridge: recreated group as " + newId + " during last-resort repair");
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Helper: remove a group by UUID via reflected manager (used in salvage dedup logic).
+    private static boolean removeGroup(UUID id) {
+        if (id == null || gmRemoveGroup == null || !isAvailableRuntime()) return false;
+        try {
+            gmRemoveGroup.invoke(serverGroupManager, id);
+            return true;
+        } catch (Throwable t) {
+            diag("SvcBridge: removeGroup failed during salvage for " + id + ": " + t.getMessage());
+            return false;
+        }
+    }
+
     private static String extractGroupName(Object group) {
         if (group == null) return null;
         try {
@@ -1085,4 +1182,4 @@ public final class SvcBridge {
         }
         return null;
     }
- }
+}

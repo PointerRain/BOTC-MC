@@ -14,8 +14,10 @@ public enum GameLifecycleStatus {
     /** Game is winding down and will close shortly. */
     STOPPING;
 
+    /** Determine whether the lifecycle status represents an active game (starting or running).
+     * @return true if active
+     */
     public boolean isActive() {
         return this == STARTING || this == RUNNING;
     }
 }
-

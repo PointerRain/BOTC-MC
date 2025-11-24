@@ -14,11 +14,10 @@ import java.io.IOException;
 import static net.minecraft.server.command.CommandManager.literal;
 
 /**
- * Server-side commands to configure BOTC settings in-game via a simple text menu.
- * - /botc settings : shows a list of settings and instructions
- * - /botc set <key> <value> : sets an integer value and saves to disk
+ * Registers all top-level BOTC commands (administrative and configuration).
  */
 public final class botcCommands {
+    /** Register the command tree with the dispatcher. */
     public static void register() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             LiteralArgumentBuilder<ServerCommandSource> root = literal("botc")
@@ -86,4 +85,7 @@ public final class botcCommands {
 
         player.sendMessage(Text.literal("-------------------------"), false);
     }
+
+    /** Hidden constructor to prevent instantiation. */
+    private botcCommands() {}
 }

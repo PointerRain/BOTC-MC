@@ -31,11 +31,23 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Active game session controller for a Blood on the Clocktower match.
+ * Handles:
+ * <ul>
+ *   <li>Participant/spectator spawning and respawn logic.</li>
+ *   <li>Lifecycle phase progression via {@link botcStageManager}.</li>
+ *   <li>Player damage/death interception in early prototype state.</li>
+ *   <li>Boss bar timer updates per phase.</li>
+ * </ul>
+ * The static {@code open} method installs listeners on the provided {@link GameSpace}.
+ */
 public class botcActive {
     private static final Logger LOG = LoggerFactory.getLogger("botc-mc");
 
     private final botcConfig config;
 
+    /** Plasmid game space hosting the session. */
     public final GameSpace gameSpace;
     private final Map gameMap;
 
@@ -66,6 +78,13 @@ public class botcActive {
         this.timerBar = new botcTimerBar(widgets);
     }
 
+    /**
+     * Open an active game using provided map and configuration.
+     * @param gameSpace game space to bind
+     * @param world backing overworld instance
+     * @param map loaded map metadata
+     * @param config immutable game configuration
+     */
     public static void open(GameSpace gameSpace, ServerWorld world, Map map, botcConfig config) {
         gameSpace.setActivity(game -> {
             Set<PlayerRef> participants = gameSpace.getPlayers().participants().stream()
@@ -102,6 +121,9 @@ public class botcActive {
         });
     }
 
+    /**
+     * Game open hook: spawn existing participants/spectators and initialize the state machine.
+     */
     private void onOpen() {
         for (var participant : this.gameSpace.getPlayers().participants()) {
             this.spawnParticipant(participant);
@@ -117,42 +139,52 @@ public class botcActive {
         // stageManager updates lifecycle state.
     }
 
+    /**
+     * Game close hook; placeholder for teardown logic (voice region cleanup, etc.).
+     */
     private void onClose() {
         // TODO teardown logic
     }
 
+    /** Add a newly joined player (as spectator if not in participants). */
     private void addPlayer(ServerPlayerEntity player) {
         if (!this.participants.containsKey(PlayerRef.of(player)) || this.gameSpace.getPlayers().spectators().contains(player)) {
             this.spawnSpectator(player);
         }
     }
 
+    /** Remove a player from participant tracking. */
     private void removePlayer(ServerPlayerEntity player) {
         this.participants.remove(PlayerRef.of(player));
     }
 
+    /** Intercepts damage; prototype logic respawns player and cancels damage. */
     private EventResult onPlayerDamage(ServerPlayerEntity player, DamageSource source, float amount) {
         // TODO handle damage
         this.spawnParticipant(player);
         return EventResult.DENY;
     }
 
+    /** Intercepts death; prototype respawn and cancels death handling. */
     private EventResult onPlayerDeath(ServerPlayerEntity player, DamageSource source) {
         // TODO handle death
         this.spawnParticipant(player);
         return EventResult.DENY;
     }
 
+    /** Respawn logic for a participant (adventure mode). */
     private void spawnParticipant(ServerPlayerEntity player) {
         this.spawnLogic.resetPlayer(player, GameMode.ADVENTURE);
         this.spawnLogic.spawnPlayer(player);
     }
 
+    /** Respawn logic for a spectator (spectator mode). */
     private void spawnSpectator(ServerPlayerEntity player) {
         this.spawnLogic.resetPlayer(player, GameMode.SPECTATOR);
         this.spawnLogic.spawnPlayer(player);
     }
 
+    /** Per-tick game update: progresses lifecycle, updates timer bar, and handles end conditions. */
     private void tick() {
         long time = this.world.getTime();
 
@@ -188,6 +220,7 @@ public class botcActive {
         // TODO tick logic per state
     }
 
+    /** Broadcast the result of a finished game (placeholder win logic). */
     private void broadcastWin(WinResult result) {
         ServerPlayerEntity winningPlayer = result.getWinningPlayer();
 
@@ -203,6 +236,7 @@ public class botcActive {
         players.playSound(SoundEvents.ENTITY_VILLAGER_YES);
     }
 
+    /** Compute a win result (currently always returns no win except prototype overrides). */
     private WinResult checkWinResult() {
         // for testing purposes: don't end the game if we only ever had one participant
         if (this.ignoreWinState) {
@@ -215,6 +249,7 @@ public class botcActive {
         return WinResult.no();
     }
 
+    /** React to lifecycle state changes (logging and starting hooks). */
     private void onLifecycleStateChanged() {
         // Log every lifecycle transition and run hooks
         LOG.info("Lifecycle changed to {}", this.lifecycleStatus);
@@ -235,6 +270,7 @@ public class botcActive {
         }
     }
 
+    /** One-time logging hook when the game transitions from STARTING to RUNNING. */
     private void handleGameStarting() {
         if (startingLogged) {
             return; // Already logged starting logic

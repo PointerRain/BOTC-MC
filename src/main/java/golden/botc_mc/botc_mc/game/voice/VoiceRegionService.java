@@ -11,6 +11,17 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 
+/**
+ * Static service utilities for locating, migrating, and tracking active voice region managers.
+ * <p>
+ * At a high level this class:
+ * <ul>
+ *   <li>Defines the canonical BOTC config root (under the Minecraft {@code config/} directory).</li>
+ *   <li>Exposes helper methods for per-map voice JSON paths and legacy migration.</li>
+ *   <li>Tracks the currently "active" {@link VoiceRegionManager} and its associated world + map id
+ *       so that runtime tasks (like {@link VoiceRegionTask}) can query it without additional wiring.</li>
+ * </ul>
+ */
 public final class VoiceRegionService {
     private static volatile VoiceRegionManager activeManager;
     private static volatile Identifier activeMapId;
@@ -18,25 +29,39 @@ public final class VoiceRegionService {
 
     private VoiceRegionService() {}
 
+    /**
+     * @return Absolute path to the Minecraft game directory as seen by Fabric.
+     */
     private static Path gameDir() {
         return FabricLoader.getInstance().getGameDir().toAbsolutePath().normalize();
     }
 
+    /**
+     * Root {@code config/} folder inside the Minecraft game directory.
+     */
     private static Path configRoot() {
         return gameDir().resolve("config");
     }
 
-    /** BOTC configuration root: <gameDir>/config/botc */
+    /** Root BOTC configuration path.
+     * @return {@code <gameDir>/config/botc} path
+     */
     public static Path botcConfigRoot() {
         return configRoot().resolve("botc");
     }
 
+    /** Legacy global regions config path.
+     * @return legacy file path
+     */
     public static Path legacyGlobalConfigPath() {
         // legacy location for global regions (kept for migration)
         return configRoot().resolve("voice_regions.json");
     }
 
-    /** Attempt migration from legacy double-run path (gameDir/run/config/voice_regions.json) if current file missing. */
+    /**
+     * Attempt migration from a historical double-run path ({@code gameDir/run/config/voice_regions.json})
+     * to the new canonical location if a file is not already present there.
+     */
     public static void migrateLegacyGlobalRegionsIfNeeded() {
         try {
             Path target = legacyGlobalConfigPath();
@@ -51,6 +76,10 @@ public final class VoiceRegionService {
         } catch (Throwable ignored) {}
     }
 
+    /** Per-map config path for voice JSON.
+     * @param mapId map identifier
+     * @return path to config json
+     */
     public static Path configPathForMap(Identifier mapId) {
         String ns = mapId.getNamespace();
         String path = mapId.getPath();
@@ -58,15 +87,25 @@ public final class VoiceRegionService {
         return botcConfigRoot().resolve(Paths.get("voice", ns, path + ".json"));
     }
 
+    /** Overrides datapack base directory.
+     * @return path to overrides datapack root
+     */
     public static Path datapackOverrideBase() {
         return gameDir().resolve(Paths.get("world", "datapacks", "botc_overrides"));
     }
 
+    /** Override game json location.
+     * @param mapId map identifier
+     * @return path within overrides datapack
+     */
     public static Path datapackOverrideGameFile(Identifier mapId) {
         return datapackOverrideBase().resolve(Paths.get("data", mapId.getNamespace(), "plasmid", "game", mapId.getPath() + ".json"));
     }
 
-    /** Returns true if a bundled default asset exists for the given map id. */
+    /** Check if bundled default exists for map.
+     * @param mapId map identifier
+     * @return true if resource present
+     */
     public static boolean defaultAssetExists(Identifier mapId) {
         String res = String.format("assets/%s/voice_defaults/%s.json", mapId.getNamespace(), mapId.getPath());
         try (InputStream in = VoiceRegionService.class.getClassLoader().getResourceAsStream(res)) {
@@ -74,7 +113,10 @@ public final class VoiceRegionService {
         } catch (Throwable ignored) { return false; }
     }
 
-    /** Copy bundled default to per-map config. overwrite==true replaces existing file. */
+    /** Copy bundled default config.
+     * @param mapId map identifier
+     * @param overwrite true to replace existing file
+     */
     public static void copyDefault(Identifier mapId, boolean overwrite) {
         String res = String.format("assets/%s/voice_defaults/%s.json", mapId.getNamespace(), mapId.getPath());
         try (InputStream in = VoiceRegionService.class.getClassLoader().getResourceAsStream(res)) {
@@ -91,7 +133,9 @@ public final class VoiceRegionService {
         }
     }
 
-    /** If per-map config missing or empty, attempt to write the bundled default. Writes file if needed. */
+    /** Write default config if missing/empty.
+     * @param mapId map identifier
+     */
     public static void writeDefaultConfigIfMissing(Identifier mapId) {
         try {
             Path target = configPathForMap(mapId);
@@ -111,17 +155,53 @@ public final class VoiceRegionService {
         }
     }
 
+    /**
+     * Register a {@link VoiceRegionManager} as the globally active manager for a particular world + map.
+     * The active manager is what runtime systems will operate on when adjusting player voice membership.
+     * @param world server world
+     * @param mapId map identifier
+     * @param manager manager instance
+     */
     public static synchronized void setActive(ServerWorld world, Identifier mapId, VoiceRegionManager manager) {
         activeWorld = world;
         activeMapId = mapId;
         activeManager = manager;
     }
 
+    /** Currently active manager accessor.
+     * @return active VoiceRegionManager or null
+     */
     public static VoiceRegionManager getActiveManager() {
         return activeManager;
     }
 
-    // Accessors added so assigned fields are accessible and to silence warnings
+    /** Active map identifier for current voice region context.
+     * @return map id or null if none active
+     */
     public static Identifier getActiveMapId() { return activeMapId; }
+    /** Active world associated with the current voice region manager.
+     * @return ServerWorld or null
+     */
     public static ServerWorld getActiveWorld() { return activeWorld; }
+
+    /** Ensure a minimal pack.mcmeta exists for the overrides datapack.
+     * Centralizes creation logic used by both VoiceGroupManager and VoiceRegionManager.
+     * @param datapackBase base path of overrides datapack (run/world/datapacks/botc_overrides)
+     * @param description human readable description
+     */
+    public static void ensureOverridesPackMeta(Path datapackBase, String description) {
+        try {
+            Path packMeta = datapackBase.resolve("pack.mcmeta");
+            if (java.nio.file.Files.exists(packMeta)) return;
+            com.google.gson.JsonObject pack = new com.google.gson.JsonObject();
+            com.google.gson.JsonObject inner = new com.google.gson.JsonObject();
+            inner.addProperty("pack_format", 12); // 1.21.x
+            inner.addProperty("description", description == null ? "BOTC overrides" : description);
+            pack.add("pack", inner);
+            java.nio.file.Files.createDirectories(datapackBase);
+            java.nio.file.Files.write(packMeta, new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(pack).getBytes());
+        } catch (Throwable t) {
+            golden.botc_mc.botc_mc.botc.LOGGER.warn("ensureOverridesPackMeta failed: {}", t.toString());
+        }
+    }
 }

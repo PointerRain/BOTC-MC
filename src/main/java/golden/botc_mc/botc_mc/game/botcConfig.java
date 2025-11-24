@@ -6,9 +6,8 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.util.Identifier;
 
 /**
- * Lightweight config decoded from Plasmid game JSON. It only selects which map to use.
- * Timing, phase durations, and player counts are provided by independent settings
- * (botcSettings and/or a dedicated game-settings config), not by this structure.
+ * Immutable configuration snapshot for a game instance.
+ * @param mapId identifier of the map/datapack to load for this game run
  */
 public record botcConfig(Identifier mapId) {
     public static final MapCodec<botcConfig> MAP_CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
