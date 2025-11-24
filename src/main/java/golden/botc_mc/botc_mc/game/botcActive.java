@@ -79,9 +79,8 @@ public class botcActive {
             game.setRule(GameRuleType.PVP, EventResult.DENY);
             game.setRule(GameRuleType.HUNGER, EventResult.DENY);
             game.setRule(GameRuleType.FALL_DAMAGE, EventResult.DENY);
-            game.setRule(GameRuleType.INTERACTION, EventResult.DENY);
+            game.setRule(GameRuleType.USE_BLOCKS, EventResult.DENY);
             game.setRule(GameRuleType.BLOCK_DROPS, EventResult.DENY);
-            game.setRule(GameRuleType.THROW_ITEMS, EventResult.DENY);
             game.setRule(GameRuleType.UNSTABLE_TNT, EventResult.DENY);
 
             game.listen(GameActivityEvents.ENABLE, active::onOpen);
