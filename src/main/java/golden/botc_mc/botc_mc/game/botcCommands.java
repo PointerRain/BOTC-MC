@@ -34,6 +34,16 @@ public final class botcCommands {
                 return 1;
             }));
 
+        root.then(literal("nominate").executes(ctx -> {
+            ServerCommandSource src = ctx.getSource();
+            if (!(src.getEntity() instanceof ServerPlayerEntity player )) {
+                src.sendFeedback(() -> Text.literal("Nomination Failed!"), false);
+                return 0;
+            }
+            src.sendFeedback(() -> Text.literal("Nomination Successful!"), true);
+            return 1;
+        }));
+
             // /botc set <key> <value>
             root.then(
                 literal("set")
