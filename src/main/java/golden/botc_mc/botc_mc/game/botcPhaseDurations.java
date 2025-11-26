@@ -31,3 +31,4 @@ public record botcPhaseDurations(int dayDiscussionSecs,
         return Math.max(1L, seconds * 20L);
     }
 }
+

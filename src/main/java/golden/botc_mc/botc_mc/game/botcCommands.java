@@ -7,9 +7,15 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.text.Text;
+import golden.botc_mc.botc_mc.game.map.PodiumGenerator;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static net.minecraft.server.command.CommandManager.literal;
 
@@ -80,8 +86,54 @@ public final class botcCommands {
                             )
                     )
             );
+
+            // /botc podium create <players> and /botc podium remove
+            root.then(
+                literal("podium")
+                    .then(literal("create")
+                        .then(CommandManager.argument("players", IntegerArgumentType.integer(1, 20))
+                            .executes(ctx -> {
+                                ServerCommandSource src = ctx.getSource();
+                                int requested = IntegerArgumentType.getInteger(ctx, "players");
+                                ServerWorld world = chooseWorldForSource(src);
+
+                                // create (automatically removes any previous recorded set)
+                                List<BlockPos> placed = PodiumGenerator.createAndRecord(world, 0, 64, 0, 24.0, requested);
+
+                                src.sendFeedback(() -> Text.literal("Created " + placed.size() + " podiums (requested=" + requested + ")."), false);
+                                if (!placed.isEmpty()) src.sendFeedback(() -> Text.literal("Sample: " + summarizePositions(placed)), false);
+                                return 1;
+                            })))
+                    .then(literal("remove")
+                        .executes(ctx -> {
+                            ServerCommandSource src = ctx.getSource();
+
+                            List<BlockPos> removed = PodiumGenerator.removeRecorded();
+                            src.sendFeedback(() -> Text.literal("Removed " + removed.size() + " recorded podium blocks."), false);
+                            if (!removed.isEmpty()) src.sendFeedback(() -> Text.literal("Sample removed: " + summarizePositions(removed)), false);
+                            return 1;
+                        })
+                    )
+            );
+
             dispatcher.register(root);
         });
+    }
+
+    private static ServerWorld chooseWorldForSource(ServerCommandSource src) {
+        try {
+            if (src.getEntity() instanceof ServerPlayerEntity) {
+                return (ServerWorld) src.getWorld();
+            }
+        } catch (Throwable ignored) {}
+        return src.getServer().getOverworld();
+    }
+
+    private static String summarizePositions(List<BlockPos> list) {
+        int maxShow = 8;
+        return list.stream().limit(maxShow)
+            .map(p -> "(" + p.getX() + "," + p.getY() + "," + p.getZ() + ")")
+            .collect(Collectors.joining(", ")) + (list.size() > maxShow ? " ..." : "");
     }
 
     /**
