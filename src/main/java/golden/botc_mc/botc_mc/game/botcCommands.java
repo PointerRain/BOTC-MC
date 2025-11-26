@@ -3,7 +3,9 @@ package golden.botc_mc.botc_mc.game;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import golden.botc_mc.botc_mc.voting.VotingMain;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -34,7 +36,15 @@ public final class botcCommands {
                 return 1;
             }));
 
-        root.then(literal("nominate").executes(ctx -> {
+        root.then(literal("nominate").then( CommandManager.argument("target", EntityArgumentType.player())
+                //Remove @'s from the command target argument
+                .suggests((context, builder) -> {
+                    for (ServerPlayerEntity p : context.getSource().getServer().getPlayerManager().getPlayerList()) {
+                        builder.suggest(p.getName().getString() );
+                    }
+                    return builder.buildFuture();
+                })
+                .executes(ctx -> {
             ServerCommandSource src = ctx.getSource();
             if (!(src.getEntity() instanceof ServerPlayerEntity player )) {
                 src.sendFeedback(() -> Text.literal("Nomination Failed!"), false);
@@ -42,7 +52,13 @@ public final class botcCommands {
             }
             src.sendFeedback(() -> Text.literal("Nomination Successful!"), true);
             return 1;
-        }));
+        })));
+
+            root.then(literal("VoteItems").executes(ctx -> {
+                ServerCommandSource src = ctx.getSource();
+                VotingMain.distributeVotingItems(src.getServer());
+                return 1;
+            }));
 
             // /botc set <key> <value>
             root.then(
