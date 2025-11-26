@@ -2,8 +2,6 @@ package golden.botc_mc.botc_mc.game;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
@@ -31,8 +29,8 @@ public record SpawnLogic(ServerWorld world, Map map) {
     /** Reset player before spawn.
      * <p>
      * Prepares the player for spawning by changing their game mode, clearing velocity,
-     * resetting fall distance, and applying temporary night vision. The player is also
-     * made invulnerable for a short period to prevent immediate damage upon spawning.
+     * resetting fall distance, and applying a short invulnerability window so the
+     * player doesn't immediately take damage while being teleported/initialized.
      *
      * @param player player
      * @param gameMode target game mode
@@ -41,20 +39,8 @@ public record SpawnLogic(ServerWorld world, Map map) {
         player.changeGameMode(gameMode);
         player.setVelocity(Vec3d.ZERO);
         player.fallDistance = 0.0f;
-
-        player.addStatusEffect(new StatusEffectInstance(
-                StatusEffects.NIGHT_VISION,
-                20 * 60 * 60,
-                1,
-                true,
-                false
-        ));
-
-        // Give the player ~3 seconds of invulnerability on spawn, then clear
-        player.setInvulnerable(true);
-        // Schedule clearing invulnerability after 60 ticks
-        this.world.getServer().execute(() -> player.setInvulnerable(false));
     }
+
 
     /** Determine a safe spawn position (e.g. avoid void).
      * <p>
