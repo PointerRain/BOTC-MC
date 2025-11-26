@@ -19,6 +19,9 @@ import static net.minecraft.server.command.CommandManager.literal;
  * Server-side commands to configure BOTC settings in-game via a simple text menu.
  * - /botc settings : shows a list of settings and instructions
  * - /botc set <key> <value> : sets an integer value and saves to disk
+ * - /botc nominate <player> : nominates a player
+ * - /botc Vote_items : gives the voting items to player (Temporary)
+ * - /botc vote_start : Counts what item the player is holding
  */
 public final class botcCommands {
     public static void register() {
@@ -54,9 +57,15 @@ public final class botcCommands {
             return 1;
         })));
 
-            root.then(literal("VoteItems").executes(ctx -> {
+            root.then(literal("vote_items").executes(ctx -> {
                 ServerCommandSource src = ctx.getSource();
                 VotingMain.distributeVotingItems(src.getServer());
+                return 1;
+            }));
+
+            root.then(literal("vote_start").executes(ctx -> {
+                ServerCommandSource src = ctx.getSource();
+                VotingMain.Votestart(src.getServer());
                 return 1;
             }));
 
