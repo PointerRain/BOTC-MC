@@ -91,17 +91,17 @@ public enum Team {
      * Note that players can change alignment through gameplay.
      * @return the default alignment for this team
      */
-    public botcAlignment getDefaultAlignment() {
+    public Alignment getDefaultAlignment() {
         return switch (this) {
-            case TOWNSFOLK, OUTSIDER -> botcAlignment.GOOD;
-            case MINION, DEMON -> botcAlignment.EVIL;
-            case FABLED, LORIC -> botcAlignment.NPC;
-            case TRAVELLER -> botcAlignment.NEUTRAL;
+            case TOWNSFOLK, OUTSIDER -> Alignment.GOOD;
+            case MINION, DEMON -> Alignment.EVIL;
+            case FABLED, LORIC -> Alignment.NPC;
+            case TRAVELLER -> Alignment.NEUTRAL;
         };
     }
 
     /** Alignment enum for the team. */
-    public enum botcAlignment {
+    public enum Alignment {
         GOOD,
         EVIL,
         NPC,
@@ -136,7 +136,7 @@ public enum Team {
             };
         }
 
-        public static botcAlignment fromString(String alignmentStr) {
+        public static Alignment fromString(String alignmentStr) {
             return switch (alignmentStr.toLowerCase()) {
                 case "good" -> GOOD;
                 case "evil" -> EVIL;

@@ -14,12 +14,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import xyz.nucleoid.plasmid.api.game.GameType;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class botc implements ModInitializer {
 
     public static final String ID = "botc-mc";
     public static final Logger LOGGER = LogManager.getLogger(ID);
-    // We will use the built-in ScreenHandlerType.GENERIC_9X1 when creating handlers to avoid
-    // registry/mapping mismatches in the dev environment.
+    public static final Map<String, Script> scripts = new HashMap<>();
 
     public static final GameType<botcConfig> TYPE = GameType.<botcConfig>register(
             Identifier.of(ID, "botc-mc"),
@@ -42,27 +44,18 @@ public class botc implements ModInitializer {
                 if (baseCharacters != null) {
                     Character.registerBaseCharacters(baseCharacters);
                     // Log some character data to verify loading
-                    LOGGER.info(new Character("pithag"));
+                    LOGGER.info(new Character("washerwoman"));
                 } else {
                     LOGGER.error("Error reading base_characters.json");
                 }
 
-                // An example of loading a script resource.
-                // TODO: Need to work out how to use it in the right place.
-                Resource scriptResource =
-                        manager.getResource(Identifier.of("botc-mc:scripts/trouble_brewing.json")).orElse(null);
-                if (scriptResource != null) {
-                    Script troubleBrewing = Script.fromResource(scriptResource);
-                    LOGGER.info("Successfully found trouble_brewing.json");
-                    LOGGER.info(troubleBrewing.toString());
-                } else {
-                    LOGGER.error("Error finding trouble_brewing.json");
+                for(Identifier id : manager.findResources("scripts", path -> path.toString().endsWith(".json")).keySet()) {
+                    LOGGER.info("Loading {}...", String.valueOf(id));
+                    manager.getResource(id).ifPresent(script -> {
+                        scripts.put(String.valueOf(id), Script.fromResource(script));
+                    });
                 }
-
-
-                for(Identifier id : manager.findResources("character_data", path -> path.toString().endsWith(".json")).keySet()) {
-                    LOGGER.info("reloading {}", id);
-                }
+                LOGGER.info("Loaded {} scripts", scripts.size());
             }
         });
     }

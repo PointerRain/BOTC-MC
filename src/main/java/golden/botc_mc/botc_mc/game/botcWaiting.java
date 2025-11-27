@@ -1,7 +1,7 @@
 package golden.botc_mc.botc_mc.game;
 
+import golden.botc_mc.botc_mc.botc;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.Vec3d;
 import xyz.nucleoid.fantasy.RuntimeWorldConfig;
 import xyz.nucleoid.plasmid.api.game.*;
@@ -10,7 +10,6 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.world.GameMode;
 import golden.botc_mc.botc_mc.game.map.botcMap;
 import golden.botc_mc.botc_mc.game.map.botcMapGenerator;
-import xyz.nucleoid.plasmid.api.game.common.GameWaitingLobby;
 import xyz.nucleoid.plasmid.api.game.event.GameActivityEvents;
 import xyz.nucleoid.plasmid.api.game.event.GamePlayerEvents;
 import xyz.nucleoid.plasmid.api.game.player.JoinOffer;
@@ -38,6 +37,7 @@ public class botcWaiting {
         // values (run/config/botc.properties) override the datapack when present.
         botcSettings settings = botcSettings.load();
         botcConfig effectiveConfig = settings.applyTo(context.config());
+        botc.LOGGER.info("Opening game with script: {}", effectiveConfig.script());
 
         botcMapGenerator generator = new botcMapGenerator(effectiveConfig.mapConfig());
         botcMap map = generator.build();

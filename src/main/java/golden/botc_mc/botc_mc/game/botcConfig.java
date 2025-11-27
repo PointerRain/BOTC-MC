@@ -11,23 +11,15 @@ public record botcConfig(botcMapConfig mapConfig,
                          int players,
                          int timeLimitSecs,
                          botcPhaseDurations phaseDurations,
-                         Script script,
-                         String scriptId) {
+                         String scriptId,
+                         Script script) {
 
     public botcConfig(botcMapConfig mapConfig,
                       int players,
                       int timeLimitSecs,
                       botcPhaseDurations phaseDurations,
                       String scriptId) {
-        this(mapConfig, players, timeLimitSecs, phaseDurations, Script.empty(), scriptId); // TODO: Get script from Id
-    }
-
-    public botcConfig(botcMapConfig mapConfig,
-                      int players,
-                      int timeLimitSecs,
-                      botcPhaseDurations phaseDurations,
-                      Script script) {
-        this(mapConfig, players, timeLimitSecs, phaseDurations, script, "unknown"); // TODO: Get scriptId from Script
+        this(mapConfig, players, timeLimitSecs, phaseDurations, scriptId, Script.fromId(scriptId));
     }
 
     public static final MapCodec<botcConfig> MAP_CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
@@ -43,8 +35,8 @@ public record botcConfig(botcMapConfig mapConfig,
     public int timeLimitSecs() { return this.timeLimitSecs; }
 
     // utility factory to simplify programmatic construction from helpers
-    public static botcConfig of(botcMapConfig mapConfig, int players, int timeLimitSecs, botcPhaseDurations phaseDurations, Script script) {
-        return new botcConfig(mapConfig, players, timeLimitSecs, phaseDurations, script);
+    public static botcConfig of(botcMapConfig mapConfig, int players, int timeLimitSecs, botcPhaseDurations phaseDurations, String scriptId, Script script) {
+        return new botcConfig(mapConfig, players, timeLimitSecs, phaseDurations, scriptId, script);
     }
 
     @NotNull @Override

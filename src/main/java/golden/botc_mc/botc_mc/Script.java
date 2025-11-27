@@ -3,14 +3,10 @@ package golden.botc_mc.botc_mc;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.mojang.serialization.Codec;
-import com.mojang.datafixers.util.Either;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
-import com.mojang.serialization.codecs.ListCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.resource.Resource;
 import org.jetbrains.annotations.NotNull;
 
-import javax.print.attribute.standard.JobKOctets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -51,40 +47,24 @@ public record Script(Meta meta,
                        List<String> firstNight,
                        List<String> otherNight) {
 
-        public static final Codec<Meta> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-                Codec.STRING.fieldOf("id").orElse("_meta").forGetter(Meta::id),
-                Codec.STRING.fieldOf("name").orElse("").forGetter(Meta::name),
-                Codec.STRING.fieldOf("author").orElse("").forGetter(Meta::author),
-                Codec.STRING.fieldOf("flavor").orElse(null).forGetter(Meta::flavor),
-                Codec.STRING.fieldOf("logo").orElse(null).forGetter(Meta::logo),
-                Codec.BOOL.fieldOf("hideTitle").orElse(false).forGetter(Meta::hideTitle),
-                Codec.STRING.fieldOf("background").orElse(null).forGetter(Meta::background),
-                Codec.STRING.fieldOf("almanac").orElse(null).forGetter(Meta::almanac),
-                Codec.list(Codec.STRING).fieldOf("bootlegger").orElse(null).forGetter(Meta::bootlegger),
-                Codec.list(Codec.STRING).fieldOf("firstNight").orElse(null).forGetter(Meta::firstNight),
-                Codec.list(Codec.STRING).fieldOf("otherNight").orElse(null).forGetter(Meta::otherNight)
-        ).apply(instance, Meta::new));
-
-        public static Meta empty() {
-            return new Meta(
-                    "_meta",
-                    "Unnamed Script",
-                    "",
-                    null,
-                    null,
-                    false,
-                    null,
-                    null,
-                    List.of(),
-                    List.of(),
-                    List.of()
-            );
-        }
+        public static final Meta EMPTY = new Meta(
+            "_meta",
+            "Unnamed Script",
+            "",
+            null,
+            null,
+            false,
+            null,
+            null,
+            List.of(),
+            List.of(),
+            List.of()
+        );
     }
 
-    public static Script empty() {
-        return new Script(Meta.empty(), List.of());
-    }
+    public static final Script EMPTY = new Script(Meta.EMPTY, List.of());
+
+    public static final Script MISSING = null;
 
     public static Script fromResource(Resource resource) {
         Gson gson = new GsonBuilder()
@@ -94,9 +74,20 @@ public record Script(Meta meta,
         try (var stream = resource.getInputStream()) {
             var reader = new java.io.InputStreamReader(stream, java.nio.charset.StandardCharsets.UTF_8);
             scriptData = gson.fromJson(reader, Script.class);
-            botc.LOGGER.info("Loaded script {}", scriptData.meta.name());
+            botc.LOGGER.info("Read script {}", scriptData.meta.name());
         } catch (Exception e) {
             botc.LOGGER.error("Error reading script", e);
+        }
+        return scriptData;
+    }
+
+    public static Script fromId(String scriptId) {
+        Script scriptData = botc.scripts.get(scriptId);
+        if (scriptData == null) {
+            scriptData = botc.scripts.get(scriptId + ".json");
+            if (scriptData == null) {
+                botc.LOGGER.error("Script with ID '{}' not found.", scriptId);
+            }
         }
         return scriptData;
     }
