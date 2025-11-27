@@ -1,0 +1,114 @@
+[
+  {
+    "id": "_meta",
+    "logo": "https://release.botc.app/wc25/deadpeople/logo.webp",
+    "name": "I see dead people",
+    "author": "Ascarywizard",
+    "hideTitle": true,
+    "background": "https://release.botc.app/wc25/background.webp",
+    "bootlegger": [
+      "Characters die as normal but the storyteller doesn’t announce deaths. Dead players can nominate. Poisoned players don’t wake up."
+    ],
+    "isOfficial": false
+  },
+  {
+    "id": "harlot"
+  },
+  {
+    "id": "scapegoat"
+  },
+  {
+    "id": "soldier"
+  },
+  {
+    "id": "banshee"
+  },
+  {
+    "id": "oracle"
+  },
+  {
+    "id": "snakecharmer"
+  },
+  {
+    "id": "fortuneteller"
+  },
+  {
+    "id": "chambermaid"
+  },
+  {
+    "id": "dreamer"
+  },
+  {
+    "id": "empath"
+  },
+  {
+    "id": "professor"
+  },
+  {
+    "id": "sage"
+  },
+  {
+    "id": "courtier"
+  },
+  {
+    "id": "philosopher"
+  },
+  {
+    "id": "pacifist"
+  },
+  {
+    "id": "sweetheart"
+  },
+  {
+    "id": "damsel"
+  },
+  {
+    "id": "recluse"
+  },
+  {
+    "id": "mutant"
+  },
+  {
+    "id": "poisoner"
+  },
+  {
+    "id": "mastermind"
+  },
+  {
+    "id": "devilsadvocate"
+  },
+  {
+    "id": "baron"
+  },
+  {
+    "id": "deadpeopleiseedeadpeople",
+    "name": "I See Dead People",
+    "team": "fabled",
+    "ability": "Characters die as normal but the storyteller doesn’t announce deaths. Dead players can nominate. Poisoned players don’t wake up.",
+    "reminders": [
+      "Dead",
+      "Dead",
+      "Dead",
+      "Dead",
+      "Dead",
+      "Dead",
+      "Dead",
+      "Dead",
+      "Dead",
+      "Dead",
+      "Dead",
+      "Dead",
+      "Dead",
+      "Dead"
+    ]
+  },
+  {
+    "id": "fanggu"
+  },
+  {
+    "id": "imp"
+  },
+  {
+    "id": "alhadikhia"
+  }
+]
