@@ -3,5 +3,6 @@
   "map_id": "botc-mc:test",
   "podium_center": "0,70,0",
   "podium_radius": 13,
-  "podium_template": "botc-mc:podiums/podium-north"
+  "podium_template": "botc-mc:podiums/podium-north",
+  "podium_template_offset": "1,0,0"
 }

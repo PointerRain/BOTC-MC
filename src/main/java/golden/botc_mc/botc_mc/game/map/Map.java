@@ -47,14 +47,18 @@ public final class Map {
     private static final int CURRENT_MAP_FORMAT = 1;
     /** Optional podium template identifier from metadata or JSON overrides. */
     private final Identifier podiumTemplateId;
+    /** Template offset defining where the visual center is relative to NBT origin. */
+    private final BlockPos podiumTemplateOffset;
 
     /** Default podium template fallback when none provided by map. */
     private static final Identifier DEFAULT_PODIUM_TEMPLATE = Identifier.of("botc-mc", "podiums/podium-north");
+    /** Default template offset for podium-north: visual center is 1 block right when facing north (positive X). */
+    private static final BlockPos DEFAULT_TEMPLATE_OFFSET = new BlockPos(1, 0, 0);
 
     /**
      * Primary constructor delegating to extended constructor with empty override.
      */
-    private Map(MapTemplate template) { this(template, null, null, null); }
+    private Map(MapTemplate template) { this(template, null, null, null, null); }
 
     /**
      * Internal constructor building region lists from a loaded template, with optional overrides
@@ -63,8 +67,9 @@ public final class Map {
      * @param podiumOverride nullable podium center to use instead of template metadata
      * @param podiumRadiusOverride nullable podium radius override (in blocks)
      * @param podiumTemplateOverride nullable podium template identifier to use instead of metadata
+     * @param templateOffsetOverride nullable template offset defining visual center relative to NBT origin
      */
-    private Map(MapTemplate template, BlockPos podiumOverride, Double podiumRadiusOverride, Identifier podiumTemplateOverride) {
+    private Map(MapTemplate template, BlockPos podiumOverride, Double podiumRadiusOverride, Identifier podiumTemplateOverride, BlockPos templateOffsetOverride) {
         this.template = template;
 
         int mapFormat = template.getMetadata().getData().getInt("map_format", 0);
@@ -147,6 +152,25 @@ public final class Map {
         }
         this.podiumTemplateId = resolvedTemplateId;
 
+        // Determine template offset: use override when present, otherwise template metadata, otherwise default
+        BlockPos resolvedTemplateOffset;
+        if (templateOffsetOverride != null) {
+            resolvedTemplateOffset = templateOffsetOverride;
+        } else {
+            BlockPos fromMeta = null;
+            try {
+                String offsetStr = template.getMetadata().getData().getString("podium_template_offset", "");
+                if (offsetStr != null && !offsetStr.isBlank()) {
+                    fromMeta = parseCsvBlockPos(offsetStr.trim());
+                }
+            } catch (Throwable ignored) {}
+            resolvedTemplateOffset = fromMeta;
+        }
+        if (resolvedTemplateOffset == null) {
+            resolvedTemplateOffset = DEFAULT_TEMPLATE_OFFSET;
+        }
+        this.podiumTemplateOffset = resolvedTemplateOffset;
+
         this.regions = new Regions(checkpoints, spawn);
     }
 
@@ -179,6 +203,7 @@ public final class Map {
                     BlockPos centerFromJson = null;
                     Double radiusFromJson = null;
                     Identifier templateFromJson = null;
+                    BlockPos templateOffsetFromJson = null;
                     if (obj != null) {
                         if (obj.has("podium_center")) {
                             try { String v = obj.get("podium_center").getAsString(); centerFromJson = parseCsvBlockPos(v); } catch (Throwable ignored) {}
@@ -192,12 +217,15 @@ public final class Map {
                         if (obj.has("podium_template")) {
                             try { templateFromJson = Identifier.tryParse(obj.get("podium_template").getAsString()); } catch (Throwable ignored) {}
                         }
+                        if (obj.has("podium_template_offset")) {
+                            try { String v = obj.get("podium_template_offset").getAsString(); templateOffsetFromJson = parseCsvBlockPos(v); } catch (Throwable ignored) {}
+                        }
                     }
 
-                    if (centerFromJson != null || radiusFromJson != null || templateFromJson != null) {
+                    if (centerFromJson != null || radiusFromJson != null || templateFromJson != null || templateOffsetFromJson != null) {
                         if (templateFromJson == null) templateFromJson = DEFAULT_PODIUM_TEMPLATE;
-                        result = new Map(template, centerFromJson, radiusFromJson, templateFromJson);
-                        LOGGER.info("Applied podium overrides from plasmid JSON: center={} radius={} template={} (from {})", centerFromJson, radiusFromJson, templateFromJson, resourceId);
+                        result = new Map(template, centerFromJson, radiusFromJson, templateFromJson, templateOffsetFromJson);
+                        LOGGER.info("Applied podium overrides from plasmid JSON: center={} radius={} template={} templateOffset={} (from {})", centerFromJson, radiusFromJson, templateFromJson, templateOffsetFromJson, resourceId);
                     }
                 }
             } else {
@@ -215,6 +243,7 @@ public final class Map {
                         BlockPos centerFromJson = null;
                         Double radiusFromJson = null;
                         Identifier templateFromJson = null;
+                        BlockPos templateOffsetFromJson = null;
                         if (obj.has("podium_center")) {
                             try { String v = obj.get("podium_center").getAsString(); centerFromJson = parseCsvBlockPos(v); } catch (Throwable ignored) {}
                         }
@@ -227,11 +256,14 @@ public final class Map {
                         if (obj.has("podium_template")) {
                             try { templateFromJson = Identifier.tryParse(obj.get("podium_template").getAsString()); } catch (Throwable ignored) {}
                         }
+                        if (obj.has("podium_template_offset")) {
+                            try { String v = obj.get("podium_template_offset").getAsString(); templateOffsetFromJson = parseCsvBlockPos(v); } catch (Throwable ignored) {}
+                        }
 
-                        if (centerFromJson != null || radiusFromJson != null || templateFromJson != null) {
+                        if (centerFromJson != null || radiusFromJson != null || templateFromJson != null || templateOffsetFromJson != null) {
                             if (templateFromJson == null) templateFromJson = DEFAULT_PODIUM_TEMPLATE;
-                            result = new Map(template, centerFromJson, radiusFromJson, templateFromJson);
-                            LOGGER.info("Applied podium overrides from discovered JSON: center={} radius={} template={} (from {})", centerFromJson, radiusFromJson, templateFromJson, entry.getKey());
+                            result = new Map(template, centerFromJson, radiusFromJson, templateFromJson, templateOffsetFromJson);
+                            LOGGER.info("Applied podium overrides from discovered JSON: center={} radius={} template={} templateOffset={} (from {})", centerFromJson, radiusFromJson, templateFromJson, templateOffsetFromJson, entry.getKey());
                             break;
                         }
                     } catch (Throwable ignored) {
@@ -284,6 +316,13 @@ public final class Map {
      * @return optional podium template identifier
      */
     public Optional<Identifier> getPodiumTemplateId() { return Optional.ofNullable(this.podiumTemplateId); }
+
+    /**
+     * Template offset defining where the visual center of the template is relative to its NBT origin.
+     * This offset is rotated appropriately for each podium based on its facing direction.
+     * @return template offset (default is 1,0,0 for podium-north template)
+     */
+    public Optional<BlockPos> getPodiumTemplateOffset() { return Optional.ofNullable(this.podiumTemplateOffset); }
 
     /**
      * Spawn/respawn region definition.
