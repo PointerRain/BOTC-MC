@@ -1,4 +1,5 @@
 {
   "type": "botc-mc:game",
-  "map_id": "botc-mc:testv2"
+  "map_id": "botc-mc:testv2",
+  "podium_center": "0,65,0"
 }

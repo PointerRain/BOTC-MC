@@ -7,11 +7,10 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.text.Text;
-import golden.botc_mc.botc_mc.game.map.PodiumGenerator;
+import golden.botc_mc.botc_mc.game.map.PodiumManager;
 
 import java.io.IOException;
 import java.util.List;
@@ -97,18 +96,56 @@ public final class botcCommands {
                                 int requested = IntegerArgumentType.getInteger(ctx, "players");
                                 ServerWorld world = chooseWorldForSource(src);
 
-                                // create (automatically removes any previous recorded set)
-                                List<BlockPos> placed = PodiumGenerator.createAndRecord(world, 0, 64, 0, 24.0, requested);
+                                // Try to load the configured map so we can use its podium_center if present
+                                golden.botc_mc.botc_mc.game.map.Map mapObj = null;
+                                try {
+                                    String mapIdStr = botcSettingsManager.get().mapId;
+                                    if (mapIdStr != null && !mapIdStr.isEmpty()) {
+                                        String[] parts = mapIdStr.split(":" , 2);
+                                        if (parts.length == 2) {
+                                            net.minecraft.util.Identifier id = net.minecraft.util.Identifier.of(parts[0], parts[1]);
+                                            mapObj = golden.botc_mc.botc_mc.game.map.Map.load(src.getServer(), id);
+                                        }
+                                    }
+                                } catch (Throwable t) {
+                                    // fail silently and fall back to settings defaults
+                                }
 
-                                src.sendFeedback(() -> Text.literal("Created " + placed.size() + " podiums (requested=" + requested + ")."), false);
-                                if (!placed.isEmpty()) src.sendFeedback(() -> Text.literal("Sample: " + summarizePositions(placed)), false);
-                                return 1;
-                            })))
+                                // fallback coordinates from settings.fallbackSpawn
+                                int fx = botcSettingsManager.get().fallbackSpawn.getX();
+                                int fy = botcSettingsManager.get().fallbackSpawn.getY();
+                                int fz = botcSettingsManager.get().fallbackSpawn.getZ();
+
+                                double defaultRadius = 26.0; // default radius in blocks
+
+                                // Use PodiumManager.createForMap to handle all map overrides and debug output
+                                final BlockPos[] centerUsed = {null};
+                                List<BlockPos> placed = PodiumManager.createForMap(mapObj, world, fx, fy, fz, defaultRadius, requested);
+
+                                if (placed.isEmpty()) {
+                                    src.sendFeedback(() -> Text.literal("Podium creation aborted: target positions are occupied or invalid."), false);
+                                } else {
+                                    src.sendFeedback(() -> Text.literal("Created " + placed.size() + " podiums (requested=" + requested + ")."), false);
+                                    BlockPos centerDisplay = mapObj != null && mapObj.getPodiumCenter().isPresent()
+                                            ? mapObj.getPodiumCenter().get()
+                                            : new BlockPos(fx, fy, fz);
+                                    src.sendFeedback(() -> Text.literal("Center used: (" + centerDisplay.getX() + "," + centerDisplay.getY() + "," + centerDisplay.getZ() + ")"), false);
+                                    double sum = 0.0;
+                                    for (BlockPos p : placed) {
+                                        double dx = p.getX() - centerDisplay.getX();
+                                        double dz = p.getZ() - centerDisplay.getZ();
+                                        sum += Math.sqrt(dx*dx + dz*dz);
+                                    }
+                                    double avg = placed.isEmpty() ? 0.0 : sum / placed.size();
+                                    src.sendFeedback(() -> Text.literal("Average radius of placed podiums: " + String.format("%.2f", avg)), false);
+                                }
+                                 return 1;
+                             })))
                     .then(literal("remove")
                         .executes(ctx -> {
                             ServerCommandSource src = ctx.getSource();
 
-                            List<BlockPos> removed = PodiumGenerator.removeRecorded();
+                            List<BlockPos> removed = PodiumManager.removeRecorded();
                             src.sendFeedback(() -> Text.literal("Removed " + removed.size() + " recorded podium blocks."), false);
                             if (!removed.isEmpty()) src.sendFeedback(() -> Text.literal("Sample removed: " + summarizePositions(removed)), false);
                             return 1;
