@@ -47,12 +47,15 @@ public final class botcCommands {
                     }
                     return builder.buildFuture();
                 })
+
                 .executes(ctx -> {
             ServerCommandSource src = ctx.getSource();
             if (!(src.getEntity() instanceof ServerPlayerEntity player )) {
                 src.sendFeedback(() -> Text.literal("Nomination Failed!"), false);
                 return 0;
             }
+            ServerPlayerEntity target = EntityArgumentType.getPlayer(ctx , "target");
+            VotingMain.nominate(src.getPlayer() , target);
             src.sendFeedback(() -> Text.literal("Nomination Successful!"), true);
             return 1;
         })));
