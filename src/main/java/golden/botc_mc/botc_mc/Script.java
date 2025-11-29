@@ -5,9 +5,12 @@ import com.google.gson.GsonBuilder;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.resource.Resource;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.Text;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
@@ -15,7 +18,9 @@ import java.util.List;
 public record Script(Meta meta,
                      List<Character> characters
 ) {
-    public Script(String name, String author, String logo, boolean hideTitle, String background, String almanac, String flavor, List<String> bootlegger, List<String> firstNight, List<String> otherNight, List<Character> characters) {
+    public Script(String name, String author, String logo, boolean hideTitle, String background, String almanac,
+                  String flavor, List<String> bootlegger, List<String> firstNight, List<String> otherNight, int[] colour,
+                  List<Character> characters) {
         this(new Meta(
                 "_meta",
                 name,
@@ -27,12 +32,13 @@ public record Script(Meta meta,
                 almanac,
                 bootlegger,
                 firstNight,
-                otherNight
+                otherNight,
+                colour
         ), characters);
     }
 
     /**
-     * Meta object that appears as the first element in array script files.
+     * Meta information that appears as the first element in array script files.
      * Stores information about the script.
      */
     public record Meta(String id,
@@ -45,7 +51,8 @@ public record Script(Meta meta,
                        String almanac,
                        List<String> bootlegger,
                        List<String> firstNight,
-                       List<String> otherNight) {
+                       List<String> otherNight,
+                       int[] colour) {
 
         public static final Meta EMPTY = new Meta(
             "_meta",
@@ -58,7 +65,8 @@ public record Script(Meta meta,
             null,
             List.of(),
             List.of(),
-            List.of()
+            List.of(),
+            null
         );
     }
 
@@ -103,6 +111,24 @@ public record Script(Meta meta,
             scriptData.characters.set(index, fullCharacter);
         }
         return scriptData;
+    }
+
+    public int colourInt() {
+        if (meta.colour == null || meta.colour.length < 3) {
+            return 0xFFFFFF; // Default to white
+        }
+        int r = meta.colour[0];
+        int g = meta.colour[1];
+        int b = meta.colour[2];
+        return ((r << 16) | (g << 8) | b) & 0xFFFFFF;
+    }
+
+    public String colourHex() {
+        return String.format("#%06X", colourInt());
+    }
+
+    public MutableText formattedName() {
+        return ((MutableText) Text.of(meta.name())).withColor(colourInt());
     }
 
     public List<String> firstNightOrder(boolean isTeensy) {
@@ -179,7 +205,8 @@ public record Script(Meta meta,
         return "Script[name='" + meta.name + "', author='" + meta.author + "', logo='" + meta.logo +
                 "', hideTitle=" + meta.hideTitle + ", background='" + meta.background + "', almanac='" + meta.almanac +
                 "', bootlegger=" + meta.bootlegger + ", firstNight=" + meta.firstNight +
-                ", otherNight=" + meta.otherNight + ", characters=[" + characters.size() + " characters]]";
+                ", otherNight=" + meta.otherNight + ", color=" + Arrays.toString(meta.colour) +
+                ", characters=[" + characters.size() + " characters]]";
     }
 
     public record Jinx(String id, String reason) {

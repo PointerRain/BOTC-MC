@@ -31,6 +31,7 @@ public class ScriptDeserializer implements JsonDeserializer<Script> {
         List<String> bootlegger = null;
         List<String> firstNight = null;
         List<String> otherNight = null;
+        int[] colour = null;
         List<Character> characters = new ArrayList<>();
 
         for (JsonElement element : jsonArray) {
@@ -47,6 +48,14 @@ public class ScriptDeserializer implements JsonDeserializer<Script> {
                 firstNight = getStringList(metaObj, "first_night");
                 otherNight = getStringList(metaObj, "other_night");
 
+                if (metaObj.has("colour") && metaObj.get("colour").isJsonArray()) {
+                    JsonArray colourArray = metaObj.get("colour").getAsJsonArray();
+                    colour = new int[colourArray.size()];
+                    for (int i = 0; i < colourArray.size(); i++) {
+                        colour[i] = colourArray.get(i).getAsInt();
+                    }
+                }
+
             } else if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isString()) {
                 characters.add(new Character(element.getAsString()));
             } else if (element.isJsonObject()) {
@@ -56,8 +65,8 @@ public class ScriptDeserializer implements JsonDeserializer<Script> {
             }
         }
 
-        return new Script(name, author, logo, hideTitle, background, almanac, flavor, bootlegger, firstNight, otherNight,
-                characters);
+        return new Script(name, author, logo, hideTitle, background, almanac, flavor, bootlegger,
+                firstNight, otherNight, colour, characters);
     }
 
     // Helper methods
