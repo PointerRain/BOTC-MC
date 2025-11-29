@@ -1,9 +1,10 @@
-package golden.botc_mc.botc_mc;
+package golden.botc_mc.botc_mc.game;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import golden.botc_mc.botc_mc.botc;
 import net.minecraft.resource.Resource;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
@@ -14,12 +15,22 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
+/**
+ * Represents a script in the BOTC game, containing meta information and a list of characters.
+ */
+public record Script(Meta meta, List<Character> characters) {
+    /**
+     * Represents an empty script with no characters and default meta information.
+     */
+    public static final Script EMPTY = new Script(Meta.EMPTY, List.of());
+    /**
+     * Represents a missing script, indicated by a null value.
+     */
+    public static final Script MISSING = null;
 
-public record Script(Meta meta,
-                     List<Character> characters
-) {
     public Script(String name, String author, String logo, boolean hideTitle, String background, String almanac,
-                  String flavor, List<String> bootlegger, List<String> firstNight, List<String> otherNight, int[] colour,
+                  String flavor, List<String> bootlegger, List<String> firstNight, List<String> otherNight,
+                  int[] colour,
                   List<Character> characters) {
         this(new Meta(
                 "_meta",
@@ -38,42 +49,10 @@ public record Script(Meta meta,
     }
 
     /**
-     * Meta information that appears as the first element in array script files.
-     * Stores information about the script.
+     * Load a Script from a given Resource.
+     * @param resource The resource to load the script from.
+     * @return The loaded Script object, or null if an error occurred.
      */
-    public record Meta(String id,
-                       String name,
-                       String author,
-                       String flavor,
-                       String logo,
-                       Boolean hideTitle,
-                       String background,
-                       String almanac,
-                       List<String> bootlegger,
-                       List<String> firstNight,
-                       List<String> otherNight,
-                       int[] colour) {
-
-        public static final Meta EMPTY = new Meta(
-            "_meta",
-            "Unnamed Script",
-            "",
-            null,
-            null,
-            false,
-            null,
-            null,
-            List.of(),
-            List.of(),
-            List.of(),
-            null
-        );
-    }
-
-    public static final Script EMPTY = new Script(Meta.EMPTY, List.of());
-
-    public static final Script MISSING = null;
-
     public static Script fromResource(Resource resource) {
         Gson gson = new GsonBuilder()
                 .registerTypeAdapter(Script.class, new ScriptDeserializer())
@@ -89,6 +68,11 @@ public record Script(Meta meta,
         return scriptData;
     }
 
+    /**
+     * Retrieve a Script by its ID from the botc scripts map.
+     * @param scriptId The ID of the script to retrieve.
+     * @return The Script object if found, otherwise null.
+     */
     public static Script fromId(String scriptId) {
         if (botc.scripts.isEmpty()) {
             botc.LOGGER.warn("Scripts map is empty. Lookup for script '{}' will fail.", scriptId);
@@ -113,6 +97,10 @@ public record Script(Meta meta,
         return scriptData;
     }
 
+    /**
+     * Convert the script's colour array to an integer representation.
+     * @return The integer representation of the colour.
+     */
     public int colourInt() {
         if (meta.colour == null || meta.colour.length < 3) {
             return 0xFFFFFF; // Default to white
@@ -123,17 +111,31 @@ public record Script(Meta meta,
         return ((r << 16) | (g << 8) | b) & 0xFFFFFF;
     }
 
+    /**
+     * Convert the script's colour array to a hexadecimal string representation.
+     * @return The hexadecimal string representation of the colour.
+     */
     public String colourHex() {
         return String.format("#%06X", colourInt());
     }
 
-    public MutableText formattedName() {
+    /**
+     * Get the formatted name of the script as a MutableText object with the script's colour.
+     * @return The formatted name of the script.
+     */
+    public MutableText toFormattedText() {
         return ((MutableText) Text.of(meta.name())).withColor(colourInt());
     }
 
+    /**
+     * Get the order of actions for the first night.
+     * @param isTeensy Whether the game is in teensy mode.
+     * @return The list of character IDs in the order they act on the first night.
+     */
     public List<String> firstNightOrder(boolean isTeensy) {
         List<String> order;
         if (meta.firstNight != null && !meta.firstNight.isEmpty()) {
+            // Use predefined first night order from meta
             order = meta.firstNight;
         } else {
             order = new ArrayList<>();
@@ -152,6 +154,10 @@ public record Script(Meta meta,
         return order;
     }
 
+    /**
+     * Get the order of actions for the first night without teensy mode.
+     * @return The list of character IDs in the order they act on the first night.
+     */
     public List<String> firstNightOrder() {
         return firstNightOrder(false);
     }
@@ -182,10 +188,20 @@ public record Script(Meta meta,
      */
     public List<Jinx> getJinxesForCharacter(Character character) {
         List<Jinx> jinxes = new ArrayList<>();
-        for (Jinx jinx : character.jinxes()) {
-//            if (jinx.id()
+        if (character.jinxes() == null || character.jinxes().isEmpty()) {
+            return jinxes;
         }
-        return List.of();
+        for (Jinx jinx : character.jinxes()) {
+            if (jinx == null || jinx.id() == null) {
+                continue;
+            }
+            String targetId = jinx.id();
+            boolean onScript = characters.stream().anyMatch(c -> targetId.equals(c.id()));
+            if (onScript) {
+                jinxes.add(jinx);
+            }
+        }
+        return jinxes;
     }
 
     public List<Jinx> getJinxesForCharacter(String characterId) {
@@ -196,8 +212,13 @@ public record Script(Meta meta,
      * Get all jinxes in the script.
      * @return The list of all jinxes.
      */
-    public List<Object> getJinxes() {
-        return List.of();
+    public List<Jinx> getJinxes() {
+        List<Jinx> allJinxes = new ArrayList<>();
+        for (Character character : characters) {
+            List<Jinx> characterJinxes = getJinxesForCharacter(character);
+            allJinxes.addAll(characterJinxes);
+        }
+        return allJinxes;
     }
 
     @Override
@@ -209,6 +230,43 @@ public record Script(Meta meta,
                 ", characters=[" + characters.size() + " characters]]";
     }
 
+    /**
+     * Meta information that appears as the first element in array script files.
+     * Stores information about the script.
+     */
+    public record Meta(String id,
+                       String name,
+                       String author,
+                       String flavor,
+                       String logo,
+                       Boolean hideTitle,
+                       String background,
+                       String almanac,
+                       List<String> bootlegger,
+                       List<String> firstNight,
+                       List<String> otherNight,
+                       int[] colour) {
+
+        public static final Meta EMPTY = new Meta(
+                "_meta",
+                "Unnamed Script",
+                "",
+                null,
+                null,
+                false,
+                null,
+                null,
+                List.of(),
+                List.of(),
+                List.of(),
+                null
+        );
+    }
+
+    /**
+     * Represents a jinx applied to a character.
+     * Contains the ID of the target character and the rule change for the jinx.
+     */
     public record Jinx(String id, String reason) {
         public static final Codec<Jinx> CODEC = RecordCodecBuilder.create(instance -> instance.group(
                 Codec.STRING.fieldOf("id").forGetter(Jinx::id),

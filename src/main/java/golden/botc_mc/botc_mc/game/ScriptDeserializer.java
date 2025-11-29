@@ -1,4 +1,4 @@
-package golden.botc_mc.botc_mc;
+package golden.botc_mc.botc_mc.game;
 
 
 import com.google.gson.JsonArray;

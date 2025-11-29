@@ -1,6 +1,5 @@
 package golden.botc_mc.botc_mc.game;
 
-import golden.botc_mc.botc_mc.Script;
 import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.map.botcMapConfig;
 import net.minecraft.block.Blocks;

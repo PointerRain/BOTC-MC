@@ -3,7 +3,6 @@ package golden.botc_mc.botc_mc.game;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import golden.botc_mc.botc_mc.Script;
 import golden.botc_mc.botc_mc.game.map.botcMapConfig;
 import org.jetbrains.annotations.NotNull;
 

@@ -1,8 +1,9 @@
-package golden.botc_mc.botc_mc;
+package golden.botc_mc.botc_mc.game;
 
 import com.google.gson.Gson;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import golden.botc_mc.botc_mc.botc;
 import net.minecraft.resource.Resource;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
@@ -13,6 +14,9 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+/**
+ * Represents a character in the BOTC game, with various attributes and behaviors.
+ */
 public record Character(String id,
                         String name,
                         Team team,
@@ -46,33 +50,38 @@ public record Character(String id,
             Codec.BOOL.fieldOf("setup").forGetter(Character::setup),
             Script.Jinx.CODEC.listOf().fieldOf("jinxes").forGetter(Character::jinxes)
     ).apply(instance, Character::new));
-    /** The base characters loaded from the JSON resource. */
+
+    /**
+     * The base characters loaded from the JSON resource.
+     */
     public static Character[] baseCharacters;
 
     /**
-     * Constructs a TestCharacter by looking it up from the baseCharacters array using the given id.
+     * Constructs a Character by looking it up from the baseCharacters array using the given id.
      */
     public Character(String id) {
         this(findCharacterById(id));
     }
 
-    /** Copy constructor to create a new TestCharacter from an existing one. */
+    /**
+     * Copy constructor to create a new Character from an existing one.
+     */
     private Character(Character character) {
         this(character.id,
-             character.name,
-             character.team,
-             character.ability,
-             character.image,
-             character.edition,
-             character.flavor,
-             character.firstNight,
-             character.firstNightReminder,
-             character.otherNight,
-             character.otherNightReminder,
-             character.reminders,
-             character.remindersGlobal,
-             character.setup,
-             character.jinxes);
+                character.name,
+                character.team,
+                character.ability,
+                character.image,
+                character.edition,
+                character.flavor,
+                character.firstNight,
+                character.firstNightReminder,
+                character.otherNight,
+                character.otherNightReminder,
+                character.reminders,
+                character.remindersGlobal,
+                character.setup,
+                character.jinxes);
     }
 
     /**
@@ -98,9 +107,11 @@ public record Character(String id,
                 character.edition() != null ? character.edition() : baseCharacter.edition(),
                 character.flavor() != null ? character.flavor() : baseCharacter.flavor(),
                 character.firstNight() != 0 ? character.firstNight() : baseCharacter.firstNight(),
-                character.firstNightReminder() != null ? character.firstNightReminder() : baseCharacter.firstNightReminder(),
+                character.firstNightReminder() != null ? character.firstNightReminder() :
+                        baseCharacter.firstNightReminder(),
                 character.otherNight() != 0 ? character.otherNight() : baseCharacter.otherNight(),
-                character.otherNightReminder() != null ? character.otherNightReminder() : baseCharacter.otherNightReminder(),
+                character.otherNightReminder() != null ? character.otherNightReminder() :
+                        baseCharacter.otherNightReminder(),
                 character.reminders() != null ? character.reminders() : baseCharacter.reminders(),
                 character.remindersGlobal() != null ? character.remindersGlobal() : baseCharacter.remindersGlobal(),
                 character.setup() || baseCharacter.setup(),
@@ -119,11 +130,11 @@ public record Character(String id,
             }
         }
         return new Character(id, id,
-                null,"",null,null,null,
-                0,null,
-                0,null,null,null,
-                false,null
-                );
+                null, "", null, null, null,
+                0, null,
+                0, null, null, null,
+                false, null
+        );
     }
 
     /**
@@ -132,7 +143,6 @@ public record Character(String id,
      */
     public static void registerBaseCharacters(Resource resource) {
         try (InputStream stream = resource.getInputStream()) {
-            botc.LOGGER.info("Successfully loaded base_characters.json, size: {} bytes", stream.available());
             BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));
 
             Gson gson = new Gson();

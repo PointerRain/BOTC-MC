@@ -1,4 +1,4 @@
-package golden.botc_mc.botc_mc;
+package golden.botc_mc.botc_mc.game;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -11,35 +11,63 @@ public enum Team {
     OUTSIDER,
     MINION,
     DEMON,
+    TRAVELLER,
     FABLED,
-    LORIC,
-    TRAVELLER;
-
-
+    LORIC;
 
     public static final Codec<Team> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.STRING.fieldOf("team").forGetter(Team::toString)
     ).apply(instance, Team::fromString));
 
-//    /**
-//     * Get the string representation of the team.
-//     * @return the team as a string
-//     */
-//    @Override
-//    public String toString() {
-//        return switch (this) {
-//            case TOWNSFOLK -> "Townsfolk";
-//            case OUTSIDER -> "Outsider";
-//            case MINION -> "Minion";
-//            case DEMON -> "Demon";
-//            case FABLED -> "Fabled";
-//            case LORIC -> "Loric";
-//            case TRAVELLER -> "Traveller";
-//        };
-//    }
+    /**
+     * Get the team enum from a string.
+     * @param teamStr the team string
+     * @return the corresponding team enum
+     */
+    public static Team fromString(String teamStr) {
+        return switch (teamStr.toLowerCase()) {
+            case "townsfolk" -> TOWNSFOLK;
+            case "outsider" -> OUTSIDER;
+            case "minion" -> MINION;
+            case "demon" -> DEMON;
+            case "fabled" -> FABLED;
+            case "loric" -> LORIC;
+            case "traveller" -> TRAVELLER;
+            default -> throw new IllegalArgumentException("Unknown team: " + teamStr);
+        };
+    }
 
+    /**
+     * Get the string id representation of the team.
+     * @return the team id
+     */
+    @Override
+    public String toString() {
+        return switch (this) {
+            case TOWNSFOLK -> "townsfolk";
+            case OUTSIDER -> "outsider";
+            case MINION -> "minion";
+            case DEMON -> "demon";
+            case FABLED -> "fabled";
+            case LORIC -> "loric";
+            case TRAVELLER -> "traveller";
+        };
+    }
+
+    /**
+     * Get the team name as an unformatted {@code Text}, to be used where applicable.
+     * @return An unformatted {@code Text} containing the team name.
+     */
     public MutableText toText() {
-        return Text.literal(this.toString());
+        return Text.literal(switch (this) {
+            case TOWNSFOLK -> "Townsfolk";
+            case OUTSIDER -> "Outsider";
+            case MINION -> "Minion";
+            case DEMON -> "Demon";
+            case FABLED -> "Fabled";
+            case LORIC -> "Loric";
+            case TRAVELLER -> "Traveller";
+        });
     }
 
     /**
@@ -69,24 +97,6 @@ public enum Team {
     }
 
     /**
-     * Get the team enum from a string.
-     * @param teamStr the team string
-     * @return the corresponding team enum
-     */
-    public static Team fromString(String teamStr) {
-        return switch (teamStr.toLowerCase()) {
-            case "townsfolk" -> TOWNSFOLK;
-            case "outsider" -> OUTSIDER;
-            case "minion" -> MINION;
-            case "demon" -> DEMON;
-            case "fabled" -> FABLED;
-            case "loric" -> LORIC;
-            case "traveller" -> TRAVELLER;
-            default -> throw new IllegalArgumentException("Unknown team: " + teamStr);
-        };
-    }
-
-    /**
      * Get the default alignment for this team.
      * Note that players can change alignment through gameplay.
      * @return the default alignment for this team
@@ -100,12 +110,14 @@ public enum Team {
         };
     }
 
-    /** Alignment enum for the team. */
+    /**
+     * Alignment enum for the team.
+     */
     public enum Alignment {
         GOOD,
         EVIL,
-        NPC,
-        NEUTRAL;
+        NEUTRAL,
+        NPC;
 
         public String toString() {
             return switch (this) {
@@ -122,8 +134,7 @@ public enum Team {
 
         /**
          * Get the colour associated with this alignment.
-         * Note that team colours should be used for most purposes; alignment colours are
-         * primarily for special cases like swapped alignment indicators.
+         * Note that team colours should be used for most purposes.
          * @param dark whether to use the dark variant of the colour
          * @return the colour formatting for this alignment
          */
@@ -133,16 +144,6 @@ public enum Team {
                 case EVIL -> dark ? Formatting.DARK_RED : Formatting.RED;
                 case NPC -> dark ? Formatting.BLACK : Formatting.GRAY;
                 case NEUTRAL -> dark ? Formatting.DARK_PURPLE : Formatting.LIGHT_PURPLE;
-            };
-        }
-
-        public static Alignment fromString(String alignmentStr) {
-            return switch (alignmentStr.toLowerCase()) {
-                case "good" -> GOOD;
-                case "evil" -> EVIL;
-                case "npc" -> NPC;
-                case "neutral" -> NEUTRAL;
-                default -> throw new IllegalArgumentException("Unknown alignment: " + alignmentStr);
             };
         }
     }
