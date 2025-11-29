@@ -76,6 +76,38 @@ public record Character(String id,
     }
 
     /**
+     * Constructs a Character from a partial Character, filling in missing fields from the baseCharacters array.
+     * @param character The partial Character object.
+     * @return A (hopefully) complete Character object.
+     */
+    public static Character fromPartialCharacter(Character character) {
+        if (character.id() == null) {
+            throw new IllegalArgumentException("Character id cannot be null");
+        }
+        if (baseCharacters == null) {
+            botc.LOGGER.warn("Base characters not loaded yet, returning partial character as is.");
+            return character;
+        }
+        Character baseCharacter = findCharacterById(character.id());
+        return new Character(
+                character.id(),
+                character.name() != null ? character.name() : baseCharacter.name(),
+                character.team() != null ? character.team() : baseCharacter.team(),
+                character.ability() != null ? character.ability() : baseCharacter.ability(),
+                character.image() != null ? character.image() : baseCharacter.image(),
+                character.edition() != null ? character.edition() : baseCharacter.edition(),
+                character.flavor() != null ? character.flavor() : baseCharacter.flavor(),
+                character.firstNight() != 0 ? character.firstNight() : baseCharacter.firstNight(),
+                character.firstNightReminder() != null ? character.firstNightReminder() : baseCharacter.firstNightReminder(),
+                character.otherNight() != 0 ? character.otherNight() : baseCharacter.otherNight(),
+                character.otherNightReminder() != null ? character.otherNightReminder() : baseCharacter.otherNightReminder(),
+                character.reminders() != null ? character.reminders() : baseCharacter.reminders(),
+                character.remindersGlobal() != null ? character.remindersGlobal() : baseCharacter.remindersGlobal(),
+                character.setup() || baseCharacter.setup(),
+                character.jinxes != null ? character.jinxes() : baseCharacter.jinxes());
+    }
+
+    /**
      * Finds a TestCharacter by its id from the baseCharacters array.
      * @param id The id of the character to find.
      * @return The TestCharacter with the matching id.
@@ -86,7 +118,12 @@ public record Character(String id,
                 return character;
             }
         }
-        throw new IllegalArgumentException("No TestCharacter found with id: " + id);
+        return new Character(id, id,
+                null,"",null,null,null,
+                0,null,
+                0,null,null,null,
+                false,null
+                );
     }
 
     /**

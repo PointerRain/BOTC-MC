@@ -82,12 +82,25 @@ public record Script(Meta meta,
     }
 
     public static Script fromId(String scriptId) {
+        if (botc.scripts.isEmpty()) {
+            botc.LOGGER.warn("Scripts map is empty. Lookup for script '{}' will fail.", scriptId);
+            return null;
+        }
         Script scriptData = botc.scripts.get(scriptId);
         if (scriptData == null) {
             scriptData = botc.scripts.get(scriptId + ".json");
             if (scriptData == null) {
                 botc.LOGGER.error("Script with ID '{}' not found.", scriptId);
             }
+        }
+        if (scriptData == null || Character.baseCharacters == null) {
+            return scriptData;
+        }
+        for (Character character : scriptData.characters) {
+            Character fullCharacter = Character.fromPartialCharacter(character);
+            // Replace character in the script's character list
+            int index = scriptData.characters.indexOf(character);
+            scriptData.characters.set(index, fullCharacter);
         }
         return scriptData;
     }
