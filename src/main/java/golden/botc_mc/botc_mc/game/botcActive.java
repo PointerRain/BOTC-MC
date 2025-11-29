@@ -12,13 +12,7 @@ import xyz.nucleoid.plasmid.api.game.player.JoinOffer;
 import xyz.nucleoid.plasmid.api.game.player.PlayerSet;
 import xyz.nucleoid.plasmid.api.game.rule.GameRuleType;
 import xyz.nucleoid.plasmid.api.util.PlayerRef;
-import net.minecraft.component.ComponentChanges;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
 import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundEvents;
@@ -26,7 +20,6 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.world.GameMode;
 import golden.botc_mc.botc_mc.game.map.botcMap;
-import golden.botc_mc.botc_mc.game.state.BotcGameState;
 import golden.botc_mc.botc_mc.game.state.GameLifecycleStatus;
 import xyz.nucleoid.stimuli.event.EventResult;
 import xyz.nucleoid.stimuli.event.player.PlayerDamageEvent;
@@ -239,32 +232,6 @@ public class botcActive {
             }
         }
     }
-
-    // private void giveStarterItems() {
-    //     // MinecraftServer server = world.getServer(); // I still need to confirm this will just select the current minigame sub-server not the entire server
-
-
-    //     ItemStack stack = new ItemStack(Items.DIAMOND, 1);
-    //     stack.set(DataComponentTypes.CUSTOM_NAME, Text.literal("Hello"));
-    //     LoreComponent lore = new LoreComponent(
-    //         List.of(
-    //             Text.literal("Line 1"),
-    //             Text.literal("Line 2")
-    //         )
-    //     );
-    //     stack.set(DataComponentTypes.LORE, lore);
-
-        
-        
-    //     for (ServerPlayerEntity player : this.gameSpace.getPlayers().participants()) {
-    //         // Force-set item into slot 5 (0–35 = main inventory, 36–44 = armour/offhand)
-    //         player.getInventory().setStack(7, stack.copy());
-    //         player.getInventory().setStack(8, stack.copy());
-
-    //         // Sync to client
-    //         player.currentScreenHandler.sendContentUpdates();
-    //     }
-    // }
 
     private void handleGameStarting() {
         if (startingLogged) {
