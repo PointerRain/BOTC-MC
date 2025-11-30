@@ -11,6 +11,9 @@ public final class botcSettingsManager {
 
     private botcSettingsManager() {}
 
+    /** Centralized static accessor for current mutable BOTC settings.
+     * @return current settings instance (loads if necessary).
+     */
     public static synchronized botcSettings get() {
         if (settings == null) {
             settings = botcSettings.load();
@@ -18,6 +21,10 @@ public final class botcSettingsManager {
         return settings;
     }
 
+    /** Set an integer value in settings and auto-save.
+     * @param key settings key
+     * @param value integer value
+     */
     public static synchronized void setInt(String key, int value) {
         botcSettings s = get();
         switch (key) {
@@ -31,6 +38,10 @@ public final class botcSettingsManager {
         }
     }
 
+    /** Retrieve an integer setting value.
+     * @param key settings key
+     * @return integer value by key or throws if unknown
+     */
     public static synchronized int getInt(String key) {
         botcSettings s = get();
         return switch (key) {
@@ -44,12 +55,17 @@ public final class botcSettingsManager {
         };
     }
 
+    /** Array of recognized integer setting keys.
+     * @return immutable array of keys
+     */
     public static synchronized String[] keys() {
         return new String[]{"timeLimitSecs", "players", "dayDiscussionSecs", "nominationSecs", "executionSecs", "nightSecs"};
     }
 
+    /** Save current settings snapshot to disk.
+     * @throws IOException if an I/O error occurs
+     */
     public static synchronized void save() throws IOException {
         get().save();
     }
 }
-

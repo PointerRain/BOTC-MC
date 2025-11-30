@@ -1,0 +1,36 @@
+{
+  "voice": {
+    "voice_regions": [
+      {
+        "id": "Voice-Region-3",
+        "groupName": "Voice-Region-3",
+        "groupId": "c3fff7e4-c1e9-4f06-a825-36a3bb7aebe3",
+        "cornerA": { "x": -30, "y": -1073741824, "z": 12 },
+        "cornerB": { "x": -26, "y": 1073741823, "z": 16 }
+      },
+      {
+        "id": "Voice-Region-2",
+        "groupName": "Voice-Region-2",
+        "groupId": "40a4a13d-bd72-483d-b117-b06503aecfe8",
+        "cornerA": { "x": -43, "y": -1073741824, "z": -12 },
+        "cornerB": { "x": -26, "y": 1073741823, "z": 6 }
+      },
+      {
+        "id": "Voice-Region-1",
+        "groupName": "Voice-Region-1",
+        "groupId": "7d4e4651-aa8d-49c4-b258-3a1e71afab64",
+        "cornerA": { "x": -43, "y": -1073741824, "z": -32 },
+        "cornerB": { "x": -26, "y": 1073741823, "z": -16 }
+      }
+    ],
+    "voice_groups": [
+      {
+        "name": "Test",
+        "hidden": false,
+        "persistent": true,
+        "type": "NORMAL",
+        "voicechatId": "62b8f580-3538-4553-9cb3-07bff44b11eb"
+      }
+    ]
+  }
+}
