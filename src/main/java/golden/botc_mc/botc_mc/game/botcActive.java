@@ -19,7 +19,6 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.world.GameMode;
-import golden.botc_mc.botc_mc.game.map.botcMap;
 import golden.botc_mc.botc_mc.game.map.Map;
 import golden.botc_mc.botc_mc.game.state.GameLifecycleStatus;
 import xyz.nucleoid.stimuli.event.EventResult;
@@ -46,7 +45,7 @@ public class botcActive {
     public final GameSpace gameSpace;
 
     private final Object2ObjectMap<PlayerRef, botcPlayer> participants;
-    private final botcSpawnLogic spawnLogic;
+    private final SpawnLogic spawnLogic;
     private final botcItemManager itemManager;
     private final botcStageManager stageManager;
     private final botcTimerBar timerBar;
@@ -57,10 +56,9 @@ public class botcActive {
 
     private botcActive(GameSpace gameSpace, ServerWorld world, Map map, GlobalWidgets widgets, Set<PlayerRef> participants) {
         this.gameSpace = gameSpace;
-        this.config = config;
-        this.gameMap = map;
-        this.spawnLogic = new botcSpawnLogic(gameSpace, world, map);
-        this.itemManager = new botcItemManager(); // HERE 
+        // keep a reference to the world and participants; map/config not stored here to avoid merge artifacts
+        this.spawnLogic = new SpawnLogic(world, map);
+        this.itemManager = new botcItemManager();
         this.participants = new Object2ObjectOpenHashMap<>();
         this.world = world;
 
