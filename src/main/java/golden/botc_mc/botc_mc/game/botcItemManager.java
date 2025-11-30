@@ -13,19 +13,10 @@ import java.util.*;
 
 
 public class botcItemManager {
-    // public ItemStack generateStack(botcPlayer player) {
     private ItemStack generateWritableBook() {
         ItemStack stack = new ItemStack(Items.WRITABLE_BOOK);
 
-        // String character = "Washerwoman";
-        // // player.getPlayer
-        // WritableBookContentComponent contentComponent = new WritableBookContentComponent(List.of(
-        //         // RawFilteredPair.of("Hello!"),
-        //         // RawFilteredPair.of("This is a notebook for player: " + name),
-        //         RawFilteredPair.of("Your character is: " + character)
-        // ));
-        // stack.set(DataComponentTypes.WRITABLE_BOOK_CONTENT, contentComponent);
-
+        // TODO: Prefill writable book with some info (current players, current role, etc)
         return stack;
     }
 
