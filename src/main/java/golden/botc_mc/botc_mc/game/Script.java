@@ -11,12 +11,15 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Represents a script in the BOTC game, containing meta information and a list of characters.
@@ -62,7 +65,7 @@ public record Script(Meta meta, List<Character> characters) {
                 .create();
         Script scriptData = null;
         try (var stream = resource.getInputStream()) {
-            var reader = new java.io.InputStreamReader(stream, java.nio.charset.StandardCharsets.UTF_8);
+            var reader = new InputStreamReader(stream, StandardCharsets.UTF_8);
             scriptData = gson.fromJson(reader, Script.class);
             botc.LOGGER.info("Read script {}", scriptData.meta.name());
         } catch (Exception e) {
@@ -139,25 +142,26 @@ public record Script(Meta meta, List<Character> characters) {
     /**
      * Get the order of actions for the first night.
      * @param isTeensy Whether the game is in teensy mode.
-     * @return The list of character IDs in the order they act on the first night.
+     * @return The list of NightActions in the order they act on the first night.
      */
-    public List<String> firstNightOrder(boolean isTeensy) {
-        List<String> order;
+    public List<NightAction> firstNightOrder(boolean isTeensy) {
+        ArrayList<NightAction> order = new ArrayList<>();
         if (meta.firstNight != null && !meta.firstNight.isEmpty()) {
             // Use predefined first night order from meta
-            order = meta.firstNight;
+            meta.firstNight.forEach(s -> order.add(NightAction.firstNightAction(this, s)));
         } else {
-            order = new ArrayList<>();
             // Sort characters by firstNight value
             characters.stream()
+                    .filter(c -> c.firstNight() > 0 && c.firstNightReminder() != null && !c.firstNightReminder().isEmpty())
                     .sorted(Comparator.comparingInt(Character::firstNight))
-                    .forEach(c -> order.add(c.id()));
+                    .map(NightAction::firstNightAction)
+                    .forEach(order::add);
             if (!isTeensy) {
-                order.addFirst("minioninfo");
-                order.addFirst("demoninfo");
+                order.addFirst(NightAction.DEMONINFO);
+                order.addFirst(NightAction.MINIONINFO);
             }
-            order.addFirst("dusk");
-            order.add("dawn");
+            order.addFirst(NightAction.DUSK);
+            order.add(NightAction.DAWN);
         }
 
         return order;
@@ -165,24 +169,30 @@ public record Script(Meta meta, List<Character> characters) {
 
     /**
      * Get the order of actions for the first night without teensy mode.
-     * @return The list of character IDs in the order they act on the first night.
+     * @return The list of NightActions in the order they act on the first night.
      */
-    public List<String> firstNightOrder() {
+    public List<NightAction> firstNightOrder() {
         return firstNightOrder(false);
     }
 
-    public List<String> otherNightOrder() {
-        List<String> order;
+    /**
+     * Get the order of actions for nights other than the first.
+     * @return The list of NightActions in the order they act on nights other than the first.
+     */
+    public List<NightAction> otherNightOrder() {
+        List<NightAction> order = new ArrayList<>();
         if (meta.otherNight != null && !meta.otherNight.isEmpty()) {
-            order = meta.otherNight;
+            // Use predefined other night order from meta
+            meta.otherNight.forEach(s -> order.add(NightAction.otherNightAction(this, s)));
         } else {
-            order = new ArrayList<>();
             // Sort characters by otherNight value
             characters.stream()
+                    .filter(c -> c.otherNight() > 0 && c.otherNightReminder() != null && !c.otherNightReminder().isEmpty())
                     .sorted(Comparator.comparingInt(Character::otherNight))
-                    .forEach(c -> order.add(c.id()));
-            order.addFirst("dusk");
-            order.add("dawn");
+                    .map(NightAction::otherNightAction)
+                    .forEach(order::add);
+            order.addFirst(NightAction.DUSK);
+            order.add(NightAction.DAWN);
         }
 
         return order;
@@ -211,10 +221,6 @@ public record Script(Meta meta, List<Character> characters) {
             }
         }
         return jinxes;
-    }
-
-    public List<Jinx> getJinxesForCharacter(String characterId) {
-        return getJinxesForCharacter(new Character(characterId));
     }
 
     /**
@@ -296,5 +302,105 @@ public record Script(Meta meta, List<Character> characters) {
                 Codec.STRING.fieldOf("id").forGetter(Jinx::id),
                 Codec.STRING.fieldOf("reason").forGetter(Jinx::reason)
         ).apply(instance, Jinx::new));
+    }
+
+    /**
+     * Represents a night action in the game.
+     * Contains information about the action's ID, name, reminder text, and colour provider.
+     */
+    public static class NightAction {
+        public static NightAction DUSK = new NightAction("dusk", "Dusk", "Start the Night Phase.",
+                b -> Formatting.GRAY);
+        public static NightAction DAWN = new NightAction("dawn", "Dawn", "The night ends.",
+                b -> Formatting.GRAY);
+        public static NightAction MINIONINFO = new NightAction("minioninfo",
+                "Minion Info",
+                "If there are 7 or more players, wake all Minions: Show the THIS IS THE DEMON token. Point to the " +
+                        "Demon. Show the THESE ARE YOUR MINIONS token. Point to the other Minions.",
+                Team.MINION::getColour);
+        public static NightAction DEMONINFO = new NightAction("demoninfo",
+                "Demon Info",
+                "If there are 7 or more players, wake the Demon: Show the THESE ARE YOUR MINIONS token. Point to all " +
+                        "Minions. Show the THESE CHARACTERS ARE NOT IN PLAY token. Show 3 not-in-play good character " +
+                        "tokens.",
+                Team.DEMON::getColour);
+
+        String id;
+        String name;
+        String reminder;
+        Function<Boolean, Formatting> colourProvider;
+
+        public NightAction(String id, String name, String reminder, Function<Boolean, Formatting> colourProvider) {
+            this.id = id;
+            this.name = name;
+            this.reminder = reminder;
+            this.colourProvider = colourProvider;
+        }
+
+        // Construct NightAction from Character and reminder
+        public NightAction(Character character, String reminder) {
+            this(character.id(),
+                    character.name(),
+                    reminder,
+                    character.team() != null ? character.team()::getColour : b -> Formatting.BLACK);
+        }
+
+        // Static factory methods for creating NightActions
+
+        // Creates a NightAction for the first night for a given character
+        public static NightAction firstNightAction(Character character) {
+            return new NightAction(character, character.firstNightReminder());
+        }
+
+        // Creates a NightAction for the first night for a given character ID in a script
+        public static NightAction firstNightAction(Script script, String characterId) {
+            switch (characterId) {
+                case "dusk":
+                    return DUSK;
+                case "dawn":
+                    return DAWN;
+                case "minioninfo":
+                    return MINIONINFO;
+                case "demoninfo":
+                    return DEMONINFO;
+            }
+            Character character = script.characters().stream()
+                    .filter(c -> c.id().equals(characterId))
+                    .findFirst().orElseThrow();
+            return new NightAction(character, character.firstNightReminder());
+        }
+
+        // Creates a NightAction for nights other than the first for a given character
+        public static NightAction otherNightAction(Character character) {
+            return new NightAction(character, character.otherNightReminder());
+        }
+
+        // Creates a NightAction for nights other than the first for a given character ID in a script
+        public static NightAction otherNightAction(Script script, String characterId) {
+            switch (characterId) {
+                case "dusk":
+                    return DUSK;
+                case "dawn":
+                    return DAWN;
+            }
+            Character character = script.characters().stream()
+                    .filter(c -> c.id().equals(characterId))
+                    .findFirst().orElseThrow();
+            return new NightAction(character, character.otherNightReminder());
+        }
+
+        /**
+         * Get the formatted text representation of the night action's name with appropriate colour.
+         * @return The formatted text of the night action's name.
+         */
+        public MutableText toFormattedText() {
+            MutableText text = (MutableText) Text.of(name);
+            return text.formatted(colourProvider.apply(false));
+        }
+
+        @Override
+        public String toString() {
+            return "NightAction[id='" + id + "', name='" + name + "', reminder='" + reminder + "']";
+        }
     }
 }
