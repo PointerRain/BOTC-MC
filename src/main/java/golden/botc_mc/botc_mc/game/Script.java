@@ -8,6 +8,7 @@ import golden.botc_mc.botc_mc.botc;
 import net.minecraft.resource.Resource;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -100,6 +101,7 @@ public record Script(Meta meta, List<Character> characters) {
     /**
      * Convert the script's colour array to an integer representation.
      * @return The integer representation of the colour.
+     * NOTE: Returns 0xFFFFFF (white) if colour is not defined.
      */
     public int colourInt() {
         if (meta.colour == null || meta.colour.length < 3) {
@@ -114,6 +116,7 @@ public record Script(Meta meta, List<Character> characters) {
     /**
      * Convert the script's colour array to a hexadecimal string representation.
      * @return The hexadecimal string representation of the colour.
+     * NOTE: Returns "#FFFFFF" (white) if colour is not defined.
      */
     public String colourHex() {
         return String.format("#%06X", colourInt());
@@ -124,7 +127,11 @@ public record Script(Meta meta, List<Character> characters) {
      * @return The formatted name of the script.
      */
     public MutableText toFormattedText() {
-        return ((MutableText) Text.of(meta.name())).withColor(colourInt());
+        MutableText text = (MutableText) Text.of(meta.name());
+        if (meta.colour == null || meta.colour.length < 3) {
+            return text;
+        }
+        return text.withColor(colourInt());
     }
 
     /**

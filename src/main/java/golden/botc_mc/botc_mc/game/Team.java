@@ -81,7 +81,7 @@ public enum Team {
             case OUTSIDER -> dark ? Formatting.DARK_AQUA : Formatting.AQUA;
             case MINION -> Formatting.RED;
             case DEMON -> Formatting.DARK_RED;
-            case FABLED -> dark ? Formatting.GOLD : Formatting.YELLOW;
+            case FABLED -> Formatting.GOLD;
             case LORIC -> dark ? Formatting.DARK_GREEN : Formatting.GREEN;
             case TRAVELLER -> dark ? Formatting.DARK_PURPLE : Formatting.LIGHT_PURPLE;
         };
