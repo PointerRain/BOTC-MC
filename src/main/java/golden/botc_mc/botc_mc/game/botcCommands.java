@@ -80,6 +80,33 @@ public final class botcCommands {
                             )
                     )
             );
+
+            // /botc map set <mapId>
+            root.then(
+                literal("map")
+                    .then(
+                        literal("set")
+                            .then(
+                                CommandManager.argument("mapId", StringArgumentType.greedyString())
+                                    .executes(ctx -> {
+                                        String mapId = StringArgumentType.getString(ctx, "mapId");
+                                        try {
+                                            botcSettingsManager.setString("mapId", mapId);
+                                            botcSettingsManager.save();
+                                            ctx.getSource().sendFeedback(() -> Text.literal("Set map to: " + mapId), false);
+                                            if (ctx.getSource().getEntity() instanceof ServerPlayerEntity player) {
+                                                player.sendMessage(Text.literal("Map will be loaded on next game start: " + mapId), false);
+                                            }
+                                            return 1;
+                                        } catch (IllegalArgumentException | IOException ex) {
+                                            ctx.getSource().sendError(Text.literal("Failed to set map: " + ex.getMessage()));
+                                            return 0;
+                                        }
+                                    })
+                            )
+                    )
+            );
+
             dispatcher.register(root);
         });
     }
@@ -95,6 +122,14 @@ public final class botcCommands {
         for (String key : botcSettingsManager.keys()) {
             int value = botcSettingsManager.getInt(key);
             player.sendMessage(Text.literal(" - " + key + " = " + value + " (use: /botc set " + key + " <value>)"), false);
+        }
+
+        // Show string settings
+        for (String key : botcSettingsManager.stringKeys()) {
+            String value = botcSettingsManager.getString(key);
+            if ("mapId".equals(key)) {
+                player.sendMessage(Text.literal(" - " + key + " = " + value + " (use: /botc map set <mapId>)"), false);
+            }
         }
 
         player.sendMessage(Text.literal("-------------------------"), false);
