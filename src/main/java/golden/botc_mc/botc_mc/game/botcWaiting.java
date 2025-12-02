@@ -52,7 +52,7 @@ public class botcWaiting {
         botcConfig effectiveConfig = settings.applyTo(context.config());
         botc.LOGGER.info("Opening game with script: {}", effectiveConfig.script());
 
-        Identifier mapId = effectiveConfig.mapId();
+        Identifier mapId = effectiveConfig.mapId() != null ? effectiveConfig.mapId() : Identifier.of(settings.mapId);
         Map map = Map.load(context.server(), mapId);
 
         RuntimeWorldConfig worldConfig = new RuntimeWorldConfig()

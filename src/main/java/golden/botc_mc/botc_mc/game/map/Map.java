@@ -1,6 +1,9 @@
 package golden.botc_mc.botc_mc.game.map;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.List;
 import net.minecraft.server.MinecraftServer;
@@ -73,6 +76,36 @@ public final class Map {
     }
 
     /**
+     * Resolve a logical map id to a template Identifier using map_config files.
+     * Map config files are located under data/botc-mc/map_config/<id>.json and contain a single field:
+     * { "template": "botc-mc:test" }
+     * If not found or invalid, fallback to given id.
+     */
+    private static Identifier resolveTemplateId(MinecraftServer server, Identifier id) {
+        try {
+            Path root = server.getDataPackManager().getResourcePackContainer().getPath(); // may not be accessible; fallback to project root
+        } catch (Throwable ignored) {}
+        // Fallback simple resolution: look in classpath resources under data/botc-mc/map_config
+        String path = "data/botc-mc/map_config/" + id.getPath() + ".json";
+        try (var in = Map.class.getClassLoader().getResourceAsStream(path)) {
+            if (in != null) {
+                String json = new String(in.readAllBytes());
+                int idx = json.indexOf("\"template\"");
+                if (idx >= 0) {
+                    int colon = json.indexOf(":", idx);
+                    int quote1 = json.indexOf('"', colon);
+                    int quote2 = json.indexOf('"', quote1 + 1);
+                    if (quote1 > 0 && quote2 > quote1) {
+                        String template = json.substring(quote1 + 1, quote2).trim();
+                        return Identifier.of(template);
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+        return id;
+    }
+
+    /**
      * Load map template and derive respawn metadata.
      * @param server Minecraft server for resource access
      * @param identifier namespaced id (e.g. {@code botc-mc:test})
@@ -81,10 +114,11 @@ public final class Map {
      */
     public static Map load(MinecraftServer server, Identifier identifier) {
         MapTemplate template;
+        Identifier templateId = resolveTemplateId(server, identifier);
         try {
-            template = MapTemplateSerializer.loadFromResource(server, identifier);
+            template = MapTemplateSerializer.loadFromResource(server, templateId);
         } catch (IOException e) {
-            String msg = "Map load failed for " + identifier + ": " + e.getMessage();
+            String msg = "Map load failed for " + templateId + ": " + e.getMessage();
             LOGGER.error(msg, e);
             throw new GameOpenException(Text.of(msg));
         }

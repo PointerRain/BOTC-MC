@@ -14,25 +14,11 @@ import net.minecraft.resource.ResourceType;
 import net.minecraft.util.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-<<<<<<< HEAD
 import xyz.nucleoid.plasmid.api.game.GameType;
 
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
-=======
-import golden.botc_mc.botc_mc.game.botcConfig;
-import golden.botc_mc.botc_mc.game.botcWaiting;
-import golden.botc_mc.botc_mc.game.botcCommands;
-import golden.botc_mc.botc_mc.game.voice.VoiceRegionManager;
-import golden.botc_mc.botc_mc.game.voice.VoiceRegionTask;
-import golden.botc_mc.botc_mc.game.voice.VoiceRegionService;
-import golden.botc_mc.botc_mc.game.voice.VoicechatPlugin;
-import golden.botc_mc.botc_mc.game.voice.SvcBridge;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.minecraft.server.MinecraftServer;
->>>>>>> main
-
-import java.lang.reflect.Method;
 
 /**
  * Primary mod entrypoint and game type registration for BOTC.
@@ -52,7 +38,8 @@ public class botc implements ModInitializer {
     public botc() {}
 
     private void registerGameType() {
-        Identifier id = Identifier.of(ID, "game");
+        // Register under legacy id to support existing datapacks: botc-mc:botc-mc
+        Identifier id = Identifier.of(ID, "botc-mc");
         try {
             // Reflectively obtain (possibly deprecated) register method: register(Identifier, MapCodec, GameType.Open)
             java.lang.reflect.Method registerMethod = GameType.class.getDeclaredMethod(
@@ -62,10 +49,9 @@ public class botc implements ModInitializer {
                     GameType.Open.class
             );
             registerMethod.setAccessible(true);
-            // Explicit lambda wrapped in a variable avoids method reference varargs inference issues.
             GameType.Open<botcConfig> openFn = botcWaiting::open;
             registerMethod.invoke(null, id, botcConfig.MAP_CODEC, openFn);
-            LOGGER.info("Registered BOTC GameType reflectively." );
+            LOGGER.info("Registered BOTC GameType reflectively (id={} ).", id);
         } catch (Throwable t) {
             LOGGER.error("Failed to register BOTC GameType reflectively: {}", t.toString());
         }
