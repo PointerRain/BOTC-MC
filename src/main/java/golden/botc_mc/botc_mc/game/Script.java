@@ -228,6 +228,21 @@ public record Script(Meta meta, List<Character> characters) {
         return allJinxes;
     }
 
+    /**
+     * Get all characters belonging to a specific team.
+     * @param team The team to filter characters by.
+     * @return A list of characters belonging to the specified team.
+     */
+    public List<Character> getCharactersByTeam(Team team) {
+        List<Character> teamCharacters = new ArrayList<>();
+        for (Character character : characters) {
+            if (character.team().equals(team)) {
+                teamCharacters.add(character);
+            }
+        }
+        return teamCharacters;
+    }
+
     @Override
     public @NotNull String toString() {
         return "Script[name='" + meta.name + "', author='" + meta.author + "', logo='" + meta.logo +
