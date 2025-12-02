@@ -14,14 +14,26 @@ import java.io.IOException;
 import static net.minecraft.server.command.CommandManager.literal;
 
 /**
- * Server-side commands to configure BOTC settings in-game via a simple text menu.
- * - /botc settings : shows a list of settings and instructions
- * - /botc set <key> <value> : sets an integer value and saves to disk
+ * Command registration helpers for BOTC.
+ * <p>
+ * Exposes admin-only runtime commands to inspect and mutate BOTC settings.
+ * Commands are registered via Fabric's CommandRegistrationCallback and are
+ * intended to be executed by server operators only (permission level 4).
  */
 public final class botcCommands {
+    /** Register the command tree with the dispatcher.
+     * <p>
+     * Top-level command: {@code /botc}
+     * <ul>
+     *   <li>{@code /botc settings} : show editable runtime settings to the executing player</li>
+     *   <li>{@code /botc set <key> <value>} : sets an integer value and saves to disk
+     *       (use {@code /botc set} with a key from {@link botcSettingsManager#keys()})</li>
+     * </ul>
+     */
     public static void register() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            LiteralArgumentBuilder<ServerCommandSource> root = literal("botc");
+            LiteralArgumentBuilder<ServerCommandSource> root = literal("botc")
+                    .requires(src -> src.hasPermissionLevel(4)); // admin-only
 
             root.then(literal("settings").executes(ctx -> {
                 ServerCommandSource src = ctx.getSource();
@@ -68,11 +80,15 @@ public final class botcCommands {
                             )
                     )
             );
-
             dispatcher.register(root);
         });
     }
 
+    /**
+     * Send a compact textual menu listing the current editable settings for a player.
+     * This is a convenience helper used by the {@code /botc settings} command.
+     * @param player player to show the menu to
+     */
     private static void showSettingsMenu(ServerPlayerEntity player) {
         player.sendMessage(Text.literal("----- BOTC Settings -----"), false);
 
@@ -83,4 +99,7 @@ public final class botcCommands {
 
         player.sendMessage(Text.literal("-------------------------"), false);
     }
+
+    /** Hidden constructor to prevent instantiation. */
+    private botcCommands() {}
 }

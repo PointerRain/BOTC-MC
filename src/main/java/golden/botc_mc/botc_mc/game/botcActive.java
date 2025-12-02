@@ -19,8 +19,7 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.world.GameMode;
-import golden.botc_mc.botc_mc.game.map.botcMap;
-import golden.botc_mc.botc_mc.game.state.BotcGameState;
+import golden.botc_mc.botc_mc.game.map.Map;
 import golden.botc_mc.botc_mc.game.state.GameLifecycleStatus;
 import xyz.nucleoid.stimuli.event.EventResult;
 import xyz.nucleoid.stimuli.event.player.PlayerDamageEvent;
@@ -30,30 +29,33 @@ import java.util.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import golden.botc_mc.botc_mc.botc;
 
+/**
+ * Active game session controller for a Blood on the Clocktower match.
+ * <p>
+ * Controls participant/spectator lifecycle and connects the stage manager to the Plasmid game loop.
+ * The {@link #open(GameSpace, ServerWorld, Map)} method registers listeners and rules; the instance
+ * manages per-tick updates and shutdown semantics.
+ */
 public class botcActive {
     private static final Logger LOG = LoggerFactory.getLogger("botc-mc");
 
-    private final botcConfig config;
-
+    /** Plasmid game space hosting the session. */
     public final GameSpace gameSpace;
-    private final botcMap gameMap;
 
     private final Object2ObjectMap<PlayerRef, botcPlayer> participants;
-    private final botcSpawnLogic spawnLogic;
+    private final SpawnLogic spawnLogic;
     private final botcStageManager stageManager;
-    private final boolean ignoreWinState;
     private final botcTimerBar timerBar;
     private final ServerWorld world;
 
     private GameLifecycleStatus lifecycleStatus = GameLifecycleStatus.STOPPED;
     private boolean startingLogged = false;
 
-    private botcActive(GameSpace gameSpace, ServerWorld world, botcMap map, GlobalWidgets widgets, botcConfig config, Set<PlayerRef> participants) {
+    private botcActive(GameSpace gameSpace, ServerWorld world, Map map, GlobalWidgets widgets, Set<PlayerRef> participants) {
         this.gameSpace = gameSpace;
-        this.config = config;
-        this.gameMap = map;
-        this.spawnLogic = new botcSpawnLogic(gameSpace, world, map);
+        this.spawnLogic = new SpawnLogic(world, map);
         this.participants = new Object2ObjectOpenHashMap<>();
         this.world = world;
 
@@ -62,26 +64,33 @@ public class botcActive {
         }
 
         this.stageManager = new botcStageManager();
-        this.ignoreWinState = this.participants.size() <= 1;
-        this.timerBar = new botcTimerBar(widgets);
+        this.timerBar = botcTimerBar.of(widgets);
     }
 
-    public static void open(GameSpace gameSpace, ServerWorld world, botcMap map, botcConfig config) {
+    /**
+     * Open an active game using provided map and configuration.
+     * <p>
+     * This method registers all required listeners on the provided {@link GameSpace} and
+     * sets Plasmid game rules to make the session suitable for a BOTC match (no crafting, PVP off, etc.).
+     * @param gameSpace game space to bind
+     * @param world backing overworld instance
+     * @param map loaded map metadata
+     */
+    public static void open(GameSpace gameSpace, ServerWorld world, Map map) {
         gameSpace.setActivity(game -> {
             Set<PlayerRef> participants = gameSpace.getPlayers().participants().stream()
                     .map(PlayerRef::of)
                     .collect(Collectors.toSet());
             GlobalWidgets widgets = GlobalWidgets.addTo(game);
-            botcActive active = new botcActive(gameSpace, world, map, widgets, config, participants);
+            botcActive active = new botcActive(gameSpace, world, map, widgets, participants);
 
             game.setRule(GameRuleType.CRAFTING, EventResult.DENY);
             game.setRule(GameRuleType.PORTALS, EventResult.DENY);
             game.setRule(GameRuleType.PVP, EventResult.DENY);
             game.setRule(GameRuleType.HUNGER, EventResult.DENY);
             game.setRule(GameRuleType.FALL_DAMAGE, EventResult.DENY);
-            game.setRule(GameRuleType.INTERACTION, EventResult.DENY);
+            game.setRule(GameRuleType.USE_BLOCKS, EventResult.DENY);
             game.setRule(GameRuleType.BLOCK_DROPS, EventResult.DENY);
-            game.setRule(GameRuleType.THROW_ITEMS, EventResult.DENY);
             game.setRule(GameRuleType.UNSTABLE_TNT, EventResult.DENY);
 
             game.listen(GameActivityEvents.ENABLE, active::onOpen);
@@ -89,68 +98,83 @@ public class botcActive {
             game.listen(GameActivityEvents.STATE_UPDATE, state -> state.canPlay(false));
 
             game.listen(GamePlayerEvents.OFFER, JoinOffer::acceptSpectators);
-            game.listen(GamePlayerEvents.ACCEPT, joinAcceptor -> joinAcceptor.teleport(world, Vec3d.ZERO));
+            game.listen(GamePlayerEvents.ACCEPT, joinAcceptor -> {
+                Vec3d safe = active.spawnLogic.getSafeSpawnPosition();
+                return joinAcceptor.teleport(world, safe);
+            });
             game.listen(GamePlayerEvents.ADD, active::addPlayer);
             game.listen(GamePlayerEvents.REMOVE, active::removePlayer);
 
             game.listen(GameActivityEvents.TICK, active::tick);
 
-            game.listen(PlayerDamageEvent.EVENT, active::onPlayerDamage);
-            game.listen(PlayerDeathEvent.EVENT, active::onPlayerDeath);
+            game.listen(PlayerDamageEvent.EVENT, (player, source, amount) -> { active.onPlayerDamage(player, source, amount); return EventResult.DENY; });
+            game.listen(PlayerDeathEvent.EVENT, (player, source) -> { active.onPlayerDeath(player, source); return EventResult.DENY; });
         });
     }
 
+    /** Game open hook: spawn existing participants/spectators and initialize the state machine. */
     private void onOpen() {
-        for (var participant : this.gameSpace.getPlayers().participants()) {
-            this.spawnParticipant(participant);
-        }
-        for (var spectator : this.gameSpace.getPlayers().spectators()) {
-            this.spawnSpectator(spectator);
-        }
-
-        this.stageManager.attachContext(this.gameSpace, this.config);
+        for (var participant : this.gameSpace.getPlayers().participants()) this.spawnParticipant(participant);
+        for (var spectator : this.gameSpace.getPlayers().spectators()) this.spawnSpectator(spectator);
+        this.stageManager.attachContext(this.gameSpace);
         this.stageManager.markPlayersPresent(!this.gameSpace.getPlayers().participants().isEmpty());
-        this.stageManager.onOpen(this.world.getTime(), this.config);
-        // Lifecycle transition and game-start logic will be triggered during the first tick() when the
-        // stageManager updates lifecycle state.
+        this.stageManager.onOpen(this.world.getTime());
     }
 
+    /** Game close hook; placeholder for teardown logic (voice region cleanup, etc.). */
     private void onClose() {
-        // TODO teardown logic
+        int participantsCount = this.gameSpace.getPlayers().participants().size();
+        int spectatorsCount = this.gameSpace.getPlayers().spectators().size();
+        LOG.info("[BOTC:CLOSE] Closing game lifecycle={} participants={} spectators={}", this.lifecycleStatus, participantsCount, spectatorsCount);
+        try {
+            golden.botc_mc.botc_mc.game.voice.VoiceRegionService.setActive(null); // clear active voice context (updated signature)
+        } catch (Throwable t) {
+            LOG.warn("[BOTC:CLOSE] Voice region cleanup failed: {}", t.toString());
+        }
+        // Future: flush stats, persist results, release resources.
     }
 
+    /** Add a newly joined player (as spectator if not in participants). */
     private void addPlayer(ServerPlayerEntity player) {
         if (!this.participants.containsKey(PlayerRef.of(player)) || this.gameSpace.getPlayers().spectators().contains(player)) {
             this.spawnSpectator(player);
         }
     }
 
+    /** Remove a player from participant tracking. */
     private void removePlayer(ServerPlayerEntity player) {
         this.participants.remove(PlayerRef.of(player));
     }
 
-    private EventResult onPlayerDamage(ServerPlayerEntity player, DamageSource source, float amount) {
-        // TODO handle damage
+    /** Intercepts damage; prototype logic respawns player and cancels damage.
+     * Listener registration expects EventResult.DENY to suppress default handling.
+     */
+    private void onPlayerDamage(ServerPlayerEntity player, DamageSource source, float amount) {
+        LOG.debug("[BOTC:DAMAGE] player={} amount={} source={}", player.getGameProfile().getName(), amount, source.getName());
         this.spawnParticipant(player);
-        return EventResult.DENY;
     }
 
-    private EventResult onPlayerDeath(ServerPlayerEntity player, DamageSource source) {
-        // TODO handle death
+    /** Intercepts death; prototype respawn and cancels death handling.
+     * Listener registration expects EventResult.DENY to suppress default handling.
+     */
+    private void onPlayerDeath(ServerPlayerEntity player, DamageSource source) {
+        LOG.debug("[BOTC:DEATH] player={} source={}", player.getGameProfile().getName(), source.getName());
         this.spawnParticipant(player);
-        return EventResult.DENY;
     }
 
+    /** Respawn logic for a participant (adventure mode). */
     private void spawnParticipant(ServerPlayerEntity player) {
         this.spawnLogic.resetPlayer(player, GameMode.ADVENTURE);
         this.spawnLogic.spawnPlayer(player);
     }
 
+    /** Respawn logic for a spectator (spectator mode). */
     private void spawnSpectator(ServerPlayerEntity player) {
         this.spawnLogic.resetPlayer(player, GameMode.SPECTATOR);
         this.spawnLogic.spawnPlayer(player);
     }
 
+    /** Per-tick game update: progresses lifecycle, updates timer bar, and handles end conditions. */
     private void tick() {
         long time = this.world.getTime();
 
@@ -168,7 +192,7 @@ public class botcActive {
             case GAME_FINISHED -> {
                 this.lifecycleStatus = GameLifecycleStatus.STOPPING;
                 onLifecycleStateChanged();
-                this.broadcastWin(this.checkWinResult());
+                this.broadcastWin(this.determineWinner());
                 return;
             }
             case GAME_CLOSED -> {
@@ -183,56 +207,42 @@ public class botcActive {
         long total = this.stageManager.getStateDuration();
         this.timerBar.updatePhase(this.stageManager.getCurrentState(), remaining, total);
 
+        if ((time % 100) == 0) {
+            long ticksInState = this.stageManager.getTicksInState();
+            botc.LOGGER.debug("State {} ticksInState={}", this.stageManager.getCurrentState(), ticksInState);
+        }
+
         // TODO tick logic per state
     }
 
-    private void broadcastWin(WinResult result) {
-        ServerPlayerEntity winningPlayer = result.getWinningPlayer();
-
-        Text message;
-        if (winningPlayer != null) {
-            message = winningPlayer.getDisplayName().copy().append(" has won the game!").formatted(Formatting.GOLD);
-        } else {
-            message = Text.literal("The game ended, but nobody won!").formatted(Formatting.GOLD);
-        }
-
+    /** Broadcast the result of a finished game (placeholder win logic). */
+    private void broadcastWin(ServerPlayerEntity winner) {
+        Text message = (winner != null)
+                ? Text.literal(winner.getGameProfile().getName() + " has won the game!").formatted(Formatting.GOLD)
+                : Text.literal("The game ended, but nobody won!").formatted(Formatting.GOLD);
         PlayerSet players = this.gameSpace.getPlayers();
         players.sendMessage(message);
         players.playSound(SoundEvents.ENTITY_VILLAGER_YES);
     }
 
-    private WinResult checkWinResult() {
-        // for testing purposes: don't end the game if we only ever had one participant
-        if (this.ignoreWinState) {
-            return WinResult.no();
-        }
-
-        ServerPlayerEntity winningPlayer = null;
-
-        // TODO win result logic
-        return WinResult.no();
+    /** Compute a win result: trivial prototype selects sole remaining participant if only one remains. */
+    private ServerPlayerEntity determineWinner() {
+        var participantEntities = this.gameSpace.getPlayers().participants();
+        return participantEntities.size() == 1 ? participantEntities.iterator().next() : null;
     }
 
+    /** React to lifecycle state changes (logging and starting hooks). */
     private void onLifecycleStateChanged() {
-        // Log every lifecycle transition and run hooks
         LOG.info("Lifecycle changed to {}", this.lifecycleStatus);
         switch (this.lifecycleStatus) {
-            case STARTING -> {
-                handleGameStarting();
-            }
-            case RUNNING -> {
-                // Additional running-state logging if desired
-                LOG.info("Game is now RUNNING");
-            }
-            case STOPPING -> {
-                LOG.info("Game is STOPPING");
-            }
-            case STOPPED -> {
-                LOG.info("Game is STOPPED");
-            }
+            case STARTING -> handleGameStarting();
+            case RUNNING -> LOG.info("Game is now RUNNING");
+            case STOPPING -> LOG.info("Game is STOPPING");
+            case STOPPED -> LOG.info("Game is STOPPED");
         }
     }
 
+    /** One-time logging hook when the game transitions from STARTING to RUNNING. */
     private void handleGameStarting() {
         if (startingLogged) {
             return; // Already logged starting logic
@@ -241,31 +251,5 @@ public class botcActive {
         // Print a concise console line when the game begins
         int participantCount = this.gameSpace.getPlayers().participants().size();
         LOG.info("Game STARTING at tick {} with {} participant(s)", this.world.getTime(), participantCount);
-    }
-
-    static class WinResult {
-        final ServerPlayerEntity winningPlayer;
-        final boolean win;
-
-        private WinResult(ServerPlayerEntity winningPlayer, boolean win) {
-            this.winningPlayer = winningPlayer;
-            this.win = win;
-        }
-
-        static WinResult no() {
-            return new WinResult(null, false);
-        }
-
-        static WinResult win(ServerPlayerEntity player) {
-            return new WinResult(player, true);
-        }
-
-        public boolean isWin() {
-            return this.win;
-        }
-
-        public ServerPlayerEntity getWinningPlayer() {
-            return this.winningPlayer;
-        }
     }
 }
