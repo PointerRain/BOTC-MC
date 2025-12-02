@@ -14,7 +14,9 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Represents a script in the BOTC game, containing meta information and a list of characters.
@@ -219,11 +221,11 @@ public record Script(Meta meta, List<Character> characters) {
      * Get all jinxes in the script.
      * @return The list of all jinxes.
      */
-    public List<Jinx> getJinxes() {
-        List<Jinx> allJinxes = new ArrayList<>();
+    public Map<Character, List<Jinx>> getJinxes() {
+        HashMap<Character, List<Jinx>> allJinxes = new HashMap<>();
         for (Character character : characters) {
             List<Jinx> characterJinxes = getJinxesForCharacter(character);
-            allJinxes.addAll(characterJinxes);
+            if (!characterJinxes.isEmpty()) allJinxes.put(character, characterJinxes);
         }
         return allJinxes;
     }
