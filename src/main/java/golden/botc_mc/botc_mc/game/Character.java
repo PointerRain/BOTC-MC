@@ -5,8 +5,11 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import golden.botc_mc.botc_mc.botc;
 import net.minecraft.resource.Resource;
+import net.minecraft.text.HoverEvent;
 import net.minecraft.text.MutableText;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -171,6 +174,23 @@ public record Character(String id,
             return this.toText();
         }
         return this.toText().formatted(this.team.getColour(dark));
+    }
+
+    /**
+     * Convert the character's name to a formatted Text object with hover text of the character's ability.
+     * @param dark Whether to use dark mode colors.
+     * @return The character's name as formatted Text with hover text of the ability.
+     */
+    public Text toTextWithHoverAbility(boolean dark) {
+        MutableText text = (MutableText) this.toFormattedText(dark);
+        if (this.ability != null && !this.ability.isEmpty()) {
+            MutableText abilityText = Text.empty();
+            abilityText.append(this.toFormattedText(false));
+            abilityText.append("\n");
+            abilityText.append(Text.literal(this.ability).setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)));
+            text.styled(style -> style.withHoverEvent(new HoverEvent.ShowText(abilityText)));
+        }
+        return text;
     }
 
     @Override
