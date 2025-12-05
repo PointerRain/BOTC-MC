@@ -1,9 +1,5 @@
 package golden.botc_mc.botc_mc.game;
 
-import com.mojang.serialization.Codec;
-import com.mojang.serialization.MapCodec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
-
 /**
  * Phase durations (seconds) for each game phase.
  * <p>
@@ -19,15 +15,6 @@ public record botcPhaseDurations(int dayDiscussionSecs,
                                  int nominationSecs,
                                  int executionSecs,
                                  int nightSecs) {
-
-    public static final MapCodec<botcPhaseDurations> MAP_CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-            Codec.INT.fieldOf("dayDiscussionSecs").orElse(120).forGetter(botcPhaseDurations::dayDiscussionSecs),
-            Codec.INT.fieldOf("nominationSecs").orElse(45).forGetter(botcPhaseDurations::nominationSecs),
-            Codec.INT.fieldOf("executionSecs").orElse(20).forGetter(botcPhaseDurations::executionSecs),
-            Codec.INT.fieldOf("nightSecs").orElse(60).forGetter(botcPhaseDurations::nightSecs)
-    ).apply(instance, botcPhaseDurations::new));
-
-    public static final Codec<botcPhaseDurations> CODEC = MAP_CODEC.codec();
 
     /**
      * Default phase durations

@@ -26,7 +26,6 @@ import golden.botc_mc.botc_mc.game.voice.VoiceRegionService;
 public class botcWaiting {
     private final GameSpace gameSpace;
     private final Map map;
-    private final botcConfig config;
     private final SpawnLogic spawnLogic;
     private final ServerWorld world;
 
@@ -34,9 +33,8 @@ public class botcWaiting {
         this.gameSpace = gameSpace;
         this.world = world;
         this.map = map;
-        this.config = config;
         this.spawnLogic = new SpawnLogic(world, map);
-        System.out.println(this.config.toString());
+        System.out.println(config.toString());
     }
 
     /**
@@ -63,21 +61,22 @@ public class botcWaiting {
             botcWaiting waiting = new botcWaiting(game.getGameSpace(), world, map, effectiveConfig);
             VoiceRegionManager vrm = VoiceRegionManager.forMap(world, mapId);
             VoiceRegionService.setActive(vrm);
-            // Set a safe spawn for the world to avoid initial void placement
-            Vec3d safe = waiting.spawnLogic.getSafeSpawnPosition();
-            world.setSpawnPos(BlockPos.ofFloored(safe), 0.0F);
 
-            // Deny fall damage while in waiting to prevent void deaths before teleport
+            // Compute and set a safe spawn after world is available
+            Vec3d initialSafe = waiting.spawnLogic.getSafeSpawnPosition();
+            world.setSpawnPos(BlockPos.ofFloored(initialSafe), 0.0F);
+
             game.setRule(GameRuleType.FALL_DAMAGE, EventResult.DENY);
 
             game.listen(GameActivityEvents.REQUEST_START, waiting::requestStart);
             game.listen(GamePlayerEvents.ADD, waiting::addPlayer);
             game.listen(GamePlayerEvents.OFFER, JoinOffer::accept);
-            // Teleport accepted players to the map spawn (centered on the block and one block above).
-            // Fallback to Vec3d.ZERO if no spawn is defined to avoid NPEs.
-            game.listen(GamePlayerEvents.ACCEPT, joinAcceptor -> joinAcceptor.teleport(world, safe));
+            // Compute safe spawn at accept time to ensure chunks are generated
+            game.listen(GamePlayerEvents.ACCEPT, joinAcceptor -> {
+                Vec3d safeNow = waiting.spawnLogic.getSafeSpawnPosition();
+                return joinAcceptor.teleport(world, safeNow);
+            });
             game.listen(PlayerDeathEvent.EVENT, (player, source) -> { player.setHealth(20.0f); waiting.spawnPlayer(player); return EventResult.DENY; });
-            // Removed DISPOSE listener; map voice groups are unloaded in botcActive.onClose
         });
     }
 

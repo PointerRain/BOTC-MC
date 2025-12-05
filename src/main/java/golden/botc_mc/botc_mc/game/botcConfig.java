@@ -29,39 +29,55 @@ public record botcConfig(Identifier mapId,
                          String scriptId,
                          Script script) {
 
-    public botcConfig(Identifier mapId,
-                      int players,
-                      int timeLimitSecs,
-                      botcPhaseDurations phaseDurations,
-                      String scriptId) {
-        this(mapId, players, timeLimitSecs, phaseDurations, scriptId, Script.fromId(scriptId));
-    }
-
-    // Helper codec for legacy snake_case phase_durations structure
-    private static final MapCodec<botcPhaseDurations> LEGACY_PHASES = RecordCodecBuilder.mapCodec(instance -> instance.group(
-            Codec.INT.fieldOf("day_discussion_secs").orElse(120).forGetter(botcPhaseDurations::dayDiscussionSecs),
-            Codec.INT.fieldOf("nomination_secs").orElse(45).forGetter(botcPhaseDurations::nominationSecs),
-            Codec.INT.fieldOf("execution_secs").orElse(20).forGetter(botcPhaseDurations::executionSecs),
-            Codec.INT.fieldOf("night_secs").orElse(60).forGetter(botcPhaseDurations::nightSecs)
+    /**
+     * Codec for modern camelCase phase duration JSON structure.
+     */
+    private static final MapCodec<botcPhaseDurations> PHASES = RecordCodecBuilder.mapCodec(instance -> instance.group(
+            Codec.INT.fieldOf("dayDiscussionSecs").orElse(120).forGetter(botcPhaseDurations::dayDiscussionSecs),
+            Codec.INT.fieldOf("nominationSecs").orElse(45).forGetter(botcPhaseDurations::nominationSecs),
+            Codec.INT.fieldOf("executionSecs").orElse(20).forGetter(botcPhaseDurations::executionSecs),
+            Codec.INT.fieldOf("nightSecs").orElse(60).forGetter(botcPhaseDurations::nightSecs)
     ).apply(instance, botcPhaseDurations::new));
 
+    /**
+     * Map codec used for reading game configs from datapacks. This codec expects modern camelCase keys.
+     */
     public static final MapCodec<botcConfig> MAP_CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-            // Accept either map_id or legacy map.spawn_block.Name to choose a template id
-            Identifier.CODEC.fieldOf("map_id").orElse(Identifier.of("botc-mc:test")).forGetter(botcConfig::mapId),
-            // players may be a flat int or legacy object with min/max; accept flat and ignore legacy
+            // map id (modern camelCase)
+            Identifier.CODEC.fieldOf("mapId").orElse(Identifier.of("botc-mc:test")).forGetter(botcConfig::mapId),
+            // players (flat int)
             Codec.INT.fieldOf("players").orElse(8).forGetter(botcConfig::players),
-            // Accept camelCase or legacy snake_case
+            // overall time limit in seconds
             Codec.INT.fieldOf("timeLimitSecs").orElse(300).forGetter(botcConfig::timeLimitSecs),
-            LEGACY_PHASES.fieldOf("phase_durations").orElse(botcPhaseDurations.defaults()).forGetter(botcConfig::phaseDurations),
+            // modern camelCase phase durations
+            PHASES.fieldOf("phaseDurations").orElse(botcPhaseDurations.defaults()).forGetter(botcConfig::phaseDurations),
             // scriptId remains as originally used by scripts system
             Codec.STRING.fieldOf("scriptId").orElse("botc-mc:scripts/trouble_brewing").forGetter(botcConfig::scriptId)
     ).apply(instance, (mapId, players, timeLimitSecs, phases, scriptId) -> new botcConfig(mapId, players, timeLimitSecs, phases, scriptId, Script.fromId(scriptId))));
 
+    /**
+     * Standard codec wrapper for network/registry integration.
+     */
     public static final Codec<botcConfig> CODEC = MAP_CODEC.codec();
 
+    /**
+     * Accessor with explicit Javadoc to satisfy documentation checks.
+     *
+     * @return configured overall time limit in seconds
+     */
     public int timeLimitSecs() { return this.timeLimitSecs; }
 
-    // utility factory to simplify programmatic construction from helpers
+    /**
+     * Utility factory to simplify programmatic construction from helpers.
+     *
+     * @param mapId identifier of the map to use
+     * @param players player count target
+     * @param timeLimitSecs overall session time limit in seconds
+     * @param phaseDurations per-phase durations
+     * @param scriptId script identifier string
+     * @param script resolved Script instance
+     * @return a new botcConfig instance populated with the provided values
+     */
     public static botcConfig of(Identifier mapId, int players, int timeLimitSecs, botcPhaseDurations phaseDurations, String scriptId, Script script) {
         return new botcConfig(mapId, players, timeLimitSecs, phaseDurations, scriptId, script);
     }

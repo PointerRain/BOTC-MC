@@ -5,12 +5,19 @@ import golden.botc_mc.botc_mc.game.Script;
 import golden.botc_mc.botc_mc.game.botcCommands;
 import golden.botc_mc.botc_mc.game.botcConfig;
 import golden.botc_mc.botc_mc.game.botcWaiting;
+import golden.botc_mc.botc_mc.game.voice.VoiceRegionManager;
+import golden.botc_mc.botc_mc.game.voice.VoiceRegionService;
+import golden.botc_mc.botc_mc.game.voice.VoiceRegionTask;
+import golden.botc_mc.botc_mc.game.voice.VoicechatPlugin;
+import golden.botc_mc.botc_mc.game.voice.SvcBridge;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.minecraft.resource.Resource;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.ResourceType;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,20 +30,38 @@ import java.util.Map;
 /**
  * Primary mod entrypoint and game type registration for BOTC.
  * Responsible for creating the Plasmid game type, wiring lifecycle hooks and commands.
+ * <p>
+ * This class is instantiated by the Fabric runtime and its {@link #onInitialize()} method is
+ * used to register commands, resource reloaders and any optional integrations (voice chat).
  */
 public class botc implements ModInitializer {
     /** Mod id namespace used for resource and game type registration. */
     public static final String ID = "botc-mc";
     /** Structured logger for BOTC mod operations. */
     public static final Logger LOGGER = LogManager.getLogger(ID);
+    /**
+     * Loaded script definitions keyed by their resource identifier string (for example
+     * "botc-mc:scripts/trouble_brewing.json"). Populated by the resource reload listener
+     * during server startup and when datapacks are reloaded.
+     */
     public static final Map<String, Script> scripts = new HashMap<>();
 
     private VoiceRegionTask voiceRegionTask;
     private static volatile boolean REGIONS_MATERIALIZED = false;
 
-    /** Default constructor required by the Fabric loader. */
-    public botc() {}
+    /**
+     * Explicit no-arg constructor. Present to provide a documented construction point for
+     * static analysis tools which warn on use of the implicit default constructor.
+     */
+    public botc() {
+        // intentionally empty; initialization occurs in onInitialize()
+    }
 
+    /**
+     * Register the Plasmid GameType for BOTC reflectively. This uses reflection to call an
+     * older register signature when available so the mod remains compatible with multiple
+     * Plasmid/Plasmid-like versions.
+     */
     private void registerGameType() {
         // Register under legacy id to support existing datapacks: botc-mc:botc-mc
         Identifier id = Identifier.of(ID, "botc-mc");
@@ -58,6 +83,10 @@ public class botc implements ModInitializer {
     }
 
 
+    /**
+     * Fabric entrypoint called when the mod initializes.
+     * Registers reload listeners, commands and optional voicechat hooks.
+     */
     @Override
     public void onInitialize() {
         registerGameType();

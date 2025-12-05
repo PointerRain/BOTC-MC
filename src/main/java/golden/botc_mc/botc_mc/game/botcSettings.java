@@ -1,13 +1,8 @@
 package golden.botc_mc.botc_mc.game;
 
-<<<<<<< HEAD
 import golden.botc_mc.botc_mc.botc;
-import golden.botc_mc.botc_mc.game.map.botcMapConfig;
-import net.minecraft.block.Blocks;
-=======
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
->>>>>>> main
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,7 +23,9 @@ import golden.botc_mc.botc_mc.game.voice.VoiceRegionService;
 public final class botcSettings {
     private static final Path CONFIG_PATH = VoiceRegionService.botcConfigRoot().resolve(Paths.get("config", "botc.properties"));
 
-    /** Mutable settings loaded from disk for customizing a session prior to start. */
+    /**
+     * Construct default mutable settings. Use {@link #load()} to read persisted values from disk.
+     */
     public botcSettings() {}
 
     /** Max time limit for lobby or overall session (seconds). */
@@ -48,8 +45,10 @@ public final class botcSettings {
     /** Fallback spawn position if map lacks defined spawn. */
     public BlockPos fallbackSpawn = new BlockPos(0, 65, 0);
 
-    /** Load settings from disk or create defaults if the file is missing.
-     * @return loaded settings or defaults if file missing.
+    /**
+     * Load settings from disk or create defaults if the file is missing.
+     *
+     * @return loaded settings (from disk) or a new instance with defaults if the file is missing or cannot be read
      */
     public static botcSettings load() {
         botcSettings s = new botcSettings();
@@ -82,7 +81,9 @@ public final class botcSettings {
         return s;
     }
 
-    /** Persist current settings to disk.
+    /**
+     * Persist current settings to disk.
+     *
      * @throws IOException if writing the properties file fails
      */
     public void save() throws IOException {
@@ -102,16 +103,6 @@ public final class botcSettings {
         }
     }
 
-    /**
-     * Apply these mutable settings to an immutable config.
-     * @param base base config to merge
-     * @return new config incorporating dynamic settings
-     */
-    public botcConfig applyTo(botcConfig base) {
-        Identifier selectedMap = base != null && base.mapId() != null ? base.mapId() : Identifier.of(this.mapId);
-        return new botcConfig(selectedMap);
-    }
-
     private static int parseInt(String v, int fallback) {
         if (v == null) return fallback;
         try { return Integer.parseInt(v.trim()); } catch (NumberFormatException ex) { return fallback; }
@@ -120,21 +111,22 @@ public final class botcSettings {
     /**
      * Merge these settings with an existing botcConfig coming from the datapack/game open context.
      * Values from the settings file override the provided config's time- and player-related settings.
+     *
+     * @param base the datapack-provided config; may be null when invoked in contexts without a base
+     * @return a merged botcConfig instance combining configured overrides and datapack defaults
      */
     public botcConfig applyTo(botcConfig base) {
-        Identifier selectedMap = base != null && base.mapId() != null ? base.mapId() : Identifier.of(this.mapId);
+        // Settings override datapack-provided map selection
+        Identifier selectedMap = Identifier.of(this.mapId);
         int players = this.players > 0 ? this.players : (base == null ? 8 : base.players());
         int timeLimit = this.timeLimitSecs > 0 ? this.timeLimitSecs : (base == null ? 300 : base.timeLimitSecs());
-
         botcPhaseDurations durations = new botcPhaseDurations(this.dayDiscussionSecs, this.nominationSecs, this.executionSecs, this.nightSecs);
-
         Script script = Script.MISSING;
         String scriptId = "trouble_brewing";
         if (base != null)  {
             script = base.script() != Script.MISSING ? base.script() : Script.fromId(base.scriptId());
             scriptId = base.scriptId();
         }
-
         botc.LOGGER.info("Resolved script: {}", script);
 
         return botcConfig.of(selectedMap, players, timeLimit, durations, scriptId, script);
