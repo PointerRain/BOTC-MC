@@ -211,17 +211,6 @@ public final class botcCommands {
     }
 
     /**
-     * Send a confirmation message to the player executing a command, if applicable.
-     * @param source command source
-     * @param message message to send
-     */
-    private static void sendPlayerConfirmation(ServerCommandSource source, String message) {
-        if (source.getEntity() instanceof ServerPlayerEntity player) {
-            player.sendMessage(Text.literal(message), false);
-        }
-    }
-
-    /**
      * Send a compact textual menu listing the current editable settings for a player.
      * This is a convenience helper used by the {@code /botc settings} command.
      * @param player player to show the menu to
