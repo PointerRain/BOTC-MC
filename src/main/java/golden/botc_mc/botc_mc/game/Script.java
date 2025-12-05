@@ -6,7 +6,9 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import golden.botc_mc.botc_mc.botc;
 import net.minecraft.resource.Resource;
+import net.minecraft.text.HoverEvent;
 import net.minecraft.text.MutableText;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.jetbrains.annotations.NotNull;
@@ -302,6 +304,23 @@ public record Script(Meta meta, List<Character> characters) {
                 Codec.STRING.fieldOf("id").forGetter(Jinx::id),
                 Codec.STRING.fieldOf("reason").forGetter(Jinx::reason)
         ).apply(instance, Jinx::new));
+
+        /**
+         * Get a formatted * character with hover text containing the Jinx information.
+         * @return The formatted text of the "jinx star".
+         */
+        public MutableText jinxStar() {
+            MutableText jinxText = Text.empty();
+            jinxText.append(new Character(this.id()).toFormattedText(false));
+            jinxText.append(Text.literal("\n"));
+            jinxText.append(Text.literal(this.reason()).setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)));
+            HoverEvent hover = new HoverEvent.ShowText(jinxText);
+            return Text.literal("*")
+                            .styled(style -> style
+                                    .withColor(Team.FABLED.getColour(false))
+                                    .withBold(false).withUnderline(false)
+                                    .withHoverEvent(hover));
+        }
     }
 
     /**
@@ -328,9 +347,9 @@ public record Script(Meta meta, List<Character> characters) {
         String id;
         String name;
         String reminder;
-        Function<Boolean, Formatting> colourProvider;
+        Function<? super Boolean, Formatting> colourProvider;
 
-        public NightAction(String id, String name, String reminder, Function<Boolean, Formatting> colourProvider) {
+        public NightAction(String id, String name, String reminder, Function<? super Boolean, Formatting> colourProvider) {
             this.id = id;
             this.name = name;
             this.reminder = reminder;
