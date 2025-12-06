@@ -68,7 +68,7 @@ public class botcItemManager {
                 RawFilteredPair.of(Text.of(pages[14])),
                 RawFilteredPair.of(Text.of(pages[15])),
                 RawFilteredPair.of(Text.of(pages[16])),
-                RawFilteredPair.of(Text.of(pages[17]))
+                RawFilteredPair.of(Text.of(pages[17])) // TODO: Remove this entire block of text to instead have some kind of generator
             ), // pages
             false); //processed (just put false)
 
