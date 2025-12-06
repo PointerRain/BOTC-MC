@@ -28,13 +28,14 @@ public class botcWaiting {
     private final Map map;
     private final SpawnLogic spawnLogic;
     private final ServerWorld world;
+    private final Script script;
 
-    private botcWaiting(GameSpace gameSpace, ServerWorld world, Map map, botcConfig config) {
+    private botcWaiting(GameSpace gameSpace, ServerWorld world, Map map, Script script) {
         this.gameSpace = gameSpace;
         this.world = world;
         this.map = map;
+        this.script = script;
         this.spawnLogic = new SpawnLogic(world, map);
-        System.out.println(config.toString());
     }
 
     /**
@@ -58,7 +59,7 @@ public class botcWaiting {
                 .setGenerator(map.asGenerator(context.server()));
 
         return context.openWithWorld(worldConfig, (game, world) -> {
-            botcWaiting waiting = new botcWaiting(game.getGameSpace(), world, map, effectiveConfig);
+            botcWaiting waiting = new botcWaiting(game.getGameSpace(), world, map, effectiveConfig.script());
             VoiceRegionManager vrm = VoiceRegionManager.forMap(world, mapId);
             VoiceRegionService.setActive(vrm);
 
@@ -82,7 +83,7 @@ public class botcWaiting {
 
     /** Transition callback from waiting into active gameplay. */
     private GameResult requestStart() {
-        botcActive.open(this.gameSpace, this.world, this.map);
+        botcActive.open(this.gameSpace, this.world, this.map, this.script);
         return GameResult.ok();
     }
 
