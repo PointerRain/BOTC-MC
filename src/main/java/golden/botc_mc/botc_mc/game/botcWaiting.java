@@ -1,5 +1,6 @@
 package golden.botc_mc.botc_mc.game;
 
+import golden.botc_mc.botc_mc.botc;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.BlockPos;
@@ -27,12 +28,13 @@ public class botcWaiting {
     private final Map map;
     private final SpawnLogic spawnLogic;
     private final ServerWorld world;
+    private final Script script;
 
-    private botcWaiting(GameSpace gameSpace, ServerWorld world, Map map) {
+    private botcWaiting(GameSpace gameSpace, ServerWorld world, Map map, Script script) {
         this.gameSpace = gameSpace;
         this.world = world;
         this.map = map;
-        // Initialize spawn logic (SpawnLogic is the available class)
+        this.script = script;
         this.spawnLogic = new SpawnLogic(world, map);
     }
 
@@ -47,8 +49,9 @@ public class botcWaiting {
         // values (run/config/botc.properties) override the datapack when present.
         botcSettings settings = botcSettings.load();
         botcConfig effectiveConfig = settings.applyTo(context.config());
+        botc.LOGGER.info("Opening game with script: {}", effectiveConfig.script());
 
-        Identifier mapId = effectiveConfig.mapId();
+        Identifier mapId = effectiveConfig.mapId() != null ? effectiveConfig.mapId() : Identifier.of(settings.mapId);
         Map map = Map.load(context.server(), mapId);
 
         RuntimeWorldConfig worldConfig = new RuntimeWorldConfig()
@@ -56,30 +59,31 @@ public class botcWaiting {
                 .setGenerator(map.asGenerator(context.server()));
 
         return context.openWithWorld(worldConfig, (game, world) -> {
-            botcWaiting waiting = new botcWaiting(game.getGameSpace(), world, map);
+            botcWaiting waiting = new botcWaiting(game.getGameSpace(), world, map, effectiveConfig.script());
             VoiceRegionManager vrm = VoiceRegionManager.forMap(world, mapId);
             VoiceRegionService.setActive(vrm);
-            // Set a safe spawn for the world to avoid initial void placement
-            Vec3d safe = waiting.spawnLogic.getSafeSpawnPosition();
-            world.setSpawnPos(BlockPos.ofFloored(safe), 0.0F);
 
-            // Deny fall damage while in waiting to prevent void deaths before teleport
+            // Compute and set a safe spawn after world is available
+            Vec3d initialSafe = waiting.spawnLogic.getSafeSpawnPosition();
+            world.setSpawnPos(BlockPos.ofFloored(initialSafe), 0.0F);
+
             game.setRule(GameRuleType.FALL_DAMAGE, EventResult.DENY);
 
             game.listen(GameActivityEvents.REQUEST_START, waiting::requestStart);
             game.listen(GamePlayerEvents.ADD, waiting::addPlayer);
             game.listen(GamePlayerEvents.OFFER, JoinOffer::accept);
-            // Teleport accepted players to the map spawn (centered on the block and one block above).
-            // Fallback to Vec3d.ZERO if no spawn is defined to avoid NPEs.
-            game.listen(GamePlayerEvents.ACCEPT, joinAcceptor -> joinAcceptor.teleport(world, safe));
+            // Compute safe spawn at accept time to ensure chunks are generated
+            game.listen(GamePlayerEvents.ACCEPT, joinAcceptor -> {
+                Vec3d safeNow = waiting.spawnLogic.getSafeSpawnPosition();
+                return joinAcceptor.teleport(world, safeNow);
+            });
             game.listen(PlayerDeathEvent.EVENT, (player, source) -> { player.setHealth(20.0f); waiting.spawnPlayer(player); return EventResult.DENY; });
-            // Removed DISPOSE listener; map voice groups are unloaded in botcActive.onClose
         });
     }
 
     /** Transition callback from waiting into active gameplay. */
     private GameResult requestStart() {
-        botcActive.open(this.gameSpace, this.world, this.map);
+        botcActive.open(this.gameSpace, this.world, this.map, this.script);
         return GameResult.ok();
     }
 

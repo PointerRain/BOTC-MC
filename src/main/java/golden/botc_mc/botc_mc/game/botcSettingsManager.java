@@ -38,6 +38,19 @@ public final class botcSettingsManager {
         }
     }
 
+    /** Set a string value in settings.
+     * @param key settings key
+     * @param value string value
+     */
+    public static synchronized void setString(String key, String value) {
+        botcSettings s = get();
+        if ("mapId".equals(key)) {
+            s.mapId = value;
+        } else {
+            throw new IllegalArgumentException("Unknown string key: " + key);
+        }
+    }
+
     /** Retrieve an integer setting value.
      * @param key settings key
      * @return integer value by key or throws if unknown
@@ -55,11 +68,31 @@ public final class botcSettingsManager {
         };
     }
 
+    /** Retrieve a string setting value.
+     * @param key settings key
+     * @return string value by key or throws if unknown
+     */
+    public static synchronized String getString(String key) {
+        botcSettings s = get();
+        if ("mapId".equals(key)) {
+            return s.mapId;
+        } else {
+            throw new IllegalArgumentException("Unknown string key: " + key);
+        }
+    }
+
     /** Array of recognized integer setting keys.
      * @return immutable array of keys
      */
     public static synchronized String[] keys() {
         return new String[]{"timeLimitSecs", "players", "dayDiscussionSecs", "nominationSecs", "executionSecs", "nightSecs"};
+    }
+
+    /** Array of recognized string setting keys.
+     * @return immutable array of keys
+     */
+    public static synchronized String[] stringKeys() {
+        return new String[]{"mapId"};
     }
 
     /** Save current settings snapshot to disk.

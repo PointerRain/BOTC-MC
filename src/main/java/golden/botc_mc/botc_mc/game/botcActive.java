@@ -35,7 +35,7 @@ import golden.botc_mc.botc_mc.botc;
  * Active game session controller for a Blood on the Clocktower match.
  * <p>
  * Controls participant/spectator lifecycle and connects the stage manager to the Plasmid game loop.
- * The {@link #open(GameSpace, ServerWorld, Map)} method registers listeners and rules; the instance
+ * The {@link #open(GameSpace, ServerWorld, Map, Script)} method registers listeners and rules; the instance
  * manages per-tick updates and shutdown semantics.
  */
 public class botcActive {
@@ -49,15 +49,18 @@ public class botcActive {
     private final botcStageManager stageManager;
     private final botcTimerBar timerBar;
     private final ServerWorld world;
+    private final Script script;
 
     private GameLifecycleStatus lifecycleStatus = GameLifecycleStatus.STOPPED;
     private boolean startingLogged = false;
 
-    private botcActive(GameSpace gameSpace, ServerWorld world, Map map, GlobalWidgets widgets, Set<PlayerRef> participants) {
+    private botcActive(GameSpace gameSpace, ServerWorld world, Map map, GlobalWidgets widgets,
+                       Set<PlayerRef> participants, Script script) {
         this.gameSpace = gameSpace;
         this.spawnLogic = new SpawnLogic(world, map);
         this.participants = new Object2ObjectOpenHashMap<>();
         this.world = world;
+        this.script = script;
 
         for (PlayerRef player : participants) {
             this.participants.put(player, new botcPlayer());
@@ -76,13 +79,13 @@ public class botcActive {
      * @param world backing overworld instance
      * @param map loaded map metadata
      */
-    public static void open(GameSpace gameSpace, ServerWorld world, Map map) {
+    public static void open(GameSpace gameSpace, ServerWorld world, Map map, Script script) {
         gameSpace.setActivity(game -> {
             Set<PlayerRef> participants = gameSpace.getPlayers().participants().stream()
                     .map(PlayerRef::of)
                     .collect(Collectors.toSet());
             GlobalWidgets widgets = GlobalWidgets.addTo(game);
-            botcActive active = new botcActive(gameSpace, world, map, widgets, participants);
+            botcActive active = new botcActive(gameSpace, world, map, widgets, participants, script);
 
             game.setRule(GameRuleType.CRAFTING, EventResult.DENY);
             game.setRule(GameRuleType.PORTALS, EventResult.DENY);
