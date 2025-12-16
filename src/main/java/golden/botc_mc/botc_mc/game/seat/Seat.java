@@ -4,7 +4,7 @@ import golden.botc_mc.botc_mc.game.Character;
 import golden.botc_mc.botc_mc.game.Team;
 import net.minecraft.server.network.ServerPlayerEntity;
 
-abstract class Seat {
+public abstract class Seat {
 
     // Character. Storyteller seats usually have Character.EMPTY, but can be assigned other characters if desired.
     Character character = Character.EMPTY;
@@ -19,7 +19,7 @@ abstract class Seat {
      * Sets the player entity associated with this seat.
      * @param playerEntity The ServerPlayerEntity to associate with this seat.
      */
-    void setPlayerEntity(ServerPlayerEntity playerEntity) {
+    public void setPlayerEntity(ServerPlayerEntity playerEntity) {
         this.playerEntity = playerEntity;
         // TODO: Add to the "botc_players" team on the server scoreboard.
     }
@@ -28,7 +28,7 @@ abstract class Seat {
      * Gets the player entity associated with this seat.
      * @return The ServerPlayerEntity associated with this seat, or null if none is set.
      */
-    ServerPlayerEntity getPlayerEntity() {
+    public ServerPlayerEntity getPlayerEntity() {
         return this.playerEntity;
     }
 
@@ -36,7 +36,7 @@ abstract class Seat {
      * Removes the player entity association from this seat.
      * Does not affect the character or other seat properties.
      */
-    void removePlayerEntity() {
+    public void removePlayerEntity() {
         this.playerEntity = null;
         // TODO: Remove any effects from the player if needed.
     }
@@ -45,7 +45,7 @@ abstract class Seat {
      * Checks if this seat has an associated player entity.
      * @return True if a player entity is associated, false otherwise.
      */
-    boolean hasPlayerEntity() {
+    public boolean hasPlayerEntity() {
         return this.playerEntity != null;
     }
 
@@ -53,7 +53,7 @@ abstract class Seat {
      * Sets the character assigned to this seat.
      * @param character The Character to assign to this seat.
      */
-    void setCharacter(Character character) {
+    public void setCharacter(Character character) {
         this.character = character;
         this.alignment = character.team().getDefaultAlignment();
     }
@@ -61,7 +61,7 @@ abstract class Seat {
     /**
      * Clears the character and alignment assigned to this seat, setting it to Character.EMPTY.
      */
-    void clearCharacter() {
+    public void clearCharacter() {
         this.character = Character.EMPTY;
         this.alignment = Team.Alignment.NEUTRAL;
     }
@@ -70,7 +70,7 @@ abstract class Seat {
      * Gets the character assigned to this seat.
      * @return The Character assigned to this seat.
      */
-    Character getCharacter() {
+    public Character getCharacter() {
         return this.character;
     }
 
@@ -78,7 +78,7 @@ abstract class Seat {
      * Sets the alive status of the player in this seat.
      * @param alive True if the player is alive, false if dead.
      */
-    void setAlive(boolean alive) {
+    public void setAlive(boolean alive) {
         this.alive = alive;
     }
 
@@ -86,7 +86,7 @@ abstract class Seat {
      * Checks if the player in this seat is alive.
      * @return True if the player is alive, false otherwise.
      */
-    boolean isAlive() {
+    public boolean isAlive() {
         return this.alive;
     }
 
@@ -94,7 +94,7 @@ abstract class Seat {
      * Kills the player in this seat if they are currently alive.
      * @return True if the player was alive and is now killed, false if they were already dead.
      */
-    boolean kill() {
+    public boolean kill() {
         if (this.alive) {
             this.alive = false;
             return true;
@@ -106,7 +106,7 @@ abstract class Seat {
      * Revives the player in this seat if they are currently dead.
      * @return True if the player was dead and is now revived, false if they were already alive.
      */
-    boolean revive() {
+    public boolean revive() {
         if (!this.alive) {
             this.alive = true;
             return true;
@@ -114,9 +114,13 @@ abstract class Seat {
         return false;
     }
 
-    // PLAYER
-    // Alignment
-    // Reminders
-
-    // STORYTELLER
+    @Override
+    public String toString() {
+        return "Seat{" +
+                "character=" + character +
+                ", alignment=" + alignment +
+                ", playerEntity=" + (playerEntity != null ? playerEntity.getName().getString() : "null") +
+                ", alive=" + alive +
+                '}';
+    }
 }

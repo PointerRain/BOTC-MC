@@ -6,12 +6,12 @@ import golden.botc_mc.botc_mc.game.Team;
 import java.util.ArrayList;
 import java.util.List;
 
-class PlayerSeat extends Seat {
+public class PlayerSeat extends Seat {
 
     List<String> reminders = new ArrayList<>();
 
     @Override
-    void setCharacter(Character character) throws IllegalArgumentException {
+    public void setCharacter(Character character) throws IllegalArgumentException {
         if (character == Character.EMPTY) {
             this.character = Character.EMPTY;
         }
@@ -28,21 +28,45 @@ class PlayerSeat extends Seat {
         };
     }
 
-    void addReminder(String reminder) {
+    public void addReminder(String reminder) {
         this.reminders.add(reminder);
     }
 
-    boolean hasReminder(String reminder) {
+    public boolean hasReminder(String reminder) {
         return this.reminders.contains(reminder);
     }
 
-    void removeReminder(String reminder) {
+    public void removeReminder(String reminder) {
         this.reminders.remove(reminder);
     }
 
-    void clearReminders() {
+    public void clearReminders() {
         this.reminders.clear();
     }
 
+    public List<String> getReminders() {
+        return this.reminders;
+    }
 
+    @Override
+    public String toString() {
+        if (this.character == Character.EMPTY && this.playerEntity == null) return "PlayerSeat{}";
+
+        String output = "PlayerSeat{";
+        if (this.playerEntity != null) {
+            output += "player=" + this.playerEntity.getName().getString() + ", ";
+        } else {
+            output += "player=null, ";
+        }
+        if (this.character != null && this.character != Character.EMPTY) {
+            output += "character=" + this.character.name() + ", ";
+        } else {
+            output += "character=Character.EMPTY, ";
+        }
+        output += "alignment=" + this.alignment + ", ";
+        output += "alive=" + this.alive + ", ";
+        output += "reminders=" + this.reminders;
+        output += "}";
+        return output;
+    }
 }
