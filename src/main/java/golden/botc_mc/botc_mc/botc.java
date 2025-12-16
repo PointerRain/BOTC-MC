@@ -2,14 +2,18 @@ package golden.botc_mc.botc_mc;
 
 import golden.botc_mc.botc_mc.game.Character;
 import golden.botc_mc.botc_mc.game.Script;
+import golden.botc_mc.botc_mc.game.botcActive;
 import golden.botc_mc.botc_mc.game.botcCommands;
 import golden.botc_mc.botc_mc.game.botcConfig;
+import golden.botc_mc.botc_mc.game.botcPlayer;
 import golden.botc_mc.botc_mc.game.botcWaiting;
+import golden.botc_mc.botc_mc.game.seat.Seat;
 import golden.botc_mc.botc_mc.game.voice.VoiceRegionManager;
 import golden.botc_mc.botc_mc.game.voice.VoiceRegionService;
 import golden.botc_mc.botc_mc.game.voice.VoiceRegionTask;
 import golden.botc_mc.botc_mc.game.voice.VoicechatPlugin;
 import golden.botc_mc.botc_mc.game.voice.SvcBridge;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
@@ -18,13 +22,17 @@ import net.minecraft.resource.Resource;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.ResourceType;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import xyz.nucleoid.plasmid.api.game.GameType;
+import xyz.nucleoid.plasmid.api.util.PlayerRef;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -48,6 +56,8 @@ public class botc implements ModInitializer {
 
     private VoiceRegionTask voiceRegionTask;
     private static volatile boolean REGIONS_MATERIALIZED = false;
+
+    private static final List<botcActive> activeGames = new ArrayList<>();
 
     /**
      * Explicit no-arg constructor. Present to provide a documented construction point for
@@ -201,5 +211,68 @@ public class botc implements ModInitializer {
                 preload.invoke(plugin);
             } catch (Throwable ignored) {}
         } catch (Throwable ignored) {}
+    }
+
+
+    /**
+     * Add the active game to the list of active games
+     * TODO: There is probably a preexisting way to manage active games in Plasmid
+     */
+    public static void addGame(botcActive game) {
+        LOGGER.info("Adding the game " + game);
+        activeGames.add(game);
+    }
+    /**
+     * Remove the active game from the list of active games
+     * TODO: There is probably a preexisting way to manage active games in Plasmid
+     */
+    public static void removeGame(botcActive game) {
+        LOGGER.info("Removing the game " + game);
+        activeGames.remove(game);
+    }
+
+    /**
+     * Get the list of active games
+     * @return The list of active games
+     */
+    public static List<botcActive> getActiveGames() {
+        return activeGames;
+    }
+
+    /**
+     * Get the Seat object for the given ServerPlayerEntity
+     * @param player The player to get the botcPlayer object for
+     * @return The Seat object, or null if the player is not in an active game
+     */
+    public static Seat getSeatFromPlayer(ServerPlayerEntity player) {
+        botcActive activeGame = getActiveGameFromPlayer(player);
+        if (activeGame != null) {
+            return activeGame.getSeatManager().getSeatFromPlayer(player);
+        }
+        return null;
+    }
+
+    /**
+     * Get the active game that the given player is in
+     * @param player The player to get the active game for
+     * @return The active game, or null if the player is not in an active game
+     */
+    public static botcActive getActiveGameFromPlayer(ServerPlayerEntity player) {
+        for (botcActive activeGame : activeGames) {
+            LOGGER.info("Getting active game from seats in " + activeGame);
+            if (activeGame.getSeatManager().getSeatFromPlayer(player) != null) {
+                LOGGER.info("Found active game " + activeGame);
+                return activeGame;
+            }
+        }
+        for (botcActive activeGame : activeGames) {
+            LOGGER.info("Getting active game from botcPlayers in " + activeGame);
+            Object2ObjectMap<PlayerRef, botcPlayer> players = activeGame.getParticipants();
+            if (players.containsKey(PlayerRef.of(player))) {
+                LOGGER.info("Found active game " + activeGame);
+                return activeGame;
+            }
+        }
+        return null;
     }
 }
