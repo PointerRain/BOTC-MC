@@ -271,6 +271,10 @@ public class botcActive {
         return this.participants;
     }
 
+    public Script getScript() {
+        return script;
+    }
+
     @Override
     public String toString() {
         return "botcActive{" +

@@ -87,6 +87,24 @@ public record Character(String id,
                 character.jinxes);
     }
 
+    public static Character EMPTY = new Character(
+            "empty",
+            "Empty",
+            null,
+            "",
+            null,
+            null,
+            null,
+            0,
+            null,
+            0,
+            null,
+            null,
+            null,
+            false,
+            null
+    );
+
     /**
      * Constructs a Character from a partial Character, filling in missing fields from the baseCharacters array.
      * @param character The partial Character object.
@@ -157,6 +175,15 @@ public record Character(String id,
     }
 
     /**
+     * Checks if the character is classified as an NPC based on its team's default alignment.
+     * NPC characters cannot be assigned to players.
+     * @return True if the character is an NPC, false otherwise.
+     */
+    public boolean isNPC() {
+        return this.team.getDefaultAlignment() == Team.Alignment.NPC;
+    }
+
+    /**
      * Convert the character's name to a MutableText object.
      * @return The character's name as MutableText.
      */
@@ -197,4 +224,6 @@ public record Character(String id,
     public int hashCode() {
         return this.id.hashCode();
     }
+
+    public record ReminderToken(Character character, String reminder) {}
 }

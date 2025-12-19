@@ -8,17 +8,13 @@ import java.util.List;
 
 public class PlayerSeat extends Seat {
 
+    Team.Alignment alignment = Team.Alignment.NEUTRAL;
+
     List<String> reminders = new ArrayList<>();
 
     @Override
     public void setCharacter(Character character) throws IllegalArgumentException {
-        if (character == Character.EMPTY) {
-            this.character = Character.EMPTY;
-        }
-        if (character.team().getDefaultAlignment() == Team.Alignment.NPC) {
-            throw new IllegalArgumentException("Cannot assign NPC character to player seat");
-        }
-        this.character = character;
+        super.setCharacter(character);
         this.alignment = switch (character.team().getDefaultAlignment()) {
             case NEUTRAL, NPC -> character.team().getDefaultAlignment();
             case GOOD, EVIL -> switch (this.alignment) {
@@ -26,6 +22,51 @@ public class PlayerSeat extends Seat {
                 case NEUTRAL, NPC -> character.team().getDefaultAlignment();
             };
         };
+    }
+
+    public Team.Alignment getAlignment() {
+        return this.alignment;
+    }
+
+    /**
+     * Toggles the alignment of the seat. For Traveller characters, cycles through Neutral -> Good -> Evil.
+     * For Townsfolk, Outsider, Minion, and Demon characters, toggles between Good and Evil.
+     * Fabled and Loric characters remain NPC.
+     * NOTE: This means toggling twice may not return to the original alignment.
+     * @return The new alignment after toggling.
+     */
+    public Team.Alignment toggleAlignment() {
+        if (this.character == null || this.character == Character.EMPTY) {
+            return this.alignment;
+        }
+        this.alignment = switch (this.character.team()) {
+            case FABLED, LORIC -> Team.Alignment.NPC;
+            case TRAVELLER -> switch (this.alignment) {
+                case NEUTRAL -> Team.Alignment.GOOD;
+                case GOOD -> Team.Alignment.EVIL;
+                case EVIL -> Team.Alignment.NEUTRAL;
+                default -> this.alignment;
+            };
+            case TOWNSFOLK, OUTSIDER, MINION, DEMON -> switch (this.alignment) {
+                case GOOD -> Team.Alignment.EVIL;
+                case EVIL -> Team.Alignment.GOOD;
+                default -> this.alignment;
+            };
+        };
+        return this.alignment;
+    }
+
+    public Team.Alignment setAlignment(Team.Alignment alignment) {
+        this.alignment = alignment;
+        return this.alignment;
+    }
+
+    /**
+     * Clears the character and alignment assigned to this seat, setting it to Character.EMPTY.
+     */
+    public void clearCharacter() {
+        super.clearCharacter();
+        this.alignment = Team.Alignment.NEUTRAL;
     }
 
     public void addReminder(String reminder) {
@@ -36,8 +77,15 @@ public class PlayerSeat extends Seat {
         return this.reminders.contains(reminder);
     }
 
-    public void removeReminder(String reminder) {
-        this.reminders.remove(reminder);
+    public boolean removeReminder(String reminder) {
+        return this.reminders.remove(reminder);
+    }
+
+    public String removeReminder(int index) {
+        if (index >= 0 && index < this.reminders.size()) {
+            return this.reminders.remove(index);
+        }
+        return null;
     }
 
     public void clearReminders() {

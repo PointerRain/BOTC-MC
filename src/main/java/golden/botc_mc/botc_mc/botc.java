@@ -5,7 +5,6 @@ import golden.botc_mc.botc_mc.game.Script;
 import golden.botc_mc.botc_mc.game.botcActive;
 import golden.botc_mc.botc_mc.game.botcCommands;
 import golden.botc_mc.botc_mc.game.botcConfig;
-import golden.botc_mc.botc_mc.game.botcPlayer;
 import golden.botc_mc.botc_mc.game.botcWaiting;
 import golden.botc_mc.botc_mc.game.seat.Seat;
 import golden.botc_mc.botc_mc.game.voice.VoiceRegionManager;
@@ -13,7 +12,6 @@ import golden.botc_mc.botc_mc.game.voice.VoiceRegionService;
 import golden.botc_mc.botc_mc.game.voice.VoiceRegionTask;
 import golden.botc_mc.botc_mc.game.voice.VoicechatPlugin;
 import golden.botc_mc.botc_mc.game.voice.SvcBridge;
-import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
@@ -259,17 +257,8 @@ public class botc implements ModInitializer {
      */
     public static botcActive getActiveGameFromPlayer(ServerPlayerEntity player) {
         for (botcActive activeGame : activeGames) {
-            LOGGER.info("Getting active game from seats in " + activeGame);
-            if (activeGame.getSeatManager().getSeatFromPlayer(player) != null) {
-                LOGGER.info("Found active game " + activeGame);
-                return activeGame;
-            }
-        }
-        for (botcActive activeGame : activeGames) {
-            LOGGER.info("Getting active game from botcPlayers in " + activeGame);
-            Object2ObjectMap<PlayerRef, botcPlayer> players = activeGame.getParticipants();
-            if (players.containsKey(PlayerRef.of(player))) {
-                LOGGER.info("Found active game " + activeGame);
+            if (activeGame.getSeatManager().getSeatFromPlayer(player) != null ||
+                    activeGame.getParticipants().containsKey(PlayerRef.of(player))) {
                 return activeGame;
             }
         }

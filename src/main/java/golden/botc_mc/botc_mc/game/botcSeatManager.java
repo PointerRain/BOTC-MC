@@ -1,5 +1,6 @@
 package golden.botc_mc.botc_mc.game;
 
+import golden.botc_mc.botc_mc.game.exceptions.InvalidSeatException;
 import golden.botc_mc.botc_mc.game.seat.PlayerSeat;
 import golden.botc_mc.botc_mc.game.seat.Seat;
 import golden.botc_mc.botc_mc.game.seat.StorytellerSeat;
@@ -25,11 +26,21 @@ public class botcSeatManager {
         if (count < 5 || count > 20) {
             throw new IllegalArgumentException("Count must be between 5 and 20.");
         }
+        // Add seats until we reach the desired count
         while (this.playerSeats.size() < count) {
             this.playerSeats.add(new PlayerSeat());
         }
+        // Remove empty seats from the end
+        for (int i = this.playerSeats.size() - 1; i >= 0 && this.playerSeats.size() > count; i--) {
+            PlayerSeat seat = this.playerSeats.get(i);
+            if (seat.getPlayerEntity() == null) {
+                seat.clearCharacter();
+                seat.removePlayerEntity();
+                this.playerSeats.remove(i);
+            }
+        }
+        // Remove the last seat if needed even if occupied
         while (this.playerSeats.size() > count) {
-            // Remove the last seat
             this.playerSeats.getLast().clearCharacter();
             this.playerSeats.getLast().removePlayerEntity();
             this.playerSeats.removeLast();
@@ -41,11 +52,23 @@ public class botcSeatManager {
     }
 
     public Seat getSeatFromPlayer(ServerPlayerEntity player) {
+        Seat seat = getPlayerSeatFromPlayer(player);
+        if (seat != null) {
+            return seat;
+        }
+        return getStorytellerSeatFromPlayer(player);
+    }
+
+    public PlayerSeat getPlayerSeatFromPlayer(ServerPlayerEntity player) {
         for (PlayerSeat seat : this.playerSeats) {
             if (seat.getPlayerEntity() != null && seat.getPlayerEntity().equals(player)) {
                 return seat;
             }
         }
+        return null;
+    }
+
+    public StorytellerSeat getStorytellerSeatFromPlayer(ServerPlayerEntity player) {
         for (StorytellerSeat seat : this.storytellerSeats) {
             if (seat.getPlayerEntity() != null && seat.getPlayerEntity().equals(player)) {
                 return seat;
@@ -54,34 +77,66 @@ public class botcSeatManager {
         return null;
     }
 
+    public void removePlayerFromSeat(ServerPlayerEntity player) {
+        for (PlayerSeat seat : this.playerSeats) {
+            if (seat.getPlayerEntity() != null && seat.getPlayerEntity().equals(player)) {
+                seat.removePlayerEntity();
+                return;
+            }
+        }
+        for (StorytellerSeat seat : this.storytellerSeats) {
+            if (seat.getPlayerEntity() != null && seat.getPlayerEntity().equals(player)) {
+                seat.removePlayerEntity();
+                return;
+            }
+        }
+    }
+
     /**
      * Assign a player to a seat by seat number.
      * @param player
      * @param seatNumber
      * @return
      */
-    public Seat assignPlayerToSeat(ServerPlayerEntity player, int seatNumber) {
-        if (seatNumber >= this.playerSeats.size()) {
+    public Seat assignPlayerToSeat(ServerPlayerEntity player, int seatNumber)
+            throws IllegalArgumentException, InvalidSeatException {
+        if (seatNumber > this.playerSeats.size()) {
             // Invalid seat number
             throw new IllegalArgumentException("Invalid seat number: " + seatNumber);
         }
         // Remove player from any other seat they may be assigned to
-        for (int n = 0; n < this.playerSeats.size(); n++) {
-            PlayerSeat seat = this.playerSeats.get(n);
-            if (seat.getPlayerEntity() != null && seat.getPlayerEntity().equals(player) && n != seatNumber) {
-                seat.removePlayerEntity();
-                return seat;
-            }
-        }
-        PlayerSeat seat = this.playerSeats.get(seatNumber);
+        removePlayerFromSeat(player);
+
+        PlayerSeat seat = this.playerSeats.get(seatNumber - 1);
         // If the seat is already occupied, raise error.
         if (seat.getPlayerEntity() != null && !seat.getPlayerEntity().equals(player)) {
-            throw new IllegalArgumentException("Seat " + seatNumber + " is already occupied by another player.");
+            throw new InvalidSeatException("Seat " + seatNumber + " is already occupied by another player.");
         }
         seat.setPlayerEntity(player);
         return seat;
     }
 
+    public Seat stepUpToStoryteller(ServerPlayerEntity player) throws InvalidSeatException {
+        // If player is already a storyteller, return their seat
+        for (StorytellerSeat seat : this.storytellerSeats) {
+            if (seat.getPlayerEntity() != null && seat.getPlayerEntity().equals(player)) {
+                return seat;
+            } else if (seat.getPlayerEntity() != null) {
+                throw new InvalidSeatException("There is already a storyteller in this game.");
+            }
+        }
+        return assignPlayerToStorytellerSeat(player);
+    }
+
+    public Seat stepDownFromStoryteller(ServerPlayerEntity player) {
+        for (StorytellerSeat seat : this.storytellerSeats) {
+            if (seat.getPlayerEntity() != null && seat.getPlayerEntity().equals(player)) {
+                seat.removePlayerEntity();
+                return seat;
+            }
+        }
+        throw new InvalidSeatException("Player is not a storyteller.");
+    }
 
     public Seat assignPlayerToStorytellerSeat(ServerPlayerEntity player) {
         for (StorytellerSeat seat : this.storytellerSeats) {
@@ -93,6 +148,7 @@ public class botcSeatManager {
                 return seat;
             }
         }
+        removePlayerFromSeat(player);
         StorytellerSeat newSeat = new StorytellerSeat();
         newSeat.setPlayerEntity(player);
         this.storytellerSeats.add(newSeat);
@@ -106,4 +162,18 @@ public class botcSeatManager {
                 ", storytellerSeats=" + storytellerSeats +
                 '}';
     }
+
+    public Seat getSeatFromNumber(int seatNumber) {
+        return this.playerSeats.get(seatNumber - 1);
+    }
+
+    public boolean isStoryteller(ServerPlayerEntity player) {
+        for (StorytellerSeat seat : this.storytellerSeats) {
+            if (seat.getPlayerEntity() != null && seat.getPlayerEntity().equals(player)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }

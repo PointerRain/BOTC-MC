@@ -8,8 +8,6 @@ public abstract class Seat {
 
     // Character. Storyteller seats usually have Character.EMPTY, but can be assigned other characters if desired.
     Character character = Character.EMPTY;
-    // Alignment. Not particularly meaningful for storyteller seats.
-    Team.Alignment alignment = Team.Alignment.NEUTRAL;
     // PlayerEntity associated with this seat
     ServerPlayerEntity playerEntity = null;
     // Alive status. Not particularly meaningful for storyteller seats.
@@ -51,19 +49,28 @@ public abstract class Seat {
 
     /**
      * Sets the character assigned to this seat.
+     * If the seat's alignment is NEUTRAL or NPC, it will be updated to the character's team's default alignment.
+     * If the character is NPC or NEUTRAL, the seat's alignment will be set to that.
+     * Otherwise, the seat's alignment remains unchanged.
      * @param character The Character to assign to this seat.
      */
     public void setCharacter(Character character) {
+        if (character == Character.EMPTY) {
+            this.character = Character.EMPTY;
+        }
+        if (character.team().getDefaultAlignment() == Team.Alignment.NPC) {
+            throw new IllegalArgumentException("Cannot assign NPC character to seat");
+        }
         this.character = character;
-        this.alignment = character.team().getDefaultAlignment();
     }
+
+
 
     /**
      * Clears the character and alignment assigned to this seat, setting it to Character.EMPTY.
      */
     public void clearCharacter() {
         this.character = Character.EMPTY;
-        this.alignment = Team.Alignment.NEUTRAL;
     }
 
     /**
@@ -118,7 +125,6 @@ public abstract class Seat {
     public String toString() {
         return "Seat{" +
                 "character=" + character +
-                ", alignment=" + alignment +
                 ", playerEntity=" + (playerEntity != null ? playerEntity.getName().getString() : "null") +
                 ", alive=" + alive +
                 '}';

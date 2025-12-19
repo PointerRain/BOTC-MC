@@ -1,7 +1,6 @@
 package golden.botc_mc.botc_mc.game.seat;
 
 import golden.botc_mc.botc_mc.game.Character;
-import golden.botc_mc.botc_mc.game.Team;
 
 public class StorytellerSeat extends Seat {
 
@@ -17,12 +16,7 @@ public class StorytellerSeat extends Seat {
         if (this.character != null && this.character != Character.EMPTY) {
             output += "character=" + this.character.name() + ", ";
         }
-        if (this.alignment != Team.Alignment.NEUTRAL) {
-            output += "alignment=" + this.alignment + ", ";
-        }
-        if (!this.alive) {
-            output += "alive=" + this.alive + ", ";
-        }
+        output += "alive=" + this.alive;
         output += "}";
         return output;
     }

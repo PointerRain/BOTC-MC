@@ -1,19 +1,25 @@
 package golden.botc_mc.botc_mc.game;
 
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import golden.botc_mc.botc_mc.botc;
+import golden.botc_mc.botc_mc.game.exceptions.InvalidSeatException;
 import golden.botc_mc.botc_mc.game.map.Map;
+import golden.botc_mc.botc_mc.game.seat.PlayerSeat;
+import golden.botc_mc.botc_mc.game.seat.Seat;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.command.argument.EntityArgumentType;
+import net.minecraft.resource.Resource;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.resource.Resource;
 import net.minecraft.util.Identifier;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.TreeMap;
 
 import static net.minecraft.server.command.CommandManager.literal;
@@ -85,6 +91,398 @@ public final class botcCommands {
                             )
                     )
             );
+
+
+            // Get running games info
+            root.then(literal("games").executes(ctx -> {
+                List<botcActive> activeGames = botc.getActiveGames();
+                if (activeGames.isEmpty()) {
+                    ctx.getSource().sendFeedback(() -> Text.literal("No active BOTC games."), false);
+                    return 0;
+                }
+                ctx.getSource().sendFeedback(() -> Text.literal(String.valueOf(activeGames.getFirst())), false);
+                return activeGames.size();
+            }));
+
+
+            // Add a seat
+            root.then(literal("seat").then(
+                    literal("count").then(
+                            CommandManager.argument("count", IntegerArgumentType.integer(5, 20))
+                                    .executes(ctx -> {
+                                                ServerPlayerEntity player = ctx.getSource().getPlayer();
+                                                botcActive activeGame = botc.getActiveGameFromPlayer(player);
+                                                if (activeGame == null) {
+                                                    ctx.getSource().sendError(Text.literal("You are not in an active " +
+                                                            "BOTC game."));
+                                                    return 0;
+                                                }
+                                                int count = IntegerArgumentType.getInteger(ctx, "count");
+                                                activeGame.getSeatManager().setPlayerCount(count);
+                                                ctx.getSource().sendFeedback(() -> Text.literal("Updated the seat " +
+                                                        "count to " + count), true);
+                                                return 1;
+                                            }
+                                    )
+                    )
+            ));
+
+            // Clear a seat
+            root.then(literal("seat").then(
+                    literal("clear").then(
+                            CommandManager.argument("seat", IntegerArgumentType.integer())
+                                    .executes(ctx -> {
+                                                ServerPlayerEntity player = ctx.getSource().getPlayer();
+                                                botcActive activeGame = botc.getActiveGameFromPlayer(player);
+                                                if (activeGame == null) {
+                                                    ctx.getSource().sendError(Text.literal("You are not in an active " +
+                                                            "BOTC game."));
+                                                    return 0;
+                                                }
+                                                int seatNumber = IntegerArgumentType.getInteger(ctx, "seat");
+                                                Seat seat = activeGame.getSeatManager().getSeatFromNumber(seatNumber);
+                                                if (seat == null) {
+                                                    ctx.getSource().sendError(Text.literal("Seat " + seatNumber + " " +
+                                                            "does not exist."));
+                                                    return 0;
+                                                }
+                                                seat.clearCharacter();
+                                                seat.removePlayerEntity();
+                                                ctx.getSource().sendFeedback(() -> Text.literal("Cleared seat " + seatNumber + "."), true);
+                                                return 1;
+                                            }
+                                    )
+                    )
+            ));
+            root.then(literal("seat").then(
+                    literal("sit").then(
+                            CommandManager.argument("seat", IntegerArgumentType.integer())
+                                    .executes(ctx -> {
+                                                ServerPlayerEntity player = ctx.getSource().getPlayer();
+                                                botcActive activeGame = botc.getActiveGameFromPlayer(player);
+                                                if (activeGame == null) {
+                                                    ctx.getSource().sendError(Text.literal("You are not in an active " +
+                                                            "BOTC game."));
+                                                    return 0;
+                                                }
+                                                int seatNumber = IntegerArgumentType.getInteger(ctx, "seat");
+                                                Seat seat = activeGame.getSeatManager().assignPlayerToSeat(player,
+                                                        seatNumber);
+                                                if (seat == null) {
+                                                    ctx.getSource().sendError(Text.literal("Failed to assign seat " + seatNumber + " to player " + player.getName().getString() + "."));
+                                                    return 0;
+                                                }
+                                                ctx.getSource().sendFeedback(() -> Text.literal("Assigned seat " + seatNumber + " to player " + player.getName().getString() + "."), true);
+                                                return 1;
+                                            }
+                                    )
+                    )
+            ));
+
+
+            // Get character info for a player
+            root.then(
+                    literal("character").then(
+                            literal("get").then(
+                                    CommandManager.argument("player", EntityArgumentType.player())
+                                            .executes(ctx -> {
+                                                ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "player");
+                                                Seat seat = botc.getSeatFromPlayer(player);
+                                                if (seat == null) {
+                                                    ctx.getSource().sendFeedback(() -> Text.literal("Player " + player.getName().getString() + " has no seat assigned."), false);
+                                                    return 1;
+                                                }
+                                                ctx.getSource().sendFeedback(() -> Text.literal(String.valueOf(seat))
+                                                        , false);
+                                                return 1;
+                                            })
+                            )
+                    ));
+
+
+            // Step up to storyteller (only if no storyteller assigned)
+            root.then(literal("step-up").executes(ctx -> {
+                ServerPlayerEntity player = ctx.getSource().getPlayer();
+                botcActive activeGame = botc.getActiveGameFromPlayer(player);
+                if (activeGame == null) {
+                    ctx.getSource().sendError(Text.literal("You are not in an active BOTC game."));
+                    return 0;
+                }
+                try {
+                    Seat seat = activeGame.getSeatManager().stepUpToStoryteller(player);
+                    ctx.getSource().sendFeedback(() -> Text.literal("Stepped up to storyteller seat."), true);
+                    return 1;
+                } catch (InvalidSeatException ex) {
+                    ctx.getSource().sendError(Text.literal(ex.getMessage()));
+                    return 0;
+                }
+            }));
+
+            // Step down from storyteller
+            root.then(literal("step-down").executes(ctx -> {
+                ServerPlayerEntity player = ctx.getSource().getPlayer();
+                botcActive activeGame = botc.getActiveGameFromPlayer(player);
+                if (activeGame == null) {
+                    ctx.getSource().sendError(Text.literal("You are not in an active BOTC game."));
+                    return 0;
+                }
+                try {
+                    Seat seat = activeGame.getSeatManager().stepDownFromStoryteller(player);
+                    ctx.getSource().sendFeedback(() -> Text.literal("Stepped down from storyteller seat."), true);
+                    return 1;
+                } catch (InvalidSeatException ex) {
+                    ctx.getSource().sendError(Text.literal(ex.getMessage()));
+                    return 0;
+                }
+            }));
+
+            // Vacate a seat
+            root.then(literal("seat").then(
+                    literal("vacate").executes(ctx -> {
+                                ServerPlayerEntity player = ctx.getSource().getPlayer();
+                                botcActive activeGame = botc.getActiveGameFromPlayer(player);
+                                if (activeGame == null) {
+                                    ctx.getSource().sendError(Text.literal("Player is not in an active BOTC game."));
+                                    return 0;
+                                }
+                                activeGame.getSeatManager().removePlayerFromSeat(player);
+                                ctx.getSource().sendFeedback(() -> Text.literal("Vacated seat for player " + player.getName().getString() + "."), true);
+                                return 1;
+                            }
+                    )));
+
+            // Set character for a player
+            root.then(literal("character").then(
+                    literal("set").then(
+                            CommandManager.argument("player", EntityArgumentType.player()).then(
+                                    CommandManager.argument("character", StringArgumentType.word())
+                                            .executes(ctx -> {
+                                                ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "player");
+                                                botcActive activeGame = botc.getActiveGameFromPlayer(player);
+                                                if (activeGame == null) {
+                                                    ctx.getSource().sendError(Text.literal("Player is not in an " +
+                                                            "active BOTC game."));
+                                                    return 0;
+                                                }
+                                                Seat seat = activeGame.getSeatManager().getSeatFromPlayer(player);
+                                                if (seat == null) {
+                                                    ctx.getSource().sendError(Text.literal("Player has no seat " +
+                                                            "assigned."));
+                                                    return 0;
+                                                }
+                                                String characterId = StringArgumentType.getString(ctx, "character");
+                                                Character character = activeGame.getScript().getCharacter(characterId);
+                                                if (character == null) {
+                                                    ctx.getSource().sendError(Text.literal("There is no character " +
+                                                            "with this id on this script"));
+                                                    return 0;
+                                                }
+                                                seat.setCharacter(character);
+                                                ctx.getSource().sendFeedback(() -> Text.literal("Set character for " +
+                                                        "player " + player.getName().getString() + " to " + character.name() + "."), true);
+                                                return 1;
+                                            })
+                            )
+                    )
+            ));
+
+            // Kill a player
+            root.then(literal("kill").then(
+                    CommandManager.argument("player", EntityArgumentType.player()).executes(ctx -> {
+                        ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "player");
+                        botcActive activeGame = botc.getActiveGameFromPlayer(player);
+                        if (activeGame == null) {
+                            ctx.getSource().sendError(Text.literal("Player is not in an active BOTC game."));
+                            return 0;
+                        }
+                        Seat seat = activeGame.getSeatManager().getSeatFromPlayer(player);
+                        if (seat == null) {
+                            ctx.getSource().sendError(Text.literal("Player has no seat assigned."));
+                            return 0;
+                        }
+                        if (seat.kill()) {
+                            ctx.getSource().sendFeedback(() -> Text.literal("Killed player " + player.getName().getString() + "."), true);
+                            return 1;
+                        } else {
+                            ctx.getSource().sendError(Text.literal("Player " + player.getName().getString() + " is " +
+                                    "already dead."));
+                            return 0;
+                        }
+                    })));
+
+            // Revive a player
+            root.then(literal("revive").then(
+                    CommandManager.argument("player", EntityArgumentType.player()).executes(ctx -> {
+                        ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "player");
+                        botcActive activeGame = botc.getActiveGameFromPlayer(player);
+                        if (activeGame == null) {
+                            ctx.getSource().sendError(Text.literal("Player is not in an active BOTC game."));
+                            return 0;
+                        }
+                        Seat seat = activeGame.getSeatManager().getSeatFromPlayer(player);
+                        if (seat == null) {
+                            ctx.getSource().sendError(Text.literal("Player has no seat assigned."));
+                            return 0;
+                        }
+                        if (seat.revive()) {
+                            ctx.getSource().sendFeedback(() -> Text.literal("Revived player " + player.getName().getString() + "."), true);
+                            return 1;
+                        } else {
+                            ctx.getSource().sendError(Text.literal("Player " + player.getName().getString() + " is " +
+                                    "already alive."));
+                            return 0;
+                        }
+                    })));
+
+            // Toggle a player's alignment
+            root.then(literal("alignment").then(
+                    CommandManager.argument("player", EntityArgumentType.player()).then(
+                            literal("toggle")
+                                    .executes(ctx -> {
+                                        ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "player");
+                                        botcActive activeGame = botc.getActiveGameFromPlayer(player);
+                                        if (activeGame == null) {
+                                            ctx.getSource().sendError(Text.literal("Player is not in an active BOTC " +
+                                                    "game."));
+                                            return 0;
+                                        }
+                                        PlayerSeat seat = activeGame.getSeatManager().getPlayerSeatFromPlayer(player);
+                                        if (seat == null) {
+                                            ctx.getSource().sendError(Text.literal("Player has no seat assigned."));
+                                            return 0;
+                                        }
+                                        Team.Alignment newAlignment = seat.toggleAlignment();
+                                        ctx.getSource().sendFeedback(() -> Text.literal("Toggled alignment for player" +
+                                                " " + player.getName().getString() + " to " + newAlignment + "."),
+                                                true);
+                                        return 1;
+                                    }))));
+
+            root.then(literal("alignment").then(
+                    CommandManager.argument("player", EntityArgumentType.player()).then(
+                            CommandManager.argument("alignment", StringArgumentType.word())
+                                    .executes(ctx -> {
+                                        ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "player");
+                                        botcActive activeGame = botc.getActiveGameFromPlayer(player);
+                                        if (activeGame == null) {
+                                            ctx.getSource().sendError(Text.literal("Player is not in an active BOTC " +
+                                                    "game."));
+                                            return 0;
+                                        }
+                                        PlayerSeat seat = activeGame.getSeatManager().getPlayerSeatFromPlayer(player);
+                                        if (seat == null) {
+                                            ctx.getSource().sendError(Text.literal("Player has no seat assigned."));
+                                            return 0;
+                                        }
+                                        String alignmentStr = StringArgumentType.getString(ctx, "alignment");
+                                        try {
+                                            Team.Alignment alignment =
+                                                    Team.Alignment.valueOf(alignmentStr.toUpperCase());
+                                            Team.Alignment newAlignment = seat.setAlignment(alignment);
+                                            ctx.getSource().sendFeedback(() -> Text.literal("Set alignment for player" +
+                                                    " " + player.getName().getString() + " to " + newAlignment + ".")
+                                                    , true);
+                                            return 1;
+                                        } catch (IllegalArgumentException ex) {
+                                            ctx.getSource().sendError(Text.literal("Invalid alignment: " + alignmentStr));
+                                            return 0;
+                                        }
+                                    }))));
+
+            // Add a reminder to a player
+            root.then(literal("reminder").then(
+                    literal("add").then(
+                            CommandManager.argument("player", EntityArgumentType.player()).then(
+                                    CommandManager.argument("reminder", StringArgumentType.greedyString())
+                                            .executes(ctx -> {
+                                                ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "player");
+                                                botcActive activeGame = botc.getActiveGameFromPlayer(player);
+                                                if (activeGame == null) {
+                                                    ctx.getSource().sendError(Text.literal("Player is not in an " +
+                                                            "active BOTC game."));
+                                                    return 0;
+                                                }
+                                                PlayerSeat seat =
+                                                        activeGame.getSeatManager().getPlayerSeatFromPlayer(player);
+                                                if (seat == null) {
+                                                    ctx.getSource().sendError(Text.literal("Player has no seat " +
+                                                            "assigned."));
+                                                    return 0;
+                                                }
+                                                String reminder = StringArgumentType.getString(ctx, "reminder");
+                                                seat.addReminder(reminder);
+                                                ctx.getSource().sendFeedback(() -> Text.literal("Added reminder for " +
+                                                        "player " + player.getName().getString() + ": " + reminder),
+                                                        true);
+                                                return 1;
+                                            })
+                            )
+                    )
+            ));
+
+            // Remove a reminder from a player
+            root.then(literal("reminder").then(
+                    literal("remove").then(
+                            CommandManager.argument("player", EntityArgumentType.player()).then(
+                                    CommandManager.argument("reminder", IntegerArgumentType.integer(1, 255))
+                                            .executes(ctx -> {
+                                                ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "player");
+                                                botcActive activeGame = botc.getActiveGameFromPlayer(player);
+                                                if (activeGame == null) {
+                                                    ctx.getSource().sendError(Text.literal("Player is not in an " +
+                                                            "active BOTC game."));
+                                                    return 0;
+                                                }
+                                                PlayerSeat seat =
+                                                        activeGame.getSeatManager().getPlayerSeatFromPlayer(player);
+                                                if (seat == null) {
+                                                    ctx.getSource().sendError(Text.literal("Player has no seat " +
+                                                            "assigned."));
+                                                    return 0;
+                                                }
+                                                int reminderIndex = IntegerArgumentType.getInteger(ctx, "reminder") - 1;
+                                                String reminder = seat.removeReminder(reminderIndex);
+                                                ctx.getSource().sendFeedback(() -> Text.literal("Removed reminder for" +
+                                                        " player " + player.getName().getString() + ": " + reminder),
+                                                        true);
+                                                return 1;
+                                            })
+                            )
+                    )
+            ));
+
+            root.then(literal("reminder").then(
+                    literal("remove").then(
+                            CommandManager.argument("player", EntityArgumentType.player()).then(
+                                    CommandManager.argument("reminder", StringArgumentType.greedyString())
+                                            .executes(ctx -> {
+                                                ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "player");
+                                                botcActive activeGame = botc.getActiveGameFromPlayer(player);
+                                                if (activeGame == null) {
+                                                    ctx.getSource().sendError(Text.literal("Player is not in an " +
+                                                            "active BOTC game."));
+                                                    return 0;
+                                                }
+                                                PlayerSeat seat =
+                                                        activeGame.getSeatManager().getPlayerSeatFromPlayer(player);
+                                                if (seat == null) {
+                                                    ctx.getSource().sendError(Text.literal("Player has no seat " +
+                                                            "assigned."));
+                                                    return 0;
+                                                }
+                                                String reminderText = StringArgumentType.getString(ctx, "reminder");
+                                                if (seat.hasReminder(reminderText)) {
+                                                    seat.removeReminder(reminderText);
+                                                    ctx.getSource().sendFeedback(() -> Text.literal("Removed reminder" +
+                                                            " for player " + player.getName().getString() + ": " + reminderText), true);
+                                                    return 1;
+                                                } else {
+                                                    ctx.getSource().sendError(Text.literal("Reminder not found for " +
+                                                            "player " + player.getName().getString() + ": " + reminderText));
+                                                    return 0;
+                                                }
+                                            })))));
+
 
             // /botc map set <mapId>
             root.then(

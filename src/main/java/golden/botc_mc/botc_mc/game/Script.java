@@ -105,6 +105,15 @@ public record Script(Meta meta, List<Character> characters) {
         return scriptData;
     }
 
+    public Character getCharacter(String id) {
+        for (Character character : this.characters) {
+            if (character.id().equals(id)) {
+                return character;
+            }
+        }
+        return null;
+    }
+
     /**
      * Convert the script's colour array to an integer representation.
      * @return The integer representation of the colour.
