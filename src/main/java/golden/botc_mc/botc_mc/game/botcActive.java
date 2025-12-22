@@ -258,6 +258,6 @@ public class botcActive {
         int participantCount = this.gameSpace.getPlayers().participants().size();
         LOG.info("Game STARTING at tick {} with {} participant(s)", this.world.getTime(), participantCount);
         // giveStarterItems();
-        itemManager.giveStarterItems(this.gameSpace);
+        itemManager.giveStarterItems(this.gameSpace, this.script);
     }
 }
