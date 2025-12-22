@@ -1,39 +1,70 @@
 package golden.botc_mc.botc_mc;
 
+import golden.botc_mc.botc_mc.game.Character;
+import golden.botc_mc.botc_mc.game.Script;
+import golden.botc_mc.botc_mc.game.botcCommands;
+import golden.botc_mc.botc_mc.game.botcConfig;
+import golden.botc_mc.botc_mc.game.botcWaiting;
+import golden.botc_mc.botc_mc.game.voice.VoiceRegionManager;
+import golden.botc_mc.botc_mc.game.voice.VoiceRegionService;
+import golden.botc_mc.botc_mc.game.voice.VoiceRegionTask;
+import golden.botc_mc.botc_mc.game.voice.VoicechatPlugin;
+import golden.botc_mc.botc_mc.game.voice.SvcBridge;
 import net.fabricmc.api.ModInitializer;
-import xyz.nucleoid.plasmid.api.game.GameType;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
+import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
+import net.minecraft.resource.Resource;
+import net.minecraft.resource.ResourceManager;
+import net.minecraft.resource.ResourceType;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import golden.botc_mc.botc_mc.game.botcConfig;
-import golden.botc_mc.botc_mc.game.botcWaiting;
-import golden.botc_mc.botc_mc.game.botcCommands;
-import golden.botc_mc.botc_mc.game.voice.VoiceRegionManager;
-import golden.botc_mc.botc_mc.game.voice.VoiceRegionTask;
-import golden.botc_mc.botc_mc.game.voice.VoiceRegionService;
-import golden.botc_mc.botc_mc.game.voice.VoicechatPlugin;
-import golden.botc_mc.botc_mc.game.voice.SvcBridge;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.minecraft.server.MinecraftServer;
+import xyz.nucleoid.plasmid.api.game.GameType;
 
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Primary mod entrypoint and game type registration for BOTC.
  * Responsible for creating the Plasmid game type, wiring lifecycle hooks and commands.
+ * <p>
+ * This class is instantiated by the Fabric runtime and its {@link #onInitialize()} method is
+ * used to register commands, resource reloaders and any optional integrations (voice chat).
  */
 public class botc implements ModInitializer {
     /** Mod id namespace used for resource and game type registration. */
     public static final String ID = "botc-mc";
     /** Structured logger for BOTC mod operations. */
     public static final Logger LOGGER = LogManager.getLogger(ID);
+    /**
+     * Loaded script definitions keyed by their resource identifier string (for example
+     * "botc-mc:scripts/trouble_brewing.json"). Populated by the resource reload listener
+     * during server startup and when datapacks are reloaded.
+     */
+    public static final Map<String, Script> scripts = new HashMap<>();
 
     private VoiceRegionTask voiceRegionTask;
-
     private static volatile boolean REGIONS_MATERIALIZED = false;
 
+    /**
+     * Explicit no-arg constructor. Present to provide a documented construction point for
+     * static analysis tools which warn on use of the implicit default constructor.
+     */
+    public botc() {
+        // intentionally empty; initialization occurs in onInitialize()
+    }
+
+    /**
+     * Register the Plasmid GameType for BOTC reflectively. This uses reflection to call an
+     * older register signature when available so the mod remains compatible with multiple
+     * Plasmid/Plasmid-like versions.
+     */
     private void registerGameType() {
-        Identifier id = Identifier.of(ID, "game");
+        // Register under legacy id to support existing datapacks: botc-mc:botc-mc
+        Identifier id = Identifier.of(ID, "botc-mc");
         try {
             // Reflectively obtain (possibly deprecated) register method: register(Identifier, MapCodec, GameType.Open)
             java.lang.reflect.Method registerMethod = GameType.class.getDeclaredMethod(
@@ -43,25 +74,58 @@ public class botc implements ModInitializer {
                     GameType.Open.class
             );
             registerMethod.setAccessible(true);
-            // Explicit lambda wrapped in a variable avoids method reference varargs inference issues.
             GameType.Open<botcConfig> openFn = botcWaiting::open;
             registerMethod.invoke(null, id, botcConfig.MAP_CODEC, openFn);
-            LOGGER.info("Registered BOTC GameType reflectively." );
+            LOGGER.info("Registered BOTC GameType reflectively (id={} ).", id);
         } catch (Throwable t) {
             LOGGER.error("Failed to register BOTC GameType reflectively: {}", t.toString());
         }
     }
 
 
-    /** Default constructor required by the Fabric loader. */
-    public botc() {}
-
+    /**
+     * Fabric entrypoint called when the mod initializes.
+     * Registers reload listeners, commands and optional voicechat hooks.
+     */
     @Override
     public void onInitialize() {
         registerGameType();
         LOGGER.debug("botcConfig CODEC loaded: {}", botcConfig.CODEC);
 
         botcCommands.register();
+
+        // Register resource loader for characters and scripts
+        ResourceManagerHelper.get(ResourceType.SERVER_DATA).registerReloadListener(new SimpleSynchronousResourceReloadListener() {
+            @Override
+            public Identifier getFabricId() {
+                return Identifier.of(botc.ID, "character_data_loader");
+            }
+
+            @Override
+            public void reload(ResourceManager manager) {
+                Resource baseCharacters = manager.getResource(Identifier.of("botc-mc:character_data/base_characters" +
+                        ".json")).orElse(null);
+                if (baseCharacters != null) {
+                    golden.botc_mc.botc_mc.game.Character.registerBaseCharacters(baseCharacters);
+                    // Log some character data to verify loading
+                    LOGGER.debug(new golden.botc_mc.botc_mc.game.Character("washerwoman"));
+                    LOGGER.debug(new Character("pithag"));
+                } else {
+                    LOGGER.error("Error reading base_characters.json");
+                }
+
+                for (Identifier id :
+                        manager.findResources("scripts", path -> path.toString().endsWith(".json")).keySet()) {
+                    LOGGER.info("Loading {}...", String.valueOf(id));
+                    manager.getResource(id).ifPresent(script -> scripts.put(String.valueOf(id), Script.fromResource(script)));
+                }
+                LOGGER.info("Loaded {} scripts", scripts.size());
+                LOGGER.debug(scripts.get("botc-mc:scripts/trouble_brewing.json"));
+                LOGGER.debug(scripts.get("botc-mc:scripts/separation_church_state.json").getJinxes());
+            }
+        });
+
+        // Initialize voice region system
         VoiceRegionManager voiceRegionManager = new VoiceRegionManager(VoiceRegionService.botcConfigRoot().resolve("voice/global.json"));
 
         try {

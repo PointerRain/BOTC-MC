@@ -15,6 +15,15 @@ public record botcPhaseDurations(int dayDiscussionSecs,
                                  int nominationSecs,
                                  int executionSecs,
                                  int nightSecs) {
+
+    /**
+     * Default phase durations
+     * @return default botcPhaseDurations instance
+     */
+    public static botcPhaseDurations defaults() {
+        return new botcPhaseDurations(120, 45, 20, 60);
+    }
+
     /** Compute ticks for a state.
      * @param state game state
      * @return duration in ticks (>=1)
