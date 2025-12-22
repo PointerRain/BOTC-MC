@@ -1,7 +1,6 @@
 package golden.botc_mc.botc_mc.game.seat;
 
 import golden.botc_mc.botc_mc.game.Character;
-import golden.botc_mc.botc_mc.game.Team;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 public abstract class Seat {
@@ -58,13 +57,11 @@ public abstract class Seat {
         if (character == Character.EMPTY) {
             this.character = Character.EMPTY;
         }
-        if (character.team().getDefaultAlignment() == Team.Alignment.NPC) {
+        if (character.isNPC()) {
             throw new IllegalArgumentException("Cannot assign NPC character to seat");
         }
         this.character = character;
     }
-
-
 
     /**
      * Clears the character and alignment assigned to this seat, setting it to Character.EMPTY.
@@ -79,14 +76,6 @@ public abstract class Seat {
      */
     public Character getCharacter() {
         return this.character;
-    }
-
-    /**
-     * Sets the alive status of the player in this seat.
-     * @param alive True if the player is alive, false if dead.
-     */
-    public void setAlive(boolean alive) {
-        this.alive = alive;
     }
 
     /**

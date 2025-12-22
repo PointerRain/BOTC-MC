@@ -2,6 +2,7 @@ package golden.botc_mc.botc_mc.game.seat;
 
 import golden.botc_mc.botc_mc.game.Character;
 import golden.botc_mc.botc_mc.game.Team;
+import golden.botc_mc.botc_mc.game.exceptions.InvalidAlignmentException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +11,7 @@ public class PlayerSeat extends Seat {
 
     Team.Alignment alignment = Team.Alignment.NEUTRAL;
 
-    List<String> reminders = new ArrayList<>();
+    final List<String> reminders = new ArrayList<>();
 
     @Override
     public void setCharacter(Character character) throws IllegalArgumentException {
@@ -56,7 +57,22 @@ public class PlayerSeat extends Seat {
         return this.alignment;
     }
 
-    public Team.Alignment setAlignment(Team.Alignment alignment) {
+    /**
+     * Sets the alignment of the seat. Validates against character team restrictions.
+     * @param alignment The desired alignment to set.
+     * @return The new alignment after setting.
+     * @throws InvalidAlignmentException If the alignment is invalid for the character's team.
+     */
+    public Team.Alignment setAlignment(Team.Alignment alignment) throws InvalidAlignmentException {
+        if (this.character == null || this.character == Character.EMPTY) {
+            return this.alignment;
+        }
+        if (alignment == Team.Alignment.NPC) {
+            throw new InvalidAlignmentException("Cannot set player seat alignment to NPC");
+        }
+        if (this.character.team() != Team.TRAVELLER && alignment == Team.Alignment.NEUTRAL) {
+            throw new InvalidAlignmentException("Cannot set player seat alignment to NEUTRAL for non-Traveller characters");
+        }
         this.alignment = alignment;
         return this.alignment;
     }
@@ -77,8 +93,8 @@ public class PlayerSeat extends Seat {
         return this.reminders.contains(reminder);
     }
 
-    public boolean removeReminder(String reminder) {
-        return this.reminders.remove(reminder);
+    public void removeReminder(String reminder) {
+        this.reminders.remove(reminder);
     }
 
     public String removeReminder(int index) {

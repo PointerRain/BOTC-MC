@@ -105,13 +105,24 @@ public record Script(Meta meta, List<Character> characters) {
         return scriptData;
     }
 
+    /**
+     * Get a character from the script by its ID.
+     * @param id The ID of the character to retrieve.
+     * @return The Character object if found, otherwise a base character or Character.EMPTY.
+     */
     public Character getCharacter(String id) {
+        // Try to find character by ID
         for (Character character : this.characters) {
             if (character.id().equals(id)) {
                 return character;
             }
         }
-        return null;
+        // Find character from all base characters as fallback
+        Character baseCharacter = new Character(id);
+        return switch (baseCharacter.team()) {
+            case FABLED, LORIC, TRAVELLER -> baseCharacter;
+            default -> null;
+        };
     }
 
     /**
@@ -337,26 +348,26 @@ public record Script(Meta meta, List<Character> characters) {
      * Contains information about the action's ID, name, reminder text, and colour provider.
      */
     public static class NightAction {
-        public static NightAction DUSK = new NightAction("dusk", "Dusk", "Start the Night Phase.",
+        public static final NightAction DUSK = new NightAction("dusk", "Dusk", "Start the Night Phase.",
                 b -> Formatting.GRAY);
-        public static NightAction DAWN = new NightAction("dawn", "Dawn", "The night ends.",
+        public static final NightAction DAWN = new NightAction("dawn", "Dawn", "The night ends.",
                 b -> Formatting.GRAY);
-        public static NightAction MINIONINFO = new NightAction("minioninfo",
+        public static final NightAction MINIONINFO = new NightAction("minioninfo",
                 "Minion Info",
                 "If there are 7 or more players, wake all Minions: Show the THIS IS THE DEMON token. Point to the " +
                         "Demon. Show the THESE ARE YOUR MINIONS token. Point to the other Minions.",
                 Team.MINION::getColour);
-        public static NightAction DEMONINFO = new NightAction("demoninfo",
+        public static final NightAction DEMONINFO = new NightAction("demoninfo",
                 "Demon Info",
                 "If there are 7 or more players, wake the Demon: Show the THESE ARE YOUR MINIONS token. Point to all " +
                         "Minions. Show the THESE CHARACTERS ARE NOT IN PLAY token. Show 3 not-in-play good character " +
                         "tokens.",
                 Team.DEMON::getColour);
 
-        String id;
-        String name;
-        String reminder;
-        Function<? super Boolean, Formatting> colourProvider;
+        final String id;
+        final String name;
+        final String reminder;
+        final Function<? super Boolean, Formatting> colourProvider;
 
         public NightAction(String id, String name, String reminder, Function<? super Boolean, Formatting> colourProvider) {
             this.id = id;

@@ -4,6 +4,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import golden.botc_mc.botc_mc.botc;
+import golden.botc_mc.botc_mc.game.exceptions.InvalidAlignmentException;
 import golden.botc_mc.botc_mc.game.exceptions.InvalidSeatException;
 import golden.botc_mc.botc_mc.game.map.Map;
 import golden.botc_mc.botc_mc.game.seat.PlayerSeat;
@@ -209,7 +210,7 @@ public final class botcCommands {
                     return 0;
                 }
                 try {
-                    Seat seat = activeGame.getSeatManager().stepUpToStoryteller(player);
+                    activeGame.getSeatManager().stepUpToStoryteller(player);
                     ctx.getSource().sendFeedback(() -> Text.literal("Stepped up to storyteller seat."), true);
                     return 1;
                 } catch (InvalidSeatException ex) {
@@ -227,7 +228,7 @@ public final class botcCommands {
                     return 0;
                 }
                 try {
-                    Seat seat = activeGame.getSeatManager().stepDownFromStoryteller(player);
+                    activeGame.getSeatManager().stepDownFromStoryteller(player);
                     ctx.getSource().sendFeedback(() -> Text.literal("Stepped down from storyteller seat."), true);
                     return 1;
                 } catch (InvalidSeatException ex) {
@@ -277,10 +278,16 @@ public final class botcCommands {
                                                             "with this id on this script"));
                                                     return 0;
                                                 }
-                                                seat.setCharacter(character);
-                                                ctx.getSource().sendFeedback(() -> Text.literal("Set character for " +
-                                                        "player " + player.getName().getString() + " to " + character.name() + "."), true);
-                                                return 1;
+                                                try {
+                                                    seat.setCharacter(character);
+                                                    ctx.getSource().sendFeedback(() -> Text.literal("Set character for " +
+                                                            "player " + player.getName().getString() + " to " + character.name() + "."), true);
+                                                    return 1;
+                                                } catch (IllegalArgumentException ex) {
+                                                    ctx.getSource().sendError(Text.literal("Failed to set character: " +
+                                                            ex.getMessage()));
+                                                    return 0;
+                                                }
                                             })
                             )
                     )
@@ -380,9 +387,12 @@ public final class botcCommands {
                                                     Team.Alignment.valueOf(alignmentStr.toUpperCase());
                                             Team.Alignment newAlignment = seat.setAlignment(alignment);
                                             ctx.getSource().sendFeedback(() -> Text.literal("Set alignment for player" +
-                                                    " " + player.getName().getString() + " to " + newAlignment + ".")
+                                                            " " + player.getName().getString() + " to " + newAlignment + ".")
                                                     , true);
                                             return 1;
+                                        } catch (InvalidAlignmentException ex) {
+                                            ctx.getSource().sendError(Text.literal("Cannot set alignment: " + ex.getMessage()));
+                                            return 0;
                                         } catch (IllegalArgumentException ex) {
                                             ctx.getSource().sendError(Text.literal("Invalid alignment: " + alignmentStr));
                                             return 0;
