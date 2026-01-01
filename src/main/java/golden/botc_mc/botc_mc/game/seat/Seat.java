@@ -1,12 +1,12 @@
 package golden.botc_mc.botc_mc.game.seat;
 
-import golden.botc_mc.botc_mc.game.Character;
+import golden.botc_mc.botc_mc.game.botcCharacter;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 public abstract class Seat {
 
-    // Character. Storyteller seats usually have Character.EMPTY, but can be assigned other characters if desired.
-    Character character = Character.EMPTY;
+    // character. Storyteller seats usually have botcCharacter.EMPTY, but can be assigned other character if desired.
+    botcCharacter character = botcCharacter.EMPTY;
     // PlayerEntity associated with this seat
     ServerPlayerEntity playerEntity = null;
     // Alive status. Not particularly meaningful for storyteller seats.
@@ -53,9 +53,10 @@ public abstract class Seat {
      * Otherwise, the seat's alignment remains unchanged.
      * @param character The Character to assign to this seat.
      */
-    public void setCharacter(Character character) {
-        if (character == Character.EMPTY) {
-            this.character = Character.EMPTY;
+    public void setCharacter(botcCharacter character) {
+        if (character == botcCharacter.EMPTY) {
+            this.character = botcCharacter.EMPTY;
+            return;
         }
         if (character.isNPC()) {
             throw new IllegalArgumentException("Cannot assign NPC character to seat");
@@ -67,14 +68,14 @@ public abstract class Seat {
      * Clears the character and alignment assigned to this seat, setting it to Character.EMPTY.
      */
     public void clearCharacter() {
-        this.character = Character.EMPTY;
+        this.character = botcCharacter.EMPTY;
     }
 
     /**
      * Gets the character assigned to this seat.
      * @return The Character assigned to this seat.
      */
-    public Character getCharacter() {
+    public botcCharacter getCharacter() {
         return this.character;
     }
 

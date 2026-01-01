@@ -1,6 +1,6 @@
 package golden.botc_mc.botc_mc.game.seat;
 
-import golden.botc_mc.botc_mc.game.Character;
+import golden.botc_mc.botc_mc.game.botcCharacter;
 
 public class StorytellerSeat extends Seat {
 
@@ -13,7 +13,7 @@ public class StorytellerSeat extends Seat {
         } else {
             output += "player=null, ";
         }
-        if (this.character != null && this.character != Character.EMPTY) {
+        if (this.character != null && this.character != botcCharacter.EMPTY) {
             output += "character=" + this.character.name() + ", ";
         }
         output += "alive=" + this.alive;

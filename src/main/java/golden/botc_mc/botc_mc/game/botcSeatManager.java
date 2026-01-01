@@ -120,6 +120,7 @@ public class botcSeatManager {
     /**
      * Removes a player from any seat they are assigned to.
      * @param player The player to remove.
+     * @throws InvalidSeatException If the player is not assigned to any seat.
      */
     public void removePlayerFromSeat(ServerPlayerEntity player) {
         Seat seat = getSeatFromPlayer(player);

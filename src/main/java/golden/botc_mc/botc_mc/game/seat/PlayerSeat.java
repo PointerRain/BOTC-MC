@@ -1,6 +1,6 @@
 package golden.botc_mc.botc_mc.game.seat;
 
-import golden.botc_mc.botc_mc.game.Character;
+import golden.botc_mc.botc_mc.game.botcCharacter;
 import golden.botc_mc.botc_mc.game.Team;
 import golden.botc_mc.botc_mc.game.exceptions.InvalidAlignmentException;
 
@@ -14,13 +14,13 @@ public class PlayerSeat extends Seat {
     final List<String> reminders = new ArrayList<>();
 
     @Override
-    public void setCharacter(Character character) throws IllegalArgumentException {
-        super.setCharacter(character);
-        this.alignment = switch (character.team().getDefaultAlignment()) {
-            case NEUTRAL, NPC -> character.team().getDefaultAlignment();
+    public void setCharacter(botcCharacter botcCharacter) throws IllegalArgumentException {
+        super.setCharacter(botcCharacter);
+        this.alignment = switch (botcCharacter.team().getDefaultAlignment()) {
+            case NEUTRAL, NPC -> botcCharacter.team().getDefaultAlignment();
             case GOOD, EVIL -> switch (this.alignment) {
                 case GOOD, EVIL -> this.alignment;
-                case NEUTRAL, NPC -> character.team().getDefaultAlignment();
+                case NEUTRAL, NPC -> botcCharacter.team().getDefaultAlignment();
             };
         };
     }
@@ -30,14 +30,14 @@ public class PlayerSeat extends Seat {
     }
 
     /**
-     * Toggles the alignment of the seat. For Traveller characters, cycles through Neutral -> Good -> Evil.
-     * For Townsfolk, Outsider, Minion, and Demon characters, toggles between Good and Evil.
-     * Fabled and Loric characters remain NPC.
+     * Toggles the alignment of the seat. For Traveller botcCharacters, cycles through Neutral -> Good -> Evil.
+     * For Townsfolk, Outsider, Minion, and Demon botcCharacters, toggles between Good and Evil.
+     * Fabled and Loric botcCharacters remain NPC.
      * NOTE: This means toggling twice may not return to the original alignment.
      * @return The new alignment after toggling.
      */
     public Team.Alignment toggleAlignment() {
-        if (this.character == null || this.character == Character.EMPTY) {
+        if (this.character == null || this.character == botcCharacter.EMPTY) {
             return this.alignment;
         }
         this.alignment = switch (this.character.team()) {
@@ -58,27 +58,27 @@ public class PlayerSeat extends Seat {
     }
 
     /**
-     * Sets the alignment of the seat. Validates against character team restrictions.
+     * Sets the alignment of the seat. Validates against botcCharacter team restrictions.
      * @param alignment The desired alignment to set.
      * @return The new alignment after setting.
-     * @throws InvalidAlignmentException If the alignment is invalid for the character's team.
+     * @throws InvalidAlignmentException If the alignment is invalid for the botcCharacter's team.
      */
     public Team.Alignment setAlignment(Team.Alignment alignment) throws InvalidAlignmentException {
-        if (this.character == null || this.character == Character.EMPTY) {
+        if (this.character == null || this.character == botcCharacter.EMPTY) {
             return this.alignment;
         }
         if (alignment == Team.Alignment.NPC) {
             throw new InvalidAlignmentException("Cannot set player seat alignment to NPC");
         }
         if (this.character.team() != Team.TRAVELLER && alignment == Team.Alignment.NEUTRAL) {
-            throw new InvalidAlignmentException("Cannot set player seat alignment to NEUTRAL for non-Traveller characters");
+            throw new InvalidAlignmentException("Cannot set player seat alignment to NEUTRAL for non-Traveller botcCharacters");
         }
         this.alignment = alignment;
         return this.alignment;
     }
 
     /**
-     * Clears the character and alignment assigned to this seat, setting it to Character.EMPTY.
+     * Clears the botcCharacter and alignment assigned to this seat, setting it to botcCharacter.EMPTY.
      */
     public void clearCharacter() {
         super.clearCharacter();
@@ -114,7 +114,7 @@ public class PlayerSeat extends Seat {
 
     @Override
     public String toString() {
-        if (this.character == Character.EMPTY && this.playerEntity == null) return "PlayerSeat{}";
+        if (this.character == botcCharacter.EMPTY && this.playerEntity == null) return "PlayerSeat{}";
 
         String output = "PlayerSeat{";
         if (this.playerEntity != null) {
@@ -122,10 +122,10 @@ public class PlayerSeat extends Seat {
         } else {
             output += "player=null, ";
         }
-        if (this.character != null && this.character != Character.EMPTY) {
+        if (this.character != null && this.character != botcCharacter.EMPTY) {
             output += "character=" + this.character.name() + ", ";
         } else {
-            output += "character=Character.EMPTY, ";
+            output += "character=botcCharacter.EMPTY, ";
         }
         output += "alignment=" + this.alignment + ", ";
         output += "alive=" + this.alive + ", ";

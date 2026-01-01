@@ -1,6 +1,6 @@
 package golden.botc_mc.botc_mc;
 
-import golden.botc_mc.botc_mc.game.Character;
+import golden.botc_mc.botc_mc.game.botcCharacter;
 import golden.botc_mc.botc_mc.game.Script;
 import golden.botc_mc.botc_mc.game.botcActive;
 import golden.botc_mc.botc_mc.game.botcCommands;
@@ -114,10 +114,10 @@ public class botc implements ModInitializer {
                 Resource baseCharacters = manager.getResource(Identifier.of("botc-mc:character_data/base_characters" +
                         ".json")).orElse(null);
                 if (baseCharacters != null) {
-                    golden.botc_mc.botc_mc.game.Character.registerBaseCharacters(baseCharacters);
-                    // Log some character data to verify loading
-                    LOGGER.debug(new golden.botc_mc.botc_mc.game.Character("washerwoman"));
-                    LOGGER.debug(new Character("pithag"));
+                    botcCharacter.registerBaseCharacters(baseCharacters);
+                    // Log some botcCharacter data to verify loading
+                    LOGGER.debug(new botcCharacter("washerwoman"));
+                    LOGGER.debug(new botcCharacter("pithag"));
                 } else {
                     LOGGER.error("Error reading base_characters.json");
                 }

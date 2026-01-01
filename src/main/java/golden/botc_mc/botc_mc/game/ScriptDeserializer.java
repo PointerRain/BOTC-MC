@@ -32,7 +32,7 @@ public class ScriptDeserializer implements JsonDeserializer<Script> {
         List<String> firstNight = null;
         List<String> otherNight = null;
         int[] colour = null;
-        List<Character> characters = new ArrayList<>();
+        List<botcCharacter> characters = new ArrayList<>();
 
         for (JsonElement element : jsonArray) {
             if (element.isJsonObject() && element.getAsJsonObject().has("id") && "_meta".equals(element.getAsJsonObject().get("id").getAsString())) {
@@ -57,9 +57,9 @@ public class ScriptDeserializer implements JsonDeserializer<Script> {
                 }
 
             } else if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isString()) {
-                characters.add(new Character(element.getAsString()));
+                characters.add(new botcCharacter(element.getAsString()));
             } else if (element.isJsonObject()) {
-                characters.add(context.deserialize(element, Character.class));
+                characters.add(context.deserialize(element, botcCharacter.class));
             } else {
                 throw new JsonParseException("Unexpected JSON element: " + element);
             }

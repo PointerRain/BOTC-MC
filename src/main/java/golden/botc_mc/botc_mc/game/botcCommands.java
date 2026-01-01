@@ -113,7 +113,7 @@ public final class botcCommands {
                                     .executes(ctx -> {
                                                 ServerPlayerEntity player = ctx.getSource().getPlayer();
                                                 botcActive activeGame = botc.getActiveGameFromPlayer(player);
-                                                if (activeGame == null) {
+                                        if (activeGame == null || player == null) {
                                                     ctx.getSource().sendError(Text.literal("You are not in an active " +
                                                             "BOTC game."));
                                                     return 0;
@@ -135,7 +135,7 @@ public final class botcCommands {
                                     .executes(ctx -> {
                                                 ServerPlayerEntity player = ctx.getSource().getPlayer();
                                                 botcActive activeGame = botc.getActiveGameFromPlayer(player);
-                                                if (activeGame == null) {
+                                        if (activeGame == null || player == null) {
                                                     ctx.getSource().sendError(Text.literal("You are not in an active " +
                                                             "BOTC game."));
                                                     return 0;
@@ -161,27 +161,33 @@ public final class botcCommands {
                                     .executes(ctx -> {
                                                 ServerPlayerEntity player = ctx.getSource().getPlayer();
                                                 botcActive activeGame = botc.getActiveGameFromPlayer(player);
-                                                if (activeGame == null) {
+                                        if (activeGame == null || player == null) {
                                                     ctx.getSource().sendError(Text.literal("You are not in an active " +
                                                             "BOTC game."));
                                                     return 0;
                                                 }
                                                 int seatNumber = IntegerArgumentType.getInteger(ctx, "seat");
-                                                Seat seat = activeGame.getSeatManager().assignPlayerToSeat(player,
-                                                        seatNumber);
-                                                if (seat == null) {
-                                                    ctx.getSource().sendError(Text.literal("Failed to assign seat " + seatNumber + " to player " + player.getName().getString() + "."));
-                                                    return 0;
-                                                }
-                                                ctx.getSource().sendFeedback(() -> Text.literal("Assigned seat " + seatNumber + " to player " + player.getName().getString() + "."), true);
-                                                return 1;
-                                            }
-                                    )
+                                        Seat seat;
+                                        try {
+                                            seat = activeGame.getSeatManager().assignPlayerToSeat(player,
+                                                    seatNumber);
+                                        } catch (IllegalArgumentException | InvalidSeatException ex) {
+                                            ctx.getSource().sendError(Text.literal("Failed to assign seat " + seatNumber + " to player " + player.getName().getString() + ": " + ex.getMessage()));
+                                            return 0;
+                                        }
+                                        if (seat == null) {
+                                            ctx.getSource().sendError(Text.literal("Failed to assign seat " + seatNumber + " to player " + player.getName().getString() + "."));
+                                            return 0;
+                                        }
+                                        ctx.getSource().sendFeedback(() -> Text.literal("Assigned seat " + seatNumber + " to player " + player.getName().getString() + "."), true);
+                                        return 1;
+                                    }
+                            )
                     )
             ));
 
 
-            // Get character info for a player
+            // Get botcCharacter info for a player
             root.then(
                     literal("character").then(
                             literal("get").then(
@@ -205,7 +211,7 @@ public final class botcCommands {
             root.then(literal("step-up").executes(ctx -> {
                 ServerPlayerEntity player = ctx.getSource().getPlayer();
                 botcActive activeGame = botc.getActiveGameFromPlayer(player);
-                if (activeGame == null) {
+                if (activeGame == null || player == null) {
                     ctx.getSource().sendError(Text.literal("You are not in an active BOTC game."));
                     return 0;
                 }
@@ -223,7 +229,7 @@ public final class botcCommands {
             root.then(literal("step-down").executes(ctx -> {
                 ServerPlayerEntity player = ctx.getSource().getPlayer();
                 botcActive activeGame = botc.getActiveGameFromPlayer(player);
-                if (activeGame == null) {
+                if (activeGame == null || player == null) {
                     ctx.getSource().sendError(Text.literal("You are not in an active BOTC game."));
                     return 0;
                 }
@@ -242,7 +248,7 @@ public final class botcCommands {
                     literal("vacate").executes(ctx -> {
                                 ServerPlayerEntity player = ctx.getSource().getPlayer();
                                 botcActive activeGame = botc.getActiveGameFromPlayer(player);
-                                if (activeGame == null) {
+                        if (activeGame == null || player == null) {
                                     ctx.getSource().sendError(Text.literal("Player is not in an active BOTC game."));
                                     return 0;
                                 }
@@ -260,7 +266,7 @@ public final class botcCommands {
                                             .executes(ctx -> {
                                                 ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "player");
                                                 botcActive activeGame = botc.getActiveGameFromPlayer(player);
-                                                if (activeGame == null) {
+                                                if (activeGame == null || player == null) {
                                                     ctx.getSource().sendError(Text.literal("Player is not in an " +
                                                             "active BOTC game."));
                                                     return 0;
@@ -272,7 +278,7 @@ public final class botcCommands {
                                                     return 0;
                                                 }
                                                 String characterId = StringArgumentType.getString(ctx, "character");
-                                                Character character = activeGame.getScript().getCharacter(characterId);
+                                                botcCharacter character = activeGame.getScript().getCharacter(characterId);
                                                 if (character == null) {
                                                     ctx.getSource().sendError(Text.literal("There is no character " +
                                                             "with this id on this script"));
@@ -298,7 +304,7 @@ public final class botcCommands {
                     CommandManager.argument("player", EntityArgumentType.player()).executes(ctx -> {
                         ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "player");
                         botcActive activeGame = botc.getActiveGameFromPlayer(player);
-                        if (activeGame == null) {
+                        if (activeGame == null || player == null) {
                             ctx.getSource().sendError(Text.literal("Player is not in an active BOTC game."));
                             return 0;
                         }
@@ -322,7 +328,7 @@ public final class botcCommands {
                     CommandManager.argument("player", EntityArgumentType.player()).executes(ctx -> {
                         ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "player");
                         botcActive activeGame = botc.getActiveGameFromPlayer(player);
-                        if (activeGame == null) {
+                        if (activeGame == null || player == null) {
                             ctx.getSource().sendError(Text.literal("Player is not in an active BOTC game."));
                             return 0;
                         }
@@ -348,7 +354,7 @@ public final class botcCommands {
                                     .executes(ctx -> {
                                         ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "player");
                                         botcActive activeGame = botc.getActiveGameFromPlayer(player);
-                                        if (activeGame == null) {
+                                        if (activeGame == null || player == null) {
                                             ctx.getSource().sendError(Text.literal("Player is not in an active BOTC " +
                                                     "game."));
                                             return 0;
@@ -371,7 +377,7 @@ public final class botcCommands {
                                     .executes(ctx -> {
                                         ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "player");
                                         botcActive activeGame = botc.getActiveGameFromPlayer(player);
-                                        if (activeGame == null) {
+                                        if (activeGame == null || player == null) {
                                             ctx.getSource().sendError(Text.literal("Player is not in an active BOTC " +
                                                     "game."));
                                             return 0;
@@ -407,7 +413,7 @@ public final class botcCommands {
                                             .executes(ctx -> {
                                                 ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "player");
                                                 botcActive activeGame = botc.getActiveGameFromPlayer(player);
-                                                if (activeGame == null) {
+                                                if (activeGame == null || player == null) {
                                                     ctx.getSource().sendError(Text.literal("Player is not in an " +
                                                             "active BOTC game."));
                                                     return 0;
@@ -438,7 +444,7 @@ public final class botcCommands {
                                             .executes(ctx -> {
                                                 ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "player");
                                                 botcActive activeGame = botc.getActiveGameFromPlayer(player);
-                                                if (activeGame == null) {
+                                                if (activeGame == null || player == null) {
                                                     ctx.getSource().sendError(Text.literal("Player is not in an " +
                                                             "active BOTC game."));
                                                     return 0;
@@ -468,7 +474,7 @@ public final class botcCommands {
                                             .executes(ctx -> {
                                                 ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "player");
                                                 botcActive activeGame = botc.getActiveGameFromPlayer(player);
-                                                if (activeGame == null) {
+                                                if (activeGame == null || player == null) {
                                                     ctx.getSource().sendError(Text.literal("Player is not in an " +
                                                             "active BOTC game."));
                                                     return 0;
@@ -566,7 +572,7 @@ public final class botcCommands {
      * Extract the simple map name from a resource identifier.
      * Example: botc-mc:map_config/map1.json -> map1
      * @param id resource identifier
-     * @return simple map name without path or extension
+     * @return simple map name without a path or extension
      */
     private static String extractMapName(Identifier id) {
         String path = id.getPath();
@@ -642,7 +648,13 @@ public final class botcCommands {
         player.sendMessage(Text.literal("-------------------------"), false);
     }
 
-    /** Hidden constructor to prevent instantiation. */
+    /** A hidden constructor to prevent instantiation. */
     private botcCommands() {}
 }
 
+// Empty seat
+// Clear seat
+// Toggle alignment
+// Change botcCharacter
+// Add reminder
+// Remove reminder
