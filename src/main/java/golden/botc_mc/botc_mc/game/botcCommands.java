@@ -6,6 +6,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.exceptions.InvalidAlignmentException;
 import golden.botc_mc.botc_mc.game.exceptions.InvalidSeatException;
+import golden.botc_mc.botc_mc.game.gui.GrimoireGUI;
 import golden.botc_mc.botc_mc.game.map.Map;
 import golden.botc_mc.botc_mc.game.seat.PlayerSeat;
 import golden.botc_mc.botc_mc.game.seat.Seat;
@@ -515,6 +516,22 @@ public final class botcCommands {
                             )
                     )
             );
+
+            root.then(literal("gui").executes(ctx -> {
+                ServerPlayerEntity player = ctx.getSource().getPlayer();
+                if (player == null) {
+                    ctx.getSource().sendError(Text.literal("This command may only be used by players."));
+                    return 0;
+                }
+                botcActive activeGame = botc.getActiveGameFromPlayer(player);
+                if (activeGame == null) {
+                    ctx.getSource().sendError(Text.literal("You are not in an active BOTC game."));
+                    return 0;
+                }
+                GrimoireGUI gui = new GrimoireGUI(player, activeGame.getSeatManager());
+                gui.open();
+                return 1;
+            }));
 
             dispatcher.register(root);
         });

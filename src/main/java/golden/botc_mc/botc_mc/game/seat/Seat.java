@@ -2,6 +2,9 @@ package golden.botc_mc.botc_mc.game.seat;
 
 import golden.botc_mc.botc_mc.game.botcCharacter;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
 public abstract class Seat {
 
@@ -109,6 +112,30 @@ public abstract class Seat {
             return true;
         }
         return false;
+    }
+
+
+    protected Formatting getColour(boolean dark) {
+        if (character != botcCharacter.EMPTY && character.team() != null) {
+            return character.team().getColour(dark);
+        }
+        return Formatting.WHITE;
+    }
+
+    public Text getOccupantText() {
+        MutableText text = (MutableText) (playerEntity != null ? playerEntity.getDisplayName() : Text.of("(Unoccupied)"));
+        if (text == null) {
+            // This should never happen, but just in case
+            text = (MutableText) Text.of("(Occupied)");
+        }
+        text.styled(style -> style.withFormatting(getColour(false)).withBold(true).withItalic(false));
+        return text;
+    }
+
+    public Text getCharacterText() {
+        MutableText text = (MutableText) (character != null ? character.toFormattedText(false) : Text.of("Empty"));
+        text.styled(style -> style.withFormatting(getColour(false)).withBold(true).withItalic(false));
+        return text;
     }
 
     @Override

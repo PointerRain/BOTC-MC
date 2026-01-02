@@ -3,6 +3,7 @@ package golden.botc_mc.botc_mc.game.seat;
 import golden.botc_mc.botc_mc.game.botcCharacter;
 import golden.botc_mc.botc_mc.game.Team;
 import golden.botc_mc.botc_mc.game.exceptions.InvalidAlignmentException;
+import net.minecraft.util.Formatting;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -110,6 +111,14 @@ public class PlayerSeat extends Seat {
 
     public List<String> getReminders() {
         return this.reminders;
+    }
+
+    @Override
+    protected Formatting getColour(boolean dark) {
+        if (character != botcCharacter.EMPTY) {
+            return alignment.getColour(dark);
+        }
+        return Formatting.WHITE;
     }
 
     @Override
