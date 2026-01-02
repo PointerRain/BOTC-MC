@@ -128,7 +128,7 @@ public abstract class Seat {
             // This should never happen, but just in case
             text = (MutableText) Text.of("(Occupied)");
         }
-        text.styled(style -> style.withFormatting(getColour(false)).withBold(true).withItalic(false));
+        text.styled(style -> style.withFormatting(getColour(false)).withItalic(false));
         return text;
     }
 

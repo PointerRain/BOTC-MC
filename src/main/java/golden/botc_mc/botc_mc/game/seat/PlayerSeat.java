@@ -115,10 +115,16 @@ public class PlayerSeat extends Seat {
 
     @Override
     protected Formatting getColour(boolean dark) {
-        if (character != botcCharacter.EMPTY) {
-            return alignment.getColour(dark);
+        // Return white if no character assigned
+        if (character == botcCharacter.EMPTY) {
+            return Formatting.WHITE;
         }
-        return Formatting.WHITE;
+        // Return team colour if alignment matches default alignment
+        if (this.character.team() != null && alignment == this.character.team().getDefaultAlignment()) {
+            return this.character.team().getColour(dark);
+        }
+        // Otherwise, return alignment colour
+        return this.alignment.getColour(dark);
     }
 
     @Override
