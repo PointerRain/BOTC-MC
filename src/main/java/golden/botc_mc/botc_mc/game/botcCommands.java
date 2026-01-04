@@ -528,7 +528,7 @@ public final class botcCommands {
                     ctx.getSource().sendError(Text.literal("You are not in an active BOTC game."));
                     return 0;
                 }
-                GrimoireGUI gui = new GrimoireGUI(player, activeGame.getSeatManager());
+                GrimoireGUI gui = new GrimoireGUI(player, activeGame.getSeatManager(), activeGame.getScript());
                 gui.open();
                 return 1;
             }));
