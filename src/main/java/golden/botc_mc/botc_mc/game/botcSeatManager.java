@@ -13,6 +13,9 @@ public class botcSeatManager {
     private final List<PlayerSeat> playerSeats = new ArrayList<>();
     private final List<StorytellerSeat> storytellerSeats = new ArrayList<>();
 
+    private static final int MIN_PLAYERS = 4;
+    private static final int MAX_PLAYERS = 18;
+
     // Constructor for default 8 player seats
     public botcSeatManager() {
         this(8); // Default to 8 player seats
@@ -30,12 +33,12 @@ public class botcSeatManager {
 
     /**
      * Sets the number of player seats.
-     * @param count Number of player seats to set (between 5 and 20).
+     * @param count Number of player seats to set.
      * @throws IllegalArgumentException if count is out of range.
      */
     public void setPlayerCount(int count) throws IllegalArgumentException {
-        if (count < 5 || count > 20) {
-            throw new IllegalArgumentException("Count must be between 5 and 20.");
+        if (count < MIN_PLAYERS || count > MAX_PLAYERS) {
+            throw new IllegalArgumentException("Count must be between " + MIN_PLAYERS + " and " + MAX_PLAYERS);
         }
         // Add seats until we reach the desired count
         while (this.playerSeats.size() < count) {
