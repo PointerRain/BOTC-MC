@@ -12,18 +12,13 @@ import net.minecraft.text.Text;
 import java.util.function.Function;
 
 public class CharacterSelectGUI extends SimpleGui {
-    private final Script script;
-    private final int rows;
-    private final boolean includesTravellers;
     private final Function<? super botcCharacter, ?> onSelectCharacter;
 
     public CharacterSelectGUI(ServerPlayerEntity player, Script script, Function<? super botcCharacter, ?> onSelectCharacter) {
-        super(getRecommendedSize(script), player, false);
+        super(getScreenSize(script), player, false);
         this.setTitle(Text.of("Select Character"));
 
-        this.script = script;
-        this.rows = countRows(script);
-        this.includesTravellers = shouldIncludeTravellers(script);
+        boolean includesTravellers = shouldIncludeTravellers(script);
         this.onSelectCharacter = onSelectCharacter;
 
         for (botcCharacter character : script.getCharactersByTeam(Team.TOWNSFOLK)) {
@@ -42,7 +37,7 @@ public class CharacterSelectGUI extends SimpleGui {
             this.setSlot(this.getFirstEmptySlot(), TokenItemStack.of(character), (index, clickType, slotActionType, gui) ->
                 characterSelectCallback(character));
         }
-        if (this.includesTravellers) {
+        if (includesTravellers) {
             for (botcCharacter character : script.getCharactersByTeam(Team.TRAVELLER)) {
                 this.setSlot(this.getFirstEmptySlot(), TokenItemStack.of(character), (index, clickType, slotActionType, gui) ->
                 characterSelectCallback(character));
@@ -75,7 +70,7 @@ public class CharacterSelectGUI extends SimpleGui {
         return !script.getCharactersByTeam(Team.TRAVELLER).isEmpty() && getRoleCount(script, true) <= 54;
     }
 
-    private static ScreenHandlerType<GenericContainerScreenHandler> getRecommendedSize(Script script) {
+    private static ScreenHandlerType<GenericContainerScreenHandler> getScreenSize(Script script) {
         int rows = countRows(script);
         if (rows <= 3) {
             return ScreenHandlerType.GENERIC_9X3;
@@ -88,3 +83,12 @@ public class CharacterSelectGUI extends SimpleGui {
         }
     }
 }
+
+// Buttons
+// Change character
+// Change alignment
+// Add / Remove reminders
+// Kill / Revive
+// Remove dead vote
+// Start nomination
+// Empty seat
