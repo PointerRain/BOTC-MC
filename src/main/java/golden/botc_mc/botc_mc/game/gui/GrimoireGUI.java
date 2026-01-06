@@ -4,8 +4,6 @@ import eu.pb4.sgui.api.elements.GuiElementInterface;
 import eu.pb4.sgui.api.gui.SimpleGui;
 import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.Script;
-import golden.botc_mc.botc_mc.game.Team;
-import golden.botc_mc.botc_mc.game.botcCharacter;
 import golden.botc_mc.botc_mc.game.botcSeatManager;
 import golden.botc_mc.botc_mc.game.seat.PlayerSeat;
 import net.minecraft.component.DataComponentTypes;
@@ -41,8 +39,8 @@ public class GrimoireGUI extends SimpleGui {
         for (int n = 0; n < seatManager.getSeatCount(); n++) {
             PlayerSeat seat = seatManager.getSeatFromNumber(n+1);
 
-            ItemStack headItem = getHeadItem(n, seat);
-            ItemStack tokenItem = getTokenItem(seat);
+            ItemStack headItem = getHeadItem(seat, n + 1);
+            ItemStack tokenItem = TokenItemStack.of(seat);
             List<ItemStack> reminderItems = getReminderItems(seat.getReminders(), maxReminders);
 
             int finalN = n;
@@ -92,13 +90,17 @@ public class GrimoireGUI extends SimpleGui {
 
     public void showPlayerPopout(PlayerSeat seat, int seatNumber) {
         clearPlayerPopout();
-        ItemStack headItem = getHeadItem(seatNumber - 1, seat);
-        ItemStack tokenItem = getTokenItem(seat);
+        ItemStack headItem = getHeadItem(seat, seatNumber);
+        ItemStack tokenItem = TokenItemStack.of(seat);
+
+        GuiElementInterface.ClickCallback tokenCallback = (index, clickType, slotActionType, gui) ->
+                selectCharacter(seat);
+
         List<ItemStack> reminderItems = getReminderItems(seat.getReminders(), 16);
-        botc.LOGGER.info("Showing popout for seat " + seatNumber + " with " + reminderItems.size() + " reminders.");
+        botc.LOGGER.info("Showing popout for seat {} with {} reminders.", seatNumber, reminderItems.size());
         int offset = 62 + (9 - Math.min(reminderItems.size(), 7)) / 2;
         this.setSlot(offset, headItem);
-        this.setSlot(offset + 1, tokenItem);
+        this.setSlot(offset + 1, tokenItem, tokenCallback);
         for (int i = 0; i < reminderItems.size(); i++) {
             this.setSlot(offset + 2 + i, reminderItems.get(i));
         }
@@ -107,52 +109,27 @@ public class GrimoireGUI extends SimpleGui {
     public void selectCharacter(PlayerSeat seat) {
         CharacterSelectGUI gui = new CharacterSelectGUI(player, script, (c) -> {
             seat.setCharacter(c);
-            this.showPlayerPopout(seat, 0);
             this.close();
             // Easier to reopen a new GUI than refresh the existing one
             GrimoireGUI newGui = new GrimoireGUI(player, seatManager, script);
+            int seatNumber = seatManager.getSeatNumber(seat);
+            newGui.showPlayerPopout(seat, seatNumber);
             newGui.open();
             return null;
         });
         gui.open();
     }
 
-    private static @NotNull ItemStack getHeadItem(int n, PlayerSeat seat) {
+    private static @NotNull ItemStack getHeadItem(PlayerSeat seat, int seatNumber) {
         ItemStack headItem = new ItemStack(Items.PLAYER_HEAD);
         if (seat.hasPlayerEntity()) {
             ProfileComponent profile = new ProfileComponent(seat.getPlayerEntity().getGameProfile());
             headItem.set(DataComponentTypes.PROFILE, profile);
         }
-        MutableText headText = (MutableText) Text.of((n + 1) + ": ");
-        headText.styled(style -> style.withItalic(false).withColor(Formatting.WHITE));
-        headText.append(seat.getOccupantText());
-        headItem.set(DataComponentTypes.CUSTOM_NAME, headText);
-        headItem.setCount(n + 1);
+        headItem.set(DataComponentTypes.CUSTOM_NAME, seat.getOccupantText());
+        headItem.setCount(seatNumber);
         return headItem;
     }
-
-    private static @NotNull ItemStack getTokenItem(PlayerSeat seat) {
-        ItemStack tokenItem = new ItemStack(
-                seat.getCharacter().team() == null ? Items.FLOW_POTTERY_SHERD :
-                switch (seat.getCharacter().team()) {
-                    case Team.TOWNSFOLK -> Items.HEART_POTTERY_SHERD;
-                    case Team.OUTSIDER -> Items.ANGLER_POTTERY_SHERD;
-                    case Team.MINION -> Items.BREWER_POTTERY_SHERD;
-                    case Team.DEMON -> Items.SKULL_POTTERY_SHERD;
-                    case Team.TRAVELLER -> Items.PRIZE_POTTERY_SHERD;
-                    default -> Items.FLOW_POTTERY_SHERD;
-                }
-        );
-        tokenItem.set(DataComponentTypes.CUSTOM_NAME, seat.getCharacterText());
-        if (seat.getCharacter() == botcCharacter.EMPTY) {
-            return tokenItem;
-        }
-        MutableText abilityText = (MutableText) Text.of(seat.getCharacter().ability());
-        abilityText.styled(style -> style.withItalic(false).withColor(Formatting.GRAY));
-        tokenItem.set(DataComponentTypes.LORE, new LoreComponent(List.of(abilityText)));
-        return tokenItem;
-    }
-
 
     List<ItemStack> getReminderItems(List<String> reminders, int maxReminders) {
         List<ItemStack> reminderItems = new ArrayList<>();

@@ -243,4 +243,11 @@ public class botcSeatManager {
                 '}';
     }
 
+    public int getSeatNumber(PlayerSeat seat) {
+        int index = this.playerSeats.indexOf(seat);
+        if (index == -1) {
+            throw new IllegalArgumentException("Seat not found in player seats.");
+        }
+        return index + 1; // Convert to 1-based index
+    }
 }
