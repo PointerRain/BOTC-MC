@@ -28,7 +28,7 @@ public record TokenItemStack(ItemStack tokenItem) {
                     default -> Items.FLOW_POTTERY_SHERD;
                 }
         );
-        MutableText nameText = (MutableText) Text.of(character.name());
+        MutableText nameText = (MutableText) character.toFormattedText(false);
         nameText.styled(style -> style.withBold(true).withItalic(false));
         tokenItem.set(DataComponentTypes.CUSTOM_NAME, nameText);
         if (character == botcCharacter.EMPTY) {

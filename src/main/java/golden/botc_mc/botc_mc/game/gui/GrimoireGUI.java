@@ -8,7 +8,6 @@ import golden.botc_mc.botc_mc.game.botcSeatManager;
 import golden.botc_mc.botc_mc.game.seat.PlayerSeat;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.LoreComponent;
-import net.minecraft.component.type.ProfileComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.screen.ScreenHandlerType;
@@ -16,7 +15,6 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +37,7 @@ public class GrimoireGUI extends SimpleGui {
         for (int n = 0; n < seatManager.getSeatCount(); n++) {
             PlayerSeat seat = seatManager.getSeatFromNumber(n+1);
 
-            ItemStack headItem = getHeadItem(seat, n + 1);
+            ItemStack headItem = PlayerHeadItemStack.of(seat, n + 1);
             ItemStack tokenItem = TokenItemStack.of(seat);
             List<ItemStack> reminderItems = getReminderItems(seat.getReminders(), maxReminders);
 
@@ -90,7 +88,7 @@ public class GrimoireGUI extends SimpleGui {
 
     public void showPlayerPopout(PlayerSeat seat, int seatNumber) {
         clearPlayerPopout();
-        ItemStack headItem = getHeadItem(seat, seatNumber);
+        ItemStack headItem = PlayerHeadItemStack.of(seat, seatNumber);
         ItemStack tokenItem = TokenItemStack.of(seat);
 
         GuiElementInterface.ClickCallback tokenCallback = (index, clickType, slotActionType, gui) ->
@@ -118,17 +116,6 @@ public class GrimoireGUI extends SimpleGui {
             return null;
         });
         gui.open();
-    }
-
-    private static @NotNull ItemStack getHeadItem(PlayerSeat seat, int seatNumber) {
-        ItemStack headItem = new ItemStack(Items.PLAYER_HEAD);
-        if (seat.hasPlayerEntity()) {
-            ProfileComponent profile = new ProfileComponent(seat.getPlayerEntity().getGameProfile());
-            headItem.set(DataComponentTypes.PROFILE, profile);
-        }
-        headItem.set(DataComponentTypes.CUSTOM_NAME, seat.getOccupantText());
-        headItem.setCount(seatNumber);
-        return headItem;
     }
 
     List<ItemStack> getReminderItems(List<String> reminders, int maxReminders) {
