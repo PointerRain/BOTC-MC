@@ -43,10 +43,13 @@ public class TownCircleLayer extends Layer {
             }
             if (layout == TestGrimGUI.LayoutStyle.TWO_COLUMNS) {
                 int perColumn = gui.seatManager.getSeatCount() / 2 + gui.seatManager.getSeatCount() % 2;
-                this.setSlot(n < perColumn ? 9 * n + 8 : 9 * ((gui.getHeight() - 5) - n % perColumn), headItem, headCallback);
-                this.setSlot(n < perColumn ? 9 * n + 7 : 9 * ((gui.getHeight() - 5) - n % perColumn) + 1, tokenItem, tokenCallback);
+                this.setSlot(n < perColumn ? 9 * n + 8 : 9 * ((gui.getHeight() - 5) - n % perColumn),
+                        headItem, headCallback);
+                this.setSlot(n < perColumn ? 9 * n + 7 : 9 * ((gui.getHeight() - 5) - n % perColumn) + 1,
+                        tokenItem, tokenCallback);
                 for (int i = 0; i < reminderItems.size(); i++) {
-                    this.setSlot(n < perColumn ? 9 * n + 6 - i : 9 * (n % perColumn) + 2 + i, reminderItems.get(i));
+                    this.setSlot(n < perColumn ? 9 * n + 6 - i : 9 * ((gui.getHeight() - 5) - n % perColumn) + 2 + i,
+                            reminderItems.get(i));
                 }
             }
             if (layout == TestGrimGUI.LayoutStyle.TWO_ROWS) {

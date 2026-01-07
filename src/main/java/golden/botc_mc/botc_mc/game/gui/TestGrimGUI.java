@@ -24,6 +24,7 @@ public class TestGrimGUI extends LayeredGui {
     protected final Script script;
     protected final ServerPlayerEntity player;
     private LayerView playerPopoutView = null;
+    private LayerView playerMenuView = null;
 
     public TestGrimGUI(ServerPlayerEntity player, botcSeatManager seatManager, Script script) {
         super(getScreenSize(seatManager), player, true);
@@ -68,26 +69,44 @@ public class TestGrimGUI extends LayeredGui {
         return ScreenHandlerType.GENERIC_9X6;
     }
 
+    public TestGrimGUI reopen() {
+        TestGrimGUI newGui = new TestGrimGUI(this.player, this.seatManager, this.script);
+        newGui.open();
+        this.close();
+        return newGui;
+    }
+
+    public TestGrimGUI reopen(PlayerSeat seat) {
+        TestGrimGUI newGui = this.reopen();
+        newGui.showPlayerPopout(seat);
+        return newGui;
+    }
+
     public void showPlayerPopout(PlayerSeat seat, int seatNumber) {
         if (this.playerPopoutView != null) {
             this.removeLayer(this.playerPopoutView);
             this.playerPopoutView = null;
         }
+        if (this.playerMenuView != null) {
+            this.removeLayer(this.playerMenuView);
+            this.playerMenuView = null;
+        }
         int offset = (7 - Math.min(seat.getReminders().size(), 7)) / 2;
         botc.LOGGER.info("Showing popout for seat {} at offset {}.", seatNumber, offset);
         this.playerPopoutView = this.addLayer(new PlayerPopoutLayer(this, seat, seatNumber), offset, this.getHeight() - 3);
+        this.playerMenuView = this.addLayer(new PlayerMenuLayer(this, seat), 0, this.getHeight() - 1);
         this.markDirty();
+    }
+
+    public void showPlayerPopout(PlayerSeat seat) {
+        int seatNumber = seatManager.getSeatNumber(seat);
+        showPlayerPopout(seat, seatNumber);
     }
 
     public void selectCharacter(PlayerSeat seat) {
         CharacterSelectGUI gui = new CharacterSelectGUI(this.player, script, (c) -> {
             seat.setCharacter(c);
-            this.close();
-            // Easier to reopen a new GUI than to update the existing one
-            TestGrimGUI newGui = new TestGrimGUI(this.player, this.seatManager, this.script);
-            int seatNumber = seatManager.getSeatNumber(seat);
-            newGui.showPlayerPopout(seat, seatNumber);
-            return newGui.open();
+            return this.reopen(seat);
         });
         gui.open();
     }

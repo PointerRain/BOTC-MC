@@ -83,12 +83,3 @@ public class CharacterSelectGUI extends SimpleGui {
         }
     }
 }
-
-// Buttons
-// Change character
-// Change alignment
-// Add / Remove reminders
-// Kill / Revive
-// Remove dead vote
-// Start nomination
-// Empty seat
