@@ -6,7 +6,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.exceptions.InvalidAlignmentException;
 import golden.botc_mc.botc_mc.game.exceptions.InvalidSeatException;
-import golden.botc_mc.botc_mc.game.gui.TestGrimGUI;
+import golden.botc_mc.botc_mc.game.gui.GrimoireGUI;
 import golden.botc_mc.botc_mc.game.map.Map;
 import golden.botc_mc.botc_mc.game.seat.PlayerSeat;
 import golden.botc_mc.botc_mc.game.seat.Seat;
@@ -528,7 +528,7 @@ public final class botcCommands {
                     ctx.getSource().sendError(Text.literal("You are not in an active BOTC game."));
                     return 0;
                 }
-                TestGrimGUI gui = new TestGrimGUI(player, activeGame.getSeatManager(), activeGame.getScript());
+                GrimoireGUI gui = new GrimoireGUI(player, activeGame.getSeatManager(), activeGame.getScript());
                 gui.open();
                 return 1;
             }));

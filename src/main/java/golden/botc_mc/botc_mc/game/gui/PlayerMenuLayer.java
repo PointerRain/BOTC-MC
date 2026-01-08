@@ -12,7 +12,7 @@ import java.util.ArrayList;
 
 public class PlayerMenuLayer extends Layer {
 
-    public PlayerMenuLayer(TestGrimGUI gui, PlayerSeat seat) {
+    public PlayerMenuLayer(GrimoireGUI gui, PlayerSeat seat) {
         super(1, 9);
 
         ArrayList<GuiElement> elements = new ArrayList<>();

@@ -8,10 +8,10 @@ import net.minecraft.item.ItemStack;
 
 import java.util.List;
 
-import static golden.botc_mc.botc_mc.game.gui.TestGrimGUI.getReminderItems;
+import static golden.botc_mc.botc_mc.game.gui.GrimoireGUI.getReminderItems;
 
 public class PlayerPopoutLayer extends Layer {
-    public PlayerPopoutLayer(TestGrimGUI gui, PlayerSeat seat, int seatNumber) {
+    public PlayerPopoutLayer(GrimoireGUI gui, PlayerSeat seat, int seatNumber) {
         super(1, Math.min(9, 2 + seat.getReminders().size()));
 
         ItemStack headItem = PlayerHeadItemStack.of(seat, seatNumber);

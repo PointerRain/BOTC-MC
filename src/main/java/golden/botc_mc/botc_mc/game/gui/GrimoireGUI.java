@@ -1,7 +1,7 @@
 package golden.botc_mc.botc_mc.game.gui;
 
-import eu.pb4.sgui.api.elements.GuiElementInterface;
-import eu.pb4.sgui.api.gui.SimpleGui;
+import eu.pb4.sgui.api.gui.layered.LayerView;
+import eu.pb4.sgui.api.gui.layered.LayeredGui;
 import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.Script;
 import golden.botc_mc.botc_mc.game.botcSeatManager;
@@ -19,106 +19,99 @@ import net.minecraft.util.Formatting;
 import java.util.ArrayList;
 import java.util.List;
 
-public class GrimoireGUI extends SimpleGui {
-    botcSeatManager seatManager;
-    Script script;
+public class GrimoireGUI extends LayeredGui {
+    protected final botcSeatManager seatManager;
+    protected final Script script;
+    protected final ServerPlayerEntity player;
+    private LayerView playerPopoutView = null;
+    private LayerView playerMenuView = null;
 
     public GrimoireGUI(ServerPlayerEntity player, botcSeatManager seatManager, Script script) {
-        super(ScreenHandlerType.GENERIC_9X6, player, true);
+        super(getScreenSize(seatManager), player, true);
         this.setTitle(Text.of("Grimoire"));
 
         this.seatManager = seatManager;
         this.script = script;
+        this.player = player;
 
         LayoutStyle layout = LayoutStyle.getLayoutType(seatManager.getSeatCount());
-        int maxReminders = LayoutStyle.getMaxReminders(layout);
 
-        // Add items to the GUI based on seat and layout
-        for (int n = 0; n < seatManager.getSeatCount(); n++) {
-            PlayerSeat seat = seatManager.getSeatFromNumber(n+1);
-
-            ItemStack headItem = PlayerHeadItemStack.of(seat, n + 1);
-            ItemStack tokenItem = TokenItemStack.of(seat);
-            List<ItemStack> reminderItems = getReminderItems(seat.getReminders(), maxReminders);
-
-            int finalN = n;
-            GuiElementInterface.ClickCallback headCallback = (index, clickType, slotActionType, gui) ->
-                showPlayerPopout(seat, finalN + 1);
-            GuiElementInterface.ClickCallback tokenCallback = (index, clickType, slotActionType, gui) ->
-                selectCharacter(seat);
-
-            if (layout == LayoutStyle.SINGLE_COLUMN) {
-                this.setSlot(9 * n, headItem, headCallback);
-                this.setSlot(9 * n + 1, tokenItem, tokenCallback);
-                for (int i = 0; i < reminderItems.size(); i++) {
-                    this.setSlot(9 * n + 2 + i, reminderItems.get(i));
-                }
-            }
-            if (layout == LayoutStyle.SINGLE_ROW) {
-                this.setSlot(n, headItem, headCallback);
-                this.setSlot(n + 9, tokenItem, tokenCallback);
-                for (int i = 0; i < reminderItems.size(); i++) {
-                    this.setSlot(n + 18 + 9 * i, reminderItems.get(i));
-                }
-            }
-            if (layout == LayoutStyle.TWO_COLUMNS) {
-                int perColumn = seatManager.getSeatCount() / 2 + seatManager.getSeatCount() % 2;
-                this.setSlot(n < perColumn ? 9 * n + 8 : 9 * (n % perColumn), headItem, headCallback);
-                this.setSlot(n < perColumn ? 9 * n + 7 : 9 * (n % perColumn) + 1, tokenItem, tokenCallback);
-                for (int i = 0; i < reminderItems.size(); i++) {
-                    this.setSlot(n < perColumn ? 9 * n + 6 - i : 9 * (n % perColumn) + 2 + i, reminderItems.get(i));
-                }
-            }
-            if (layout == LayoutStyle.TWO_ROWS) {
-                int perRow = seatManager.getSeatCount() / 2 + seatManager.getSeatCount() % 2;
-                this.setSlot(n < perRow ? n     : 6 * 9 - (n % perRow) - 1, headItem, headCallback);
-                this.setSlot(n < perRow ? n + 9 : 5 * 9 - (n % perRow) - 1, tokenItem, tokenCallback);
-                if (!reminderItems.isEmpty()) {
-                    this.setSlot(n < perRow ? n + 18 : 4 * 9 - (n % perRow) - 1, reminderItems.getFirst());
-                }
-            }
-        }
+        this.addLayer(new TownCircleLayer(this, layout), 0, 0);
     }
 
-    private void clearPlayerPopout() {
-        for (int i = 53; i < 81; i++) {
-            this.clearSlot(i);
+    static ScreenHandlerType<?> getScreenSizeOfRows(int rows) {
+        return switch (rows) {
+            case 1 -> ScreenHandlerType.GENERIC_9X1;
+            case 2 -> ScreenHandlerType.GENERIC_9X2;
+            case 3 -> ScreenHandlerType.GENERIC_9X3;
+            case 4 -> ScreenHandlerType.GENERIC_9X4;
+            case 5 -> ScreenHandlerType.GENERIC_9X5;
+            default -> ScreenHandlerType.GENERIC_9X6;
+        };
+    }
+
+    static ScreenHandlerType<?> getScreenSize(botcSeatManager seatManager) {
+        LayoutStyle layout = LayoutStyle.getLayoutType(seatManager.getSeatCount());
+        if (layout == LayoutStyle.SINGLE_COLUMN) {
+            return getScreenSizeOfRows(seatManager.getSeatCount());
         }
+        if (layout == LayoutStyle.TWO_COLUMNS) {
+            int perColumn = seatManager.getSeatCount() / 2 + seatManager.getSeatCount() % 2;
+            return getScreenSizeOfRows(perColumn);
+        }
+        if (layout == LayoutStyle.SINGLE_ROW) {
+            int maxReminders = 0;
+            for (int n = 1; n < seatManager.getSeatCount(); n++) {
+                maxReminders = Math.max(maxReminders, seatManager.getSeatFromNumber(n).getReminders().size());
+            }
+            return getScreenSizeOfRows(2 + maxReminders);
+        }
+        return ScreenHandlerType.GENERIC_9X6;
+    }
+
+    public GrimoireGUI reopen() {
+        GrimoireGUI newGui = new GrimoireGUI(this.player, this.seatManager, this.script);
+        newGui.open();
+        this.close();
+        return newGui;
+    }
+
+    public GrimoireGUI reopen(PlayerSeat seat) {
+        GrimoireGUI newGui = this.reopen();
+        newGui.showPlayerPopout(seat);
+        return newGui;
     }
 
     public void showPlayerPopout(PlayerSeat seat, int seatNumber) {
-        clearPlayerPopout();
-        ItemStack headItem = PlayerHeadItemStack.of(seat, seatNumber);
-        ItemStack tokenItem = TokenItemStack.of(seat);
-
-        GuiElementInterface.ClickCallback tokenCallback = (index, clickType, slotActionType, gui) ->
-                selectCharacter(seat);
-
-        List<ItemStack> reminderItems = getReminderItems(seat.getReminders(), 16);
-        botc.LOGGER.info("Showing popout for seat {} with {} reminders.", seatNumber, reminderItems.size());
-        int offset = 62 + (9 - Math.min(reminderItems.size(), 7)) / 2;
-        this.setSlot(offset, headItem);
-        this.setSlot(offset + 1, tokenItem, tokenCallback);
-        for (int i = 0; i < reminderItems.size(); i++) {
-            this.setSlot(offset + 2 + i, reminderItems.get(i));
+        if (this.playerPopoutView != null) {
+            this.removeLayer(this.playerPopoutView);
+            this.playerPopoutView = null;
         }
+        if (this.playerMenuView != null) {
+            this.removeLayer(this.playerMenuView);
+            this.playerMenuView = null;
+        }
+        int offset = (7 - Math.min(seat.getReminders().size(), 7)) / 2;
+        botc.LOGGER.info("Showing popout for seat {} at offset {}.", seatNumber, offset);
+        this.playerPopoutView = this.addLayer(new PlayerPopoutLayer(this, seat, seatNumber), offset, this.getHeight() - 3);
+        this.playerMenuView = this.addLayer(new PlayerMenuLayer(this, seat), 0, this.getHeight() - 1);
+        this.markDirty();
+    }
+
+    public void showPlayerPopout(PlayerSeat seat) {
+        int seatNumber = seatManager.getSeatNumber(seat);
+        showPlayerPopout(seat, seatNumber);
     }
 
     public void selectCharacter(PlayerSeat seat) {
-        CharacterSelectGUI gui = new CharacterSelectGUI(player, script, (c) -> {
+        CharacterSelectGUI gui = new CharacterSelectGUI(this.player, script, (c) -> {
             seat.setCharacter(c);
-            this.close();
-            // Easier to reopen a new GUI than refresh the existing one
-            GrimoireGUI newGui = new GrimoireGUI(player, seatManager, script);
-            int seatNumber = seatManager.getSeatNumber(seat);
-            newGui.showPlayerPopout(seat, seatNumber);
-            newGui.open();
-            return null;
+            return this.reopen(seat);
         });
         gui.open();
     }
 
-    List<ItemStack> getReminderItems(List<String> reminders, int maxReminders) {
+    static List<ItemStack> getReminderItems(List<String> reminders, int maxReminders) {
         List<ItemStack> reminderItems = new ArrayList<>();
         if (reminders.size() > maxReminders) {
             maxReminders -= 1; // Reserve one slot for "See All"
@@ -149,7 +142,7 @@ public class GrimoireGUI extends SimpleGui {
         return reminderItems;
     }
 
-    private enum LayoutStyle {
+    public enum LayoutStyle {
         UNKNOWN,
         SINGLE_COLUMN,
         SINGLE_ROW,
