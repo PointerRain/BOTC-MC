@@ -6,6 +6,7 @@ import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.Script;
 import golden.botc_mc.botc_mc.game.botcSeatManager;
 import golden.botc_mc.botc_mc.game.seat.PlayerSeat;
+import golden.botc_mc.botc_mc.game.seat.StorytellerSeat;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.LoreComponent;
 import net.minecraft.item.ItemStack;
@@ -25,6 +26,7 @@ public class GrimoireGUI extends LayeredGui {
     protected final ServerPlayerEntity player;
     private LayerView playerPopoutView = null;
     private LayerView playerMenuView = null;
+    private LayerView storytellerView;
 
     public GrimoireGUI(ServerPlayerEntity player, botcSeatManager seatManager, Script script) {
         super(getScreenSize(seatManager), player, true);
@@ -37,6 +39,7 @@ public class GrimoireGUI extends LayeredGui {
         LayoutStyle layout = LayoutStyle.getLayoutType(seatManager.getSeatCount());
 
         this.addLayer(new TownCircleLayer(this, layout), 0, 0);
+        this.storytellerView = this.addLayer(new StorytellerLayer(this), 0, this.getHeight() - 4);
     }
 
     static ScreenHandlerType<?> getScreenSizeOfRows(int rows) {
@@ -76,25 +79,22 @@ public class GrimoireGUI extends LayeredGui {
         return newGui;
     }
 
-    public GrimoireGUI reopen(PlayerSeat seat) {
+    public void reopen(PlayerSeat seat) {
         GrimoireGUI newGui = this.reopen();
         newGui.showPlayerPopout(seat);
-        return newGui;
+    }
+
+    public void reopen(StorytellerSeat seat) {
+        GrimoireGUI newGui = this.reopen();
+        newGui.showPlayerPopout(seat);
     }
 
     public void showPlayerPopout(PlayerSeat seat, int seatNumber) {
-        if (this.playerPopoutView != null) {
-            this.removeLayer(this.playerPopoutView);
-            this.playerPopoutView = null;
-        }
-        if (this.playerMenuView != null) {
-            this.removeLayer(this.playerMenuView);
-            this.playerMenuView = null;
-        }
+        resetInvSection();
         int offset = (7 - Math.min(seat.getReminders().size(), 7)) / 2;
         botc.LOGGER.info("Showing popout for seat {} at offset {}.", seatNumber, offset);
-        this.playerPopoutView = this.addLayer(new PlayerPopoutLayer(this, seat, seatNumber), offset, this.getHeight() - 3);
-        this.playerMenuView = this.addLayer(new PlayerMenuLayer(this, seat), 0, this.getHeight() - 1);
+        this.playerPopoutView = this.addLayer(new SeatPopoutLayer(this, seat, seatNumber), offset, this.getHeight() - 3);
+        this.playerMenuView = this.addLayer(new SeatMenuLayer(this, seat), 0, this.getHeight() - 1);
         this.markDirty();
     }
 
@@ -103,10 +103,43 @@ public class GrimoireGUI extends LayeredGui {
         showPlayerPopout(seat, seatNumber);
     }
 
+    public void showPlayerPopout(StorytellerSeat seat) {
+        resetInvSection();
+        botc.LOGGER.info("Showing menu for storyteller seat.");
+        this.playerPopoutView = this.addLayer(new SeatPopoutLayer(this, seat), 3, this.getHeight() - 3);
+        this.playerMenuView = this.addLayer(new SeatMenuLayer(this, seat), 0, this.getHeight() - 1);
+        this.markDirty();
+    }
+
+    private void resetInvSection() {
+        if (this.playerPopoutView != null) {
+            this.removeLayer(this.playerPopoutView);
+            this.playerPopoutView = null;
+        }
+        if (this.playerMenuView != null) {
+            this.removeLayer(this.playerMenuView);
+            this.playerMenuView = null;
+        }
+        if (this.storytellerView != null) {
+            this.removeLayer(this.storytellerView);
+            this.storytellerView = null;
+        }
+    }
+
     public void selectCharacter(PlayerSeat seat) {
         CharacterSelectGUI gui = new CharacterSelectGUI(this.player, script, (c) -> {
             seat.setCharacter(c);
-            return this.reopen(seat);
+            this.reopen(seat);
+            return null;
+        });
+        gui.open();
+    }
+
+    public void selectCharacter(StorytellerSeat seat) {
+        CharacterSelectGUI gui = new CharacterSelectGUI(this.player, script, (c) -> {
+            seat.setCharacter(c);
+            this.reopen(seat);
+            return null;
         });
         gui.open();
     }
@@ -162,7 +195,6 @@ public class GrimoireGUI extends LayeredGui {
                 case SINGLE_COLUMN -> 7;
                 case SINGLE_ROW -> 4;
                 case TWO_COLUMNS -> 2;
-                case TWO_ROWS -> 1;
                 default -> 1;
             };
         }

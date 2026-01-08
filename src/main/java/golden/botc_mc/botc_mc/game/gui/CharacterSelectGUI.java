@@ -21,25 +21,28 @@ public class CharacterSelectGUI extends SimpleGui {
         boolean includesTravellers = shouldIncludeTravellers(script);
         this.onSelectCharacter = onSelectCharacter;
 
+        this.addSlot(TokenItemStack.of(botcCharacter.EMPTY), (index, clickType, slotActionType, gui) ->
+            characterSelectCallback(botcCharacter.EMPTY));
+
         for (botcCharacter character : script.getCharactersByTeam(Team.TOWNSFOLK)) {
-            this.setSlot(this.getFirstEmptySlot(), TokenItemStack.of(character), (index, clickType, slotActionType, gui) ->
+            this.addSlot(TokenItemStack.of(character), (index, clickType, slotActionType, gui) ->
                 characterSelectCallback(character));
         }
         for (botcCharacter character : script.getCharactersByTeam(Team.OUTSIDER)) {
-            this.setSlot(this.getFirstEmptySlot(), TokenItemStack.of(character), (index, clickType, slotActionType, gui) ->
+            this.addSlot(TokenItemStack.of(character), (index, clickType, slotActionType, gui) ->
                 characterSelectCallback(character));
         }
         for (botcCharacter character : script.getCharactersByTeam(Team.MINION)) {
-            this.setSlot(this.getFirstEmptySlot(), TokenItemStack.of(character), (index, clickType, slotActionType, gui) ->
+            this.addSlot(TokenItemStack.of(character), (index, clickType, slotActionType, gui) ->
                 characterSelectCallback(character));
         }
         for (botcCharacter character : script.getCharactersByTeam(Team.DEMON)) {
-            this.setSlot(this.getFirstEmptySlot(), TokenItemStack.of(character), (index, clickType, slotActionType, gui) ->
+            this.addSlot(TokenItemStack.of(character), (index, clickType, slotActionType, gui) ->
                 characterSelectCallback(character));
         }
         if (includesTravellers) {
             for (botcCharacter character : script.getCharactersByTeam(Team.TRAVELLER)) {
-                this.setSlot(this.getFirstEmptySlot(), TokenItemStack.of(character), (index, clickType, slotActionType, gui) ->
+                this.addSlot(TokenItemStack.of(character), (index, clickType, slotActionType, gui) ->
                 characterSelectCallback(character));
             }
         }
@@ -62,7 +65,7 @@ public class CharacterSelectGUI extends SimpleGui {
     }
 
     private static int countRows(Script script) {
-        int count = getRoleCount(script, shouldIncludeTravellers(script));
+        int count = getRoleCount(script, shouldIncludeTravellers(script)) + 1; // +1 for the empty role
         return (int) Math.ceil(count / 9.0);
     }
 

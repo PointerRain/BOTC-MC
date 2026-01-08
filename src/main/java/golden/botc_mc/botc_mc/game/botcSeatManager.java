@@ -23,6 +23,7 @@ public class botcSeatManager {
      * @param numPlayerSeats Number of player seats to initialise.
      */
     public botcSeatManager(int numPlayerSeats) {
+        this.storytellerSeats.add(new StorytellerSeat());
         for (int i = 0; i < numPlayerSeats; i++) {
             this.playerSeats.add(new PlayerSeat());
         }
@@ -249,5 +250,9 @@ public class botcSeatManager {
             throw new IllegalArgumentException("Seat not found in player seats.");
         }
         return index + 1; // Convert to 1-based index
+    }
+
+    public List<StorytellerSeat> getStorytellers() {
+        return this.storytellerSeats;
     }
 }

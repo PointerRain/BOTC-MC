@@ -4,14 +4,15 @@ import eu.pb4.sgui.api.elements.GuiElementInterface;
 import eu.pb4.sgui.api.gui.layered.Layer;
 import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.seat.PlayerSeat;
+import golden.botc_mc.botc_mc.game.seat.StorytellerSeat;
 import net.minecraft.item.ItemStack;
 
 import java.util.List;
 
 import static golden.botc_mc.botc_mc.game.gui.GrimoireGUI.getReminderItems;
 
-public class PlayerPopoutLayer extends Layer {
-    public PlayerPopoutLayer(GrimoireGUI gui, PlayerSeat seat, int seatNumber) {
+public class SeatPopoutLayer extends Layer {
+    public SeatPopoutLayer(GrimoireGUI gui, PlayerSeat seat, int seatNumber) {
         super(1, Math.min(9, 2 + seat.getReminders().size()));
 
         ItemStack headItem = PlayerHeadItemStack.of(seat, seatNumber);
@@ -21,12 +22,25 @@ public class PlayerPopoutLayer extends Layer {
                 gui.selectCharacter(seat);
 
         List<ItemStack> reminderItems = getReminderItems(seat.getReminders(), 16);
-        botc.LOGGER.info("Showing popout for seat {} with {} reminders.", seatNumber, reminderItems.size());
-//        int offset = 62 + (9 - Math.min(reminderItems.size(), 7)) / 2;
+        botc.LOGGER.info("Showing popout for player seat {} with {} reminders.", seatNumber, reminderItems.size());
         this.setSlot(0, headItem);
         this.setSlot(1, tokenItem, tokenCallback);
         for (int i = 0; i < reminderItems.size(); i++) {
             this.setSlot(2 + i, reminderItems.get(i));
         }
+    }
+
+    public SeatPopoutLayer(GrimoireGUI gui, StorytellerSeat seat) {
+        super(1, 2);
+
+        ItemStack headItem = PlayerHeadItemStack.of(seat);
+        ItemStack tokenItem = TokenItemStack.of(seat);
+
+        GuiElementInterface.ClickCallback tokenCallback = (i, c, a, g) ->
+                gui.selectCharacter(seat);
+
+        botc.LOGGER.info("Showing popout for storyteller seat.");
+        this.setSlot(0, headItem);
+        this.setSlot(1, tokenItem, tokenCallback);
     }
 }
