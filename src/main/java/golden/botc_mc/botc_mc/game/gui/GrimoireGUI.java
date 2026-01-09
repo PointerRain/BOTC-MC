@@ -4,6 +4,7 @@ import eu.pb4.sgui.api.gui.layered.LayerView;
 import eu.pb4.sgui.api.gui.layered.LayeredGui;
 import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.Script;
+import golden.botc_mc.botc_mc.game.botcCharacter;
 import golden.botc_mc.botc_mc.game.botcSeatManager;
 import golden.botc_mc.botc_mc.game.seat.PlayerSeat;
 import golden.botc_mc.botc_mc.game.seat.StorytellerSeat;
@@ -11,6 +12,7 @@ import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.LoreComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.screen.GenericContainerScreenHandler;
 import net.minecraft.screen.ScreenHandlerType;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.MutableText;
@@ -42,7 +44,7 @@ public class GrimoireGUI extends LayeredGui {
         this.storytellerView = this.addLayer(new StorytellerLayer(this), 0, this.getHeight() - 4);
     }
 
-    static ScreenHandlerType<?> getScreenSizeOfRows(int rows) {
+    static ScreenHandlerType<GenericContainerScreenHandler> getScreenSizeOfRows(int rows) {
         return switch (rows) {
             case 1 -> ScreenHandlerType.GENERIC_9X1;
             case 2 -> ScreenHandlerType.GENERIC_9X2;
@@ -144,17 +146,14 @@ public class GrimoireGUI extends LayeredGui {
         gui.open();
     }
 
-    static List<ItemStack> getReminderItems(List<String> reminders, int maxReminders) {
+    static List<ItemStack> getReminderItems(List<botcCharacter.ReminderToken> reminders, int maxReminders) {
         List<ItemStack> reminderItems = new ArrayList<>();
         if (reminders.size() > maxReminders) {
             maxReminders -= 1; // Reserve one slot for "See All"
         }
         // Add reminder items
         for (int i = 0; i < Math.min(reminders.size(), maxReminders); i++) {
-            ItemStack reminderItem = new ItemStack(Items.PAPER);
-            MutableText reminderText = (MutableText) Text.of(reminders.get(i));
-            reminderText.styled(style -> style.withItalic(false));
-            reminderItem.set(DataComponentTypes.CUSTOM_NAME, reminderText);
+            ItemStack reminderItem = TokenItemStack.of(reminders.get(i));
             reminderItems.add(reminderItem);
         }
         // If there are more reminders, add a "See All" item containing the rest
@@ -164,7 +163,7 @@ public class GrimoireGUI extends LayeredGui {
             moreItem.set(DataComponentTypes.CUSTOM_NAME, moreText);
             List<Text> allRemindersText = new ArrayList<>();
             for (int i = maxReminders; i < reminders.size(); i++) {
-                MutableText reminderText = (MutableText) Text.of("- " + reminders.get(i));
+                MutableText reminderText = (MutableText) Text.of("- " + reminders.get(i).reminder());
                 reminderText.styled(style -> style.withColor(Formatting.WHITE).withItalic(false));
                 allRemindersText.add(reminderText);
             }
@@ -173,6 +172,15 @@ public class GrimoireGUI extends LayeredGui {
             reminderItems.add(moreItem);
         }
         return reminderItems;
+    }
+
+    public void addReminder(PlayerSeat seat) {
+        ReminderSelectGUI gui = new ReminderSelectGUI(this.player, script, seatManager, (token) -> {
+            seat.addReminderToken(token);
+            this.reopen(seat);
+            return null;
+        });
+        gui.open();
     }
 
     public enum LayoutStyle {

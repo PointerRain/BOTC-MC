@@ -220,10 +220,34 @@ public record botcCharacter(String id,
         return text;
     }
 
+    public List<ReminderToken> reminderTokens() {
+        if (this.reminders == null) {
+            return List.of();
+        }
+        List<ReminderToken> reminderTokens = new java.util.ArrayList<>();
+        for (String reminder : this.reminders) {
+            reminderTokens.add(new ReminderToken(this, reminder, false));
+        }
+        return reminderTokens;
+    }
+
+    public List<ReminderToken> globalReminderTokens() {
+        if (this.remindersGlobal == null) {
+            return List.of();
+        }
+        List<ReminderToken> reminderTokens = new java.util.ArrayList<>();
+        for (String reminder : this.remindersGlobal) {
+            reminderTokens.add(new ReminderToken(this, reminder, true));
+        }
+        return reminderTokens;
+    }
+
     @Override
     public int hashCode() {
         return this.id.hashCode();
     }
 
-    public record ReminderToken(botcCharacter botcCharacter, String reminder) {}
+    public record ReminderToken(botcCharacter character, String reminder, boolean global) {
+        public static final ReminderToken EMPTY = new ReminderToken(botcCharacter.EMPTY, "Empty", false);
+    }
 }

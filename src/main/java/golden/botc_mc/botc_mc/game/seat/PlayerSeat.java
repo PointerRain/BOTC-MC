@@ -12,16 +12,20 @@ public class PlayerSeat extends Seat {
 
     Team.Alignment alignment = Team.Alignment.NEUTRAL;
 
-    final List<String> reminders = new ArrayList<>();
+    final List<botcCharacter.ReminderToken> reminders = new ArrayList<>();
 
     @Override
-    public void setCharacter(botcCharacter botcCharacter) throws IllegalArgumentException {
-        super.setCharacter(botcCharacter);
-        this.alignment = switch (botcCharacter.team().getDefaultAlignment()) {
-            case NEUTRAL, NPC -> botcCharacter.team().getDefaultAlignment();
+    public void setCharacter(botcCharacter character) throws IllegalArgumentException {
+        super.setCharacter(character);
+        if (character.team() == null) {
+            this.alignment = Team.Alignment.NEUTRAL;
+            return;
+        }
+        this.alignment = switch (character.team().getDefaultAlignment()) {
+            case NEUTRAL, NPC -> character.team().getDefaultAlignment();
             case GOOD, EVIL -> switch (this.alignment) {
                 case GOOD, EVIL -> this.alignment;
-                case NEUTRAL, NPC -> botcCharacter.team().getDefaultAlignment();
+                case NEUTRAL, NPC -> character.team().getDefaultAlignment();
             };
         };
     }
@@ -86,19 +90,23 @@ public class PlayerSeat extends Seat {
         this.alignment = Team.Alignment.NEUTRAL;
     }
 
-    public void addReminder(String reminder) {
-        this.reminders.add(reminder);
+    public void addReminderToken(String reminder) {
+        this.reminders.add(new botcCharacter.ReminderToken(botcCharacter.EMPTY, reminder, false));
     }
 
-    public boolean hasReminder(String reminder) {
-        return this.reminders.contains(reminder);
+    public void addReminderToken(botcCharacter.ReminderToken token) {
+        this.reminders.add(token);
     }
 
-    public void removeReminder(String reminder) {
-        this.reminders.remove(reminder);
-    }
+//    public boolean hasReminder(String reminder) {
+//        return this.reminders.contains(reminder);
+//    }
 
-    public String removeReminder(int index) {
+//    public void removeReminder(String reminder) {
+//        this.reminders.remove(reminder);
+//    }
+
+    public botcCharacter.ReminderToken removeReminder(int index) {
         if (index >= 0 && index < this.reminders.size()) {
             return this.reminders.remove(index);
         }
@@ -109,7 +117,7 @@ public class PlayerSeat extends Seat {
         this.reminders.clear();
     }
 
-    public List<String> getReminders() {
+    public List<botcCharacter.ReminderToken> getReminders() {
         return this.reminders;
     }
 

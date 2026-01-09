@@ -25,6 +25,7 @@ public class SeatMenuLayer extends Layer {
                 gui.reopen(seat);
             }));
         }
+        elements.add(buildButton(Text.of("Add Reminder"), (i, c, a, g) -> gui.addReminder(seat)));
         if (!seat.getReminders().isEmpty()) {
             elements.add(buildButton(Text.of("Remove Reminders"), (i, c, a, g) -> seat.clearReminders()));
         }

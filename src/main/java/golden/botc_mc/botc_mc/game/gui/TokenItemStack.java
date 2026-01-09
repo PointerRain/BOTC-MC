@@ -49,4 +49,19 @@ public record TokenItemStack(ItemStack tokenItem) {
         tokenItem.set(DataComponentTypes.CUSTOM_NAME, seat.getCharacterText());
         return tokenItem;
     }
+
+    public static ItemStack of(botcCharacter.ReminderToken token) {
+        ItemStack tokenItem = new ItemStack(Items.PAPER);
+        MutableText reminderText = (MutableText) Text.of(token.reminder());
+        reminderText.styled(style -> style.withItalic(false));
+        tokenItem.set(DataComponentTypes.CUSTOM_NAME, reminderText);
+
+        if (token.character() != botcCharacter.EMPTY) {
+            MutableText characterName = (MutableText) token.character().toFormattedText(false);
+            characterName.styled(style -> style.withBold(false).withItalic(false));
+            tokenItem.set(DataComponentTypes.LORE, new LoreComponent(List.of(characterName)));
+        }
+
+        return tokenItem;
+    }
 }

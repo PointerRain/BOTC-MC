@@ -427,7 +427,7 @@ public final class botcCommands {
                                                     return 0;
                                                 }
                                                 String reminder = StringArgumentType.getString(ctx, "reminder");
-                                                seat.addReminder(reminder);
+                                                seat.addReminderToken(reminder);
                                                 ctx.getSource().sendFeedback(() -> Text.literal("Added reminder for " +
                                                         "player " + player.getName().getString() + ": " + reminder),
                                                         true);
@@ -458,7 +458,7 @@ public final class botcCommands {
                                                     return 0;
                                                 }
                                                 int reminderIndex = IntegerArgumentType.getInteger(ctx, "reminder") - 1;
-                                                String reminder = seat.removeReminder(reminderIndex);
+                                                botcCharacter.ReminderToken reminder = seat.removeReminder(reminderIndex);
                                                 ctx.getSource().sendFeedback(() -> Text.literal("Removed reminder for" +
                                                         " player " + player.getName().getString() + ": " + reminder),
                                                         true);
@@ -468,37 +468,37 @@ public final class botcCommands {
                     )
             ));
 
-            root.then(literal("reminder").then(
-                    literal("remove").then(
-                            CommandManager.argument("player", EntityArgumentType.player()).then(
-                                    CommandManager.argument("reminder", StringArgumentType.greedyString())
-                                            .executes(ctx -> {
-                                                ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "player");
-                                                botcActive activeGame = botc.getActiveGameFromPlayer(player);
-                                                if (activeGame == null || player == null) {
-                                                    ctx.getSource().sendError(Text.literal("Player is not in an " +
-                                                            "active BOTC game."));
-                                                    return 0;
-                                                }
-                                                PlayerSeat seat =
-                                                        activeGame.getSeatManager().getPlayerSeatFromPlayer(player);
-                                                if (seat == null) {
-                                                    ctx.getSource().sendError(Text.literal("Player has no seat " +
-                                                            "assigned."));
-                                                    return 0;
-                                                }
-                                                String reminderText = StringArgumentType.getString(ctx, "reminder");
-                                                if (seat.hasReminder(reminderText)) {
-                                                    seat.removeReminder(reminderText);
-                                                    ctx.getSource().sendFeedback(() -> Text.literal("Removed reminder" +
-                                                            " for player " + player.getName().getString() + ": " + reminderText), true);
-                                                    return 1;
-                                                } else {
-                                                    ctx.getSource().sendError(Text.literal("Reminder not found for " +
-                                                            "player " + player.getName().getString() + ": " + reminderText));
-                                                    return 0;
-                                                }
-                                            })))));
+//            root.then(literal("reminder").then(
+//                    literal("remove").then(
+//                            CommandManager.argument("player", EntityArgumentType.player()).then(
+//                                    CommandManager.argument("reminder", StringArgumentType.greedyString())
+//                                            .executes(ctx -> {
+//                                                ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "player");
+//                                                botcActive activeGame = botc.getActiveGameFromPlayer(player);
+//                                                if (activeGame == null || player == null) {
+//                                                    ctx.getSource().sendError(Text.literal("Player is not in an " +
+//                                                            "active BOTC game."));
+//                                                    return 0;
+//                                                }
+//                                                PlayerSeat seat =
+//                                                        activeGame.getSeatManager().getPlayerSeatFromPlayer(player);
+//                                                if (seat == null) {
+//                                                    ctx.getSource().sendError(Text.literal("Player has no seat " +
+//                                                            "assigned."));
+//                                                    return 0;
+//                                                }
+//                                                String reminderText = StringArgumentType.getString(ctx, "reminder");
+//                                                if (seat.hasReminder(reminderText)) {
+//                                                    seat.removeReminder(reminderText);
+//                                                    ctx.getSource().sendFeedback(() -> Text.literal("Removed reminder" +
+//                                                            " for player " + player.getName().getString() + ": " + reminderText), true);
+//                                                    return 1;
+//                                                } else {
+//                                                    ctx.getSource().sendError(Text.literal("Reminder not found for " +
+//                                                            "player " + player.getName().getString() + ": " + reminderText));
+//                                                    return 0;
+//                                                }
+//                                            })))));
 
 
             // /botc map set <mapId>
