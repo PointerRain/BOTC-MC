@@ -248,6 +248,6 @@ public record botcCharacter(String id,
     }
 
     public record ReminderToken(botcCharacter character, String reminder, boolean global) {
-        public static final ReminderToken EMPTY = new ReminderToken(botcCharacter.EMPTY, "Empty", false);
+        public static final ReminderToken CUSTOM = new ReminderToken(botcCharacter.EMPTY, "Custom", false);
     }
 }
