@@ -2,6 +2,7 @@ package golden.botc_mc.botc_mc.game;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import net.minecraft.network.packet.s2c.play.OverlayMessageS2CPacket;
 import net.minecraft.util.math.Vec3d;
 import xyz.nucleoid.plasmid.api.game.GameCloseReason;
 import xyz.nucleoid.plasmid.api.game.GameSpace;
@@ -48,10 +49,10 @@ public class botcActive {
     private final SpawnLogic spawnLogic;
     private final botcItemManager itemManager;
     private final botcStageManager stageManager;
+    private final botcSeatManager seatManager;
     private final botcTimerBar timerBar;
     private final ServerWorld world;
     private final Script script;
-
     private GameLifecycleStatus lifecycleStatus = GameLifecycleStatus.STOPPED;
     private boolean startingLogged = false;
 
@@ -70,6 +71,7 @@ public class botcActive {
         }
 
         this.stageManager = new botcStageManager();
+        this.seatManager = new botcSeatManager();
         this.timerBar = botcTimerBar.of(widgets);
     }
 
@@ -103,7 +105,7 @@ public class botcActive {
             game.listen(GameActivityEvents.DISABLE, active::onClose);
             game.listen(GameActivityEvents.STATE_UPDATE, state -> state.canPlay(false));
 
-            game.listen(GamePlayerEvents.OFFER, JoinOffer::acceptSpectators);
+            game.listen(GamePlayerEvents.OFFER, JoinOffer::accept);
             game.listen(GamePlayerEvents.ACCEPT, joinAcceptor -> {
                 Vec3d safe = active.spawnLogic.getSafeSpawnPosition();
                 return joinAcceptor.teleport(world, safe);
@@ -125,6 +127,9 @@ public class botcActive {
         this.stageManager.attachContext(this.gameSpace);
         this.stageManager.markPlayersPresent(!this.gameSpace.getPlayers().participants().isEmpty());
         this.stageManager.onOpen(this.world.getTime());
+
+        // Register this active game
+        botc.addGame(this);
     }
 
     /** Game close hook; placeholder for teardown logic (voice region cleanup, etc.). */
@@ -138,6 +143,9 @@ public class botcActive {
             LOG.warn("[BOTC:CLOSE] Voice region cleanup failed: {}", t.toString());
         }
         // Future: flush stats, persist results, release resources.
+
+        // Unregister this active game
+        botc.removeGame(this);
     }
 
     /** Add a newly joined player (as spectator if not in participants). */
@@ -213,9 +221,17 @@ public class botcActive {
         long total = this.stageManager.getStateDuration();
         this.timerBar.updatePhase(this.stageManager.getCurrentState(), remaining, total);
 
-        if ((time % 100) == 0) {
+        if ((time % 70) == 0) {
             long ticksInState = this.stageManager.getTicksInState();
             botc.LOGGER.debug("State {} ticksInState={}", this.stageManager.getCurrentState(), ticksInState);
+
+            // Notify unseated players every 70 ticks
+            for (ServerPlayerEntity participant : this.gameSpace.getPlayers().participants()) {
+                if (seatManager.getSeatFromPlayer(participant) == null) {
+                    OverlayMessageS2CPacket packet = new OverlayMessageS2CPacket(Text.of("You do not have a seat assigned!"));
+                    participant.networkHandler.sendPacket(packet);
+                }
+            }
         }
 
         // TODO tick logic per state
@@ -259,5 +275,29 @@ public class botcActive {
         LOG.info("Game STARTING at tick {} with {} participant(s)", this.world.getTime(), participantCount);
         // giveStarterItems();
         itemManager.giveStarterItems(this.gameSpace, this.script);
+    }
+
+    /** Get the SeatManager for this active game. */
+    public botcSeatManager getSeatManager() {
+        return this.seatManager;
+    }
+
+    /** Get the participant map for this active game. */
+    public Object2ObjectMap<PlayerRef, botcPlayer> getParticipants() {
+        return this.participants;
+    }
+
+    /** Get the script for this active game. */
+    public Script getScript() {
+        return script;
+    }
+
+    @Override
+    public String toString() {
+        return "botcActive{" +
+                "lifecycleStatus=" + lifecycleStatus +
+                ", participants=" + participants.size() +
+                ", seatManager=" + seatManager +
+                '}';
     }
 }
