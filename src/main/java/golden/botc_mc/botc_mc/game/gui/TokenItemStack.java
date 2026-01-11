@@ -25,7 +25,8 @@ public record TokenItemStack(ItemStack tokenItem) {
                     case Team.MINION -> Items.BREWER_POTTERY_SHERD;
                     case Team.DEMON -> Items.SKULL_POTTERY_SHERD;
                     case Team.TRAVELLER -> Items.PRIZE_POTTERY_SHERD;
-                    default -> Items.FLOW_POTTERY_SHERD;
+                    case Team.FABLED -> Items.BURN_POTTERY_SHERD;
+                    case Team.LORIC -> Items.PLENTY_POTTERY_SHERD;
                 }
         );
         MutableText nameText = (MutableText) character.toFormattedText(false);

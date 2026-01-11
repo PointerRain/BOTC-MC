@@ -499,6 +499,60 @@ public final class botcCommands {
 //                                                    return 0;
 //                                                }
 //                                            })))));
+            root.then(literal("npc")
+                    .then(literal("add")
+                            .then(CommandManager.argument("npc", StringArgumentType.word())
+                                    .executes(ctx -> {
+                                        ServerPlayerEntity player = ctx.getSource().getPlayer();
+                                        if (player == null) {
+                                            ctx.getSource().sendError(Text.literal("This command may only be used by players."));
+                                            return 0;
+                                        }
+                                        botcActive activeGame = botc.getActiveGameFromPlayer(player);
+                                        if (activeGame == null) {
+                                            ctx.getSource().sendError(Text.literal("You are not in an active BOTC game."));
+                                            return 0;
+                                        }
+                                        String npcId = StringArgumentType.getString(ctx, "npc");
+                                        botcCharacter npc = activeGame.getScript().getCharacter(npcId);
+                                        if (npc == null) {
+                                            ctx.getSource().sendError(Text.literal("There is no character with this id on this script"));
+                                            return 0;
+                                        }
+                                        activeGame.getSeatManager().addNPC(npc);
+                                        ctx.getSource().sendFeedback(() -> Text.literal("Added NPC character " + npc.name() + "."), true);
+                                        return 1;
+                                    }))));
+
+            root.then(literal("npc")
+                    .then(literal("remove")
+                            .then(CommandManager.argument("npc", StringArgumentType.word())
+                                    .executes(ctx -> {
+                                        ServerPlayerEntity player = ctx.getSource().getPlayer();
+                                        if (player == null) {
+                                            ctx.getSource().sendError(Text.literal("This command may only be used by players."));
+                                            return 0;
+                                        }
+                                        botcActive activeGame = botc.getActiveGameFromPlayer(player);
+                                        if (activeGame == null) {
+                                            ctx.getSource().sendError(Text.literal("You are not in an active BOTC game."));
+                                            return 0;
+                                        }
+                                        String npcId = StringArgumentType.getString(ctx, "npc");
+                                        botcCharacter npc = activeGame.getScript().getCharacter(npcId);
+                                        if (npc == null) {
+                                            ctx.getSource().sendError(Text.literal("There is no character with this id on this script"));
+                                            return 0;
+                                        }
+                                        boolean removed = activeGame.getSeatManager().removeNPC(npc);
+                                        if (removed) {
+                                            ctx.getSource().sendFeedback(() -> Text.literal("Removed NPC character " + npc.name() + "."), true);
+                                            return 1;
+                                        } else {
+                                            ctx.getSource().sendError(Text.literal("NPC character " + npc.name() + " not found."));
+                                            return 0;
+                                        }
+                                    }))));
 
 
             // /botc map set <mapId>

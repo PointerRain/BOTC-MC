@@ -12,6 +12,9 @@ import java.util.*;
 public class botcSeatManager {
     private final List<PlayerSeat> playerSeats = new ArrayList<>();
     private final List<StorytellerSeat> storytellerSeats = new ArrayList<>();
+    private final List<botcCharacter> npcCharacters = new ArrayList<>();
+
+    private static final int MAX_STORYTELLERS = 3;
 
     // Constructor for default 8 player seats
     public botcSeatManager() {
@@ -236,14 +239,12 @@ public class botcSeatManager {
         return false;
     }
 
-    @Override
-    public String toString() {
-        return "botcSeatManager{" +
-                "playerSeats=" + playerSeats +
-                ", storytellerSeats=" + storytellerSeats +
-                '}';
-    }
-
+    /**
+     * Gets the seat number (1-based index) for a given PlayerSeat.
+     * @param seat The PlayerSeat to get the number for.
+     * @return The seat number (1-based index).
+     * @throws IllegalArgumentException If the seat is not found in player seats.
+     */
     public int getSeatNumber(PlayerSeat seat) {
         int index = this.playerSeats.indexOf(seat);
         if (index == -1) {
@@ -252,7 +253,44 @@ public class botcSeatManager {
         return index + 1; // Convert to 1-based index
     }
 
+    /**
+     * Gets the list of storyteller seats.
+     * @return List of StorytellerSeat objects.
+     */
     public List<StorytellerSeat> getStorytellers() {
         return this.storytellerSeats;
+    }
+
+    /**
+     * Gets the list of NPCs in the game.
+     * @return List of botcCharacter objects.
+     */
+    public List<botcCharacter> getNPCs() {
+        return this.npcCharacters;
+    }
+
+    /**
+     * Adds an NPC character to the game.
+     * @param character The botcCharacter to add.
+     */
+    public void addNPC(botcCharacter character) {
+        this.npcCharacters.add(character);
+    }
+
+    /**
+     * Removes an NPC character from the game.
+     * @param character The botcCharacter to remove.
+     * @return True if the character was removed, false otherwise.
+     */
+    public boolean removeNPC(botcCharacter character) {
+        return this.npcCharacters.remove(character);
+    }
+
+    @Override
+    public String toString() {
+        return "botcSeatManager{" +
+                "playerSeats=" + playerSeats +
+                ", storytellerSeats=" + storytellerSeats +
+                '}';
     }
 }
