@@ -46,11 +46,14 @@ public class ReminderSelectGUI extends SimpleGui {
         for (botcCharacter character : script.characters()) {
             tokens.addAll(character.globalReminderTokens());
         }
+        for (botcCharacter character : seatManager.getNPCs()) {
+            tokens.addAll(character.reminderTokens());
+        }
         return tokens;
     }
 
     private static int countRows(Script script, botcSeatManager seatManager) {
-        int count = getReminderTokens(script, seatManager).size();
+        int count = getReminderTokens(script, seatManager).size() + 1; // +1 for custom token
         return (int) Math.ceil(count / 9.0);
     }
 
