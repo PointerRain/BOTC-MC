@@ -2,80 +2,48 @@ package golden.botc_mc.botc_mc.game.gui;
 
 import eu.pb4.sgui.api.elements.GuiElementInterface;
 import eu.pb4.sgui.api.gui.SignGui;
-import eu.pb4.sgui.api.gui.SimpleGui;
 import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.Script;
 import golden.botc_mc.botc_mc.game.botcCharacter;
 import golden.botc_mc.botc_mc.game.botcSeatManager;
 import net.minecraft.block.Blocks;
-import net.minecraft.screen.GenericContainerScreenHandler;
-import net.minecraft.screen.ScreenHandlerType;
+import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.DyeColor;
 
-import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Function;
 
-public class ReminderSelectGUI extends SimpleGui {
-    private final Function<? super botcCharacter.ReminderToken, ?> onSelectReminder;
+public class ReminderSelectGUI extends AbstractSelectionGUI<botcCharacter.ReminderToken> {
 
-    private static final int TOKENS_PER_PAGE = 5 * 9;
+    private final Script script;
+    private final botcSeatManager seatManager;
+    private final boolean seeAll;
 
     public ReminderSelectGUI(ServerPlayerEntity player, Script script, botcSeatManager seatManager,
-                             Function<? super botcCharacter.ReminderToken, ?> onSelectReminder, boolean seeAll, int page) {
-        super(getScreenSize(script, seatManager, seeAll), player, false);
+                             Function<botcCharacter.ReminderToken, ?> onSelectItem, boolean seeAll, int page) {
+        super(player, getReminderTokens(script, seatManager, seeAll), onSelectItem, page);
         this.setTitle(Text.of("Select Reminder"));
 
-        this.onSelectReminder = onSelectReminder;
-
-        int pages = getPageCount(script, seatManager, seeAll);
-
-        // Add all tokens for this page
-        for (botcCharacter.ReminderToken token : getReminderTokens(script, seatManager, seeAll, page)) {
-            this.addSlot(TokenItemStack.of(token), (index, clickType, slotActionType, gui) ->
-                    tokenSelectCallback(token));
-        }
+        this.script = script;
+        this.seatManager = seatManager;
+        this.seeAll = seeAll;
 
         // Custom token button
-        GuiElementInterface.ClickCallback customTokenCallback = (index, clickType, slotActionType, gui) ->
+        GuiElementInterface.ClickCallback customTokenCallback = (i, c, a, g) ->
                 customTokenBox(player);
         this.setSlot(9 * this.getHeight() - 7, TokenItemStack.of(botcCharacter.ReminderToken.CUSTOM), customTokenCallback);
 
         // Toggle see all/in play button
         if (!seeAll) {
-            this.setSlot(9 * this.getHeight() - 5, SeatMenuLayer.buildButton(Text.of("See All"), (index, clickType, slotActionType, gui) -> {
-                new ReminderSelectGUI(player, script, seatManager, onSelectReminder, true, 0).open();
-            }));
+            this.setSlot(9 * this.getHeight() - 5, SeatMenuLayer.buildButton(Text.of("See All"),
+                    (i, c, a, g) -> new ReminderSelectGUI(player, script, seatManager, onSelectItem, true, 0).open()));
         } else {
-            this.setSlot(9 * this.getHeight() - 5, SeatMenuLayer.buildButton(Text.of("See In Play"), (index, clickType, slotActionType, gui) -> {
-                new ReminderSelectGUI(player, script, seatManager, onSelectReminder, false, 0).open();
-            }));
+            this.setSlot(9 * this.getHeight() - 5, SeatMenuLayer.buildButton(Text.of("See In Play"),
+                    (i, c, a, g) -> new ReminderSelectGUI(player, script, seatManager, onSelectItem, false, 0).open()));
         }
-
-        // Pagination buttons
-        if (page > 0) {
-            this.setSlot(9 * this.getHeight() - 9, SeatMenuLayer.buildButton(Text.of("Previous Page"), (index, clickType, slotActionType, gui) -> {
-                new ReminderSelectGUI(player, script, seatManager, onSelectReminder, seeAll, page - 1).open();
-            }));
-        }
-        if (page < pages - 1) {
-            this.setSlot(9 * this.getHeight() - 1, SeatMenuLayer.buildButton(Text.of("Next Page"), (index, clickType, slotActionType, gui) -> {
-                new ReminderSelectGUI(player, script, seatManager, onSelectReminder, seeAll, page + 1).open();
-            }));
-        }
-
-        // Cancel button
-        this.setSlot(9 * this.getHeight() - 3, SeatMenuLayer.buildButton(Text.of("Cancel"), (index, clickType, slotActionType, gui) ->
-                this.close()));
-    }
-
-    private static int getPageCount(Script script, botcSeatManager seatManager, boolean seeAll) {
-        int totalTokens = getReminderTokens(script, seatManager, seeAll).size();
-        return (int) Math.ceil((double) totalTokens / TOKENS_PER_PAGE);
     }
 
     private static List<botcCharacter.ReminderToken> getReminderTokens(Script script, botcSeatManager seatManager, boolean seeAll) {
@@ -101,36 +69,19 @@ public class ReminderSelectGUI extends SimpleGui {
         return tokens.stream().toList();
     }
 
-    private static List<botcCharacter.ReminderToken> getReminderTokens(Script script, botcSeatManager seatManager,
-                                                                      boolean seeAll, int page) {
-        List<botcCharacter.ReminderToken> allTokens = getReminderTokens(script, seatManager, seeAll);
-        int fromIndex = page * TOKENS_PER_PAGE;
-        int toIndex = Math.min(fromIndex + TOKENS_PER_PAGE, allTokens.size());
-        if (fromIndex >= allTokens.size()) {
-            return List.of();
-        }
-        return allTokens.subList(fromIndex, toIndex);
-    }
-
-    private static int countRows(Script script, botcSeatManager seatManager, boolean seeAll) {
-        int count = getReminderTokens(script, seatManager, seeAll).size(); // +1 for custom token
-        return (int) Math.ceil(count / 9.0);
-    }
-
-    private static ScreenHandlerType<GenericContainerScreenHandler> getScreenSize(Script script,
-                                                                                  botcSeatManager seatManager,
-                                                                                  boolean seeAll) {
-        return GrimoireGUI.getScreenSizeOfRows(countRows(script, seatManager, seeAll) + 1);
-    }
-
-    void tokenSelectCallback(botcCharacter.ReminderToken token) {
-        this.onSelectReminder.apply(token);
-        this.close();
-    }
-
     void customTokenBox(ServerPlayerEntity player) {
-        CustomTokenBox box = new CustomTokenBox(player, this.onSelectReminder);
+        CustomTokenBox box = new CustomTokenBox(player, this.onSelectItem);
         box.open();
+    }
+
+    @Override
+    protected AbstractSelectionGUI<botcCharacter.ReminderToken> newInstance(ServerPlayerEntity player, int page) {
+        return new ReminderSelectGUI(player, this.script, this.seatManager, this.onSelectItem, this.seeAll, page);
+    }
+
+    @Override
+    protected ItemStack getItemStack(botcCharacter.ReminderToken item) {
+        return TokenItemStack.of(item);
     }
 
     static class CustomTokenBox extends SignGui {

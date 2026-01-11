@@ -92,7 +92,7 @@ public class GrimoireGUI extends LayeredGui {
     }
 
     public void showPlayerPopout(PlayerSeat seat, int seatNumber) {
-        resetInvSection();
+        clearInventorySection();
         int offset = (7 - Math.min(seat.getReminders().size(), 7)) / 2;
         botc.LOGGER.info("Showing popout for seat {} at offset {}.", seatNumber, offset);
         this.playerPopoutView = this.addLayer(new SeatPopoutLayer(this, seat, seatNumber), offset, this.getHeight() - 3);
@@ -106,14 +106,17 @@ public class GrimoireGUI extends LayeredGui {
     }
 
     public void showPlayerPopout(StorytellerSeat seat) {
-        resetInvSection();
+        clearInventorySection();
         botc.LOGGER.info("Showing menu for storyteller seat.");
         this.playerPopoutView = this.addLayer(new SeatPopoutLayer(this, seat), 3, this.getHeight() - 3);
         this.playerMenuView = this.addLayer(new SeatMenuLayer(this, seat), 0, this.getHeight() - 1);
         this.markDirty();
     }
 
-    private void resetInvSection() {
+    /**
+     * Clears the inventory section layers (popout and menu) if they exist.
+     */
+    void clearInventorySection() {
         if (this.playerPopoutView != null) {
             this.removeLayer(this.playerPopoutView);
             this.playerPopoutView = null;
@@ -129,20 +132,20 @@ public class GrimoireGUI extends LayeredGui {
     }
 
     public void selectCharacter(PlayerSeat seat) {
-        CharacterSelectGUI gui = new CharacterSelectGUI(this.player, script, (c) -> {
+        CharacterSelectGUI gui = new PlayerCharacterSelectGUI(this.player, script, false, (c) -> {
             seat.setCharacter(c);
             this.reopen(seat);
             return null;
-        });
+        }, 0);
         gui.open();
     }
 
     public void selectCharacter(StorytellerSeat seat) {
-        CharacterSelectGUI gui = new CharacterSelectGUI(this.player, script, (c) -> {
+        CharacterSelectGUI gui = new PlayerCharacterSelectGUI(this.player, script, false, (c) -> {
             seat.setCharacter(c);
             this.reopen(seat);
             return null;
-        });
+        }, 0);
         gui.open();
     }
 
@@ -179,7 +182,7 @@ public class GrimoireGUI extends LayeredGui {
             seat.addReminderToken(token);
             this.reopen(seat);
             return null;
-        });
+        }, false, 0);
         gui.open();
     }
 

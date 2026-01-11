@@ -97,7 +97,7 @@ public class SeatMenuLayer extends Layer {
         }
     }
 
-    private static GuiElement buildButton(Text name, GuiElement.ClickCallback callback) {
+    public static GuiElement buildButton(Text name, GuiElement.ClickCallback callback) {
         ItemStack itemButton = new ItemStack(Items.PAPER);
         itemButton.set(DataComponentTypes.CUSTOM_NAME, name);
         return new GuiElement(itemButton, callback);
