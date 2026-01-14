@@ -19,7 +19,7 @@ public class PlayerCharacterSelectGUI extends CharacterSelectGUI {
                 Team.OUTSIDER,
                 Team.MINION,
                 Team.DEMON
-        ) : List.of(Team.TRAVELLER), onSelectCharacter, page);
+        ) : List.of(Team.TRAVELLER), true, onSelectCharacter, page);
 
         this.seeTravellers = seeTravellers;
 

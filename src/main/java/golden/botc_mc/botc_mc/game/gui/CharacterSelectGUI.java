@@ -15,19 +15,21 @@ import java.util.function.Function;
 public class CharacterSelectGUI extends AbstractSelectionGUI<botcCharacter> {
     protected final Script script;
     private final Collection<Team> teams;
+    private final boolean includeEmpty;
 
-    public CharacterSelectGUI(ServerPlayerEntity player, Script script, Collection<Team> teams,
+    public CharacterSelectGUI(ServerPlayerEntity player, Script script, Collection<Team> teams, boolean includeEmpty,
                               Function<botcCharacter, ?> onSelectCharacter, int page) {
-        super(player, getRoles(script, teams), onSelectCharacter, page);
+        super(player, getRoles(script, teams, includeEmpty), onSelectCharacter, page);
         this.setTitle(Text.of("Select Character"));
 
         this.script = script;
         this.teams = teams;
+        this.includeEmpty = includeEmpty;
     }
 
-    private static List<botcCharacter> getRoles(Script script, Collection<Team> teams) {
+    private static List<botcCharacter> getRoles(Script script, Collection<Team> teams, boolean includeEmpty) {
         List<botcCharacter> roles = new ArrayList<>();
-        roles.add(botcCharacter.EMPTY);
+        if (includeEmpty) roles.add(botcCharacter.EMPTY);
         for (Team team : teams) {
             roles.addAll(script.getCharactersByTeam(team));
         }
@@ -36,7 +38,7 @@ public class CharacterSelectGUI extends AbstractSelectionGUI<botcCharacter> {
 
     @Override
     protected AbstractSelectionGUI<botcCharacter> newInstance(ServerPlayerEntity player, int page) {
-        return new CharacterSelectGUI(player, this.script, this.teams, this.onSelectItem, page);
+        return new CharacterSelectGUI(player, this.script, this.teams, this.includeEmpty, this.onSelectItem, page);
     }
 
     @Override

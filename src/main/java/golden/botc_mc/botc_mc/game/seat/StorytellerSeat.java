@@ -14,7 +14,8 @@ public class StorytellerSeat extends Seat {
     }
 
     public Text getCharacterText() {
-        MutableText text = (MutableText) (character != null ? character.toFormattedText(false) : Text.of("Storyteller"));
+        MutableText text = (MutableText) ((character == null || character == botcCharacter.EMPTY) ?
+                Text.of("Storyteller") : character.toFormattedText(false));
         text.styled(style -> style.withFormatting(getColour(false)).withBold(true).withItalic(false));
         return text;
     }

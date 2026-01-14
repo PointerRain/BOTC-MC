@@ -1,9 +1,13 @@
 package golden.botc_mc.botc_mc.game.gui;
 
+import eu.pb4.sgui.api.ClickType;
+import eu.pb4.sgui.api.elements.GuiElement;
+import eu.pb4.sgui.api.elements.GuiElementInterface;
 import eu.pb4.sgui.api.gui.layered.LayerView;
 import eu.pb4.sgui.api.gui.layered.LayeredGui;
 import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.Script;
+import golden.botc_mc.botc_mc.game.Team;
 import golden.botc_mc.botc_mc.game.botcCharacter;
 import golden.botc_mc.botc_mc.game.botcSeatManager;
 import golden.botc_mc.botc_mc.game.seat.PlayerSeat;
@@ -183,6 +187,16 @@ public class GrimoireGUI extends LayeredGui {
             this.reopen(seat);
             return null;
         }, false, 0);
+        gui.open();
+    }
+
+    public void addNPC() {
+        CharacterSelectGUI gui = new CharacterSelectGUI(this.player, script, List.of(Team.FABLED, Team.LORIC), false,
+                (c) -> {
+            seatManager.addNPC(c);
+            this.reopen();
+            return null;
+        }, 0);
         gui.open();
     }
 

@@ -247,6 +247,14 @@ public record botcCharacter(String id,
         return this.id.hashCode();
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        botcCharacter other = (botcCharacter) obj;
+        return this.id.equals(other.id);
+    }
+
     public record ReminderToken(botcCharacter character, String reminder, boolean global) {
         public static final ReminderToken CUSTOM = new ReminderToken(botcCharacter.EMPTY, "Custom", false);
     }
