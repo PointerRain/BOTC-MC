@@ -180,7 +180,7 @@ public record botcCharacter(String id,
      * @return True if the character is an NPC, false otherwise.
      */
     public boolean isNPC() {
-        return this.team.getDefaultAlignment() == Team.Alignment.NPC;
+        return this.team.isNPC();
     }
 
     /**

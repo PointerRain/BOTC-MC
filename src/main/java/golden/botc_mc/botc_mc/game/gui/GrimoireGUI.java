@@ -70,7 +70,7 @@ public class GrimoireGUI extends LayeredGui {
         }
         if (layout == LayoutStyle.SINGLE_ROW) {
             int maxReminders = 0;
-            for (int n = 1; n < seatManager.getSeatCount(); n++) {
+            for (int n = 1; n <= seatManager.getSeatCount(); n++) {
                 maxReminders = Math.max(maxReminders, seatManager.getSeatFromNumber(n).getReminders().size());
             }
             return getScreenSizeOfRows(2 + maxReminders);
@@ -95,18 +95,14 @@ public class GrimoireGUI extends LayeredGui {
         newGui.showPlayerPopout(seat);
     }
 
-    public void showPlayerPopout(PlayerSeat seat, int seatNumber) {
+    public void showPlayerPopout(PlayerSeat seat) {
         clearInventorySection();
         int offset = (7 - Math.min(seat.getReminders().size(), 7)) / 2;
+        int seatNumber = seatManager.getSeatNumber(seat);
         botc.LOGGER.info("Showing popout for seat {} at offset {}.", seatNumber, offset);
         this.playerPopoutView = this.addLayer(new SeatPopoutLayer(this, seat, seatNumber), offset, this.getHeight() - 3);
         this.playerMenuView = this.addLayer(new SeatMenuLayer(this, seat), 0, this.getHeight() - 1);
         this.markDirty();
-    }
-
-    public void showPlayerPopout(PlayerSeat seat) {
-        int seatNumber = seatManager.getSeatNumber(seat);
-        showPlayerPopout(seat, seatNumber);
     }
 
     public void showPlayerPopout(StorytellerSeat seat) {
@@ -153,15 +149,18 @@ public class GrimoireGUI extends LayeredGui {
         gui.open();
     }
 
-    static List<ItemStack> getReminderItems(List<botcCharacter.ReminderToken> reminders, int maxReminders) {
-        List<ItemStack> reminderItems = new ArrayList<>();
+    public List<GuiElement> getReminderItems(PlayerSeat seat, List<botcCharacter.ReminderToken> reminders,
+                                             int maxReminders) {
+        List<GuiElement> elements = new ArrayList<>();
         if (reminders.size() > maxReminders) {
             maxReminders -= 1; // Reserve one slot for "See All"
         }
         // Add reminder items
-        for (int i = 0; i < Math.min(reminders.size(), maxReminders); i++) {
-            ItemStack reminderItem = TokenItemStack.of(reminders.get(i));
-            reminderItems.add(reminderItem);
+        for (int n = 0; n < Math.min(reminders.size(), maxReminders); n++) {
+            ItemStack reminderItem = TokenItemStack.of(reminders.get(n));
+            GuiElementInterface.ClickCallback reminderCallback = reminderClickCallback(seat, reminders, n);
+            GuiElement reminderElement = new GuiElement(reminderItem, reminderCallback);
+            elements.add(reminderElement);
         }
         // If there are more reminders, add a "See All" item containing the rest
         if (reminders.size() > maxReminders) {
@@ -176,9 +175,35 @@ public class GrimoireGUI extends LayeredGui {
             }
             LoreComponent loreComponent = new LoreComponent(allRemindersText);
             moreItem.set(DataComponentTypes.LORE, loreComponent);
-            reminderItems.add(moreItem);
+            GuiElementInterface.ClickCallback moreCallback = (i, c, a, g) -> showPlayerPopout(seat);
+            GuiElement moreElement = new GuiElement(moreItem, moreCallback);
+            elements.add(moreElement);
         }
-        return reminderItems;
+        return elements;
+    }
+
+    private GuiElementInterface.ClickCallback reminderClickCallback(PlayerSeat seat, List<botcCharacter.ReminderToken> reminders, int n) {
+        return (i, c, a, g) -> {
+            if (c == ClickType.MOUSE_RIGHT_SHIFT) {
+                seat.removeReminder(n);
+                this.reopen(seat);
+            } else if (c == ClickType.MOUSE_RIGHT && reminders.get(n).character() == botcCharacter.EMPTY) {
+                // Edit reminder
+                ReminderSelectGUI.CustomTokenBox box = new ReminderSelectGUI.CustomTokenBox(player, (token) -> {
+                    seat.removeReminder(n);
+                    seat.addReminderToken(token);
+                    this.reopen(seat);
+                    return null;
+                });
+                String[] existingLines = reminders.get(n).reminder().split("\n", 4);
+                for (int lineIndex = 0; lineIndex < existingLines.length; lineIndex++) {
+                    box.setLine(lineIndex, Text.of(existingLines[lineIndex]));
+                }
+                box.open();
+            } else {
+                showPlayerPopout(seat);
+            }
+        };
     }
 
     public void addReminder(PlayerSeat seat) {

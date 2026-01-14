@@ -53,7 +53,7 @@ public record TokenItemStack(ItemStack tokenItem) {
 
     public static ItemStack of(botcCharacter.ReminderToken token) {
         ItemStack tokenItem = new ItemStack(Items.PAPER);
-        MutableText reminderText = (MutableText) Text.of(token.reminder());
+        MutableText reminderText = (MutableText) Text.of(token.reminder().replace('\n', ' '));
         reminderText.styled(style -> style.withItalic(false));
         tokenItem.set(DataComponentTypes.CUSTOM_NAME, reminderText);
 

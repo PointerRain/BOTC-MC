@@ -100,7 +100,7 @@ public class ReminderSelectGUI extends AbstractSelectionGUI<botcCharacter.Remind
         @Override
         public void onClose() {
             super.onClose();
-            String text = String.join(" ",
+            String text = String.join("\n",
                     this.getLine(0).getString(),
                     this.getLine(1).getString(),
                     this.getLine(2).getString(),

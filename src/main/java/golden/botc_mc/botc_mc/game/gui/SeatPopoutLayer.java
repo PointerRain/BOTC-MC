@@ -1,5 +1,6 @@
 package golden.botc_mc.botc_mc.game.gui;
 
+import eu.pb4.sgui.api.elements.GuiElement;
 import eu.pb4.sgui.api.elements.GuiElementInterface;
 import eu.pb4.sgui.api.gui.layered.Layer;
 import golden.botc_mc.botc_mc.botc;
@@ -8,8 +9,6 @@ import golden.botc_mc.botc_mc.game.seat.StorytellerSeat;
 import net.minecraft.item.ItemStack;
 
 import java.util.List;
-
-import static golden.botc_mc.botc_mc.game.gui.GrimoireGUI.getReminderItems;
 
 public class SeatPopoutLayer extends Layer {
     public SeatPopoutLayer(GrimoireGUI gui, PlayerSeat seat, int seatNumber) {
@@ -21,7 +20,7 @@ public class SeatPopoutLayer extends Layer {
         GuiElementInterface.ClickCallback tokenCallback = (i, c, a, g) ->
                 gui.selectCharacter(seat);
 
-        List<ItemStack> reminderItems = getReminderItems(seat.getReminders(), 16);
+        List<GuiElement> reminderItems = gui.getReminderItems(seat, seat.getReminders(), 16);
         botc.LOGGER.info("Showing popout for player seat {} with {} reminders.", seatNumber, reminderItems.size());
         this.setSlot(0, headItem);
         this.setSlot(1, tokenItem, tokenCallback);

@@ -1,7 +1,10 @@
 package golden.botc_mc.botc_mc.game.gui;
 
+import eu.pb4.sgui.api.ClickType;
+import eu.pb4.sgui.api.elements.GuiElement;
 import eu.pb4.sgui.api.elements.GuiElementInterface;
 import eu.pb4.sgui.api.gui.layered.Layer;
+import golden.botc_mc.botc_mc.game.botcCharacter;
 import golden.botc_mc.botc_mc.game.seat.PlayerSeat;
 import net.minecraft.item.ItemStack;
 
@@ -19,13 +22,28 @@ public class TownCircleLayer extends Layer {
 
             ItemStack headItem = PlayerHeadItemStack.of(seat, n + 1);
             ItemStack tokenItem = TokenItemStack.of(seat);
-            List<ItemStack> reminderItems = GrimoireGUI.getReminderItems(seat.getReminders(), maxReminders);
+            List<GuiElement> reminderItems = gui.getReminderItems(seat, seat.getReminders(), maxReminders);
 
-            int finalN = n;
-            GuiElementInterface.ClickCallback headCallback = (i, c, a, g) ->
-                gui.showPlayerPopout(seat, finalN + 1);
-            GuiElementInterface.ClickCallback tokenCallback = (i, c, a, g) ->
-                gui.selectCharacter(seat);
+            GuiElementInterface.ClickCallback headCallback = (i, c, a, g) -> {
+                if (c == ClickType.MOUSE_LEFT_SHIFT) {
+                    if (seat.isAlive()) seat.kill();
+                    else seat.revive();
+                }
+                gui.showPlayerPopout(seat);
+            };
+            GuiElementInterface.ClickCallback tokenCallback = (i, c, a, g) -> {
+                switch (c) {
+                    case MOUSE_RIGHT -> gui.selectCharacter(seat);
+                    case MOUSE_LEFT_SHIFT -> {
+                        seat.toggleAlignment();
+                        gui.reopen(seat);
+                    }
+                    case MOUSE_RIGHT_SHIFT -> {
+                        seat.setCharacter(botcCharacter.EMPTY);
+                    }
+                    default -> gui.showPlayerPopout(seat);
+                }
+            };
 
             if (layout == GrimoireGUI.LayoutStyle.SINGLE_COLUMN) {
                 this.setSlot(9 * n, headItem, headCallback);
