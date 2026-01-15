@@ -7,6 +7,7 @@ import golden.botc_mc.botc_mc.game.seat.StorytellerSeat;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 
 import java.util.ArrayList;
@@ -18,17 +19,7 @@ public class SeatMenuLayer extends Layer {
 
         ArrayList<GuiElement> elements = new ArrayList<>(9);
         elements.add(buildButton(Text.of("Close Menu"), (i, c, a, g) -> gui.reopen()));
-        elements.add(buildButton(Text.of("Change Character"), (i, c, a, g) -> gui.selectCharacter(seat)));
-        if (seat.getAlignment() != null) {
-            elements.add(buildButton(Text.of("Change Alignment"), (i, c, a, g) -> {
-                seat.toggleAlignment();
-                gui.reopen(seat);
-            }));
-        }
         elements.add(buildButton(Text.of("Add Reminder"), (i, c, a, g) -> gui.addReminder(seat)));
-        if (!seat.getReminders().isEmpty()) {
-            elements.add(buildButton(Text.of("Remove Reminders"), (i, c, a, g) -> seat.clearReminders()));
-        }
         if (seat.isAlive()) {
             elements.add(buildButton(Text.of("Kill Player"), (i, c, a, g) -> {
                 seat.kill();
@@ -51,10 +42,10 @@ public class SeatMenuLayer extends Layer {
                 seat.removePlayerEntity();
                 gui.reopen(seat);
             }));
-        } else {
-            elements.add(buildButton(Text.of("Join Seat"), (i, c, a, g) -> {
-                seat.setPlayerEntity(gui.player);
-                gui.reopen(seat);
+            elements.add(buildButton(Text.of("Promote to Storyteller"), (i, c, a, g) -> {
+                ServerPlayerEntity player = seat.getPlayerEntity();
+                StorytellerSeat newSeat = (StorytellerSeat) gui.seatManager.assignPlayerToStorytellerSeat(player);
+                gui.reopen(newSeat);
             }));
         }
 
@@ -68,7 +59,6 @@ public class SeatMenuLayer extends Layer {
 
         ArrayList<GuiElement> elements = new ArrayList<>(9);
         elements.add(buildButton(Text.of("Close Menu"), (i, c, a, g) -> gui.reopen()));
-        elements.add(buildButton(Text.of("Change Character"), (i, c, a, g) -> gui.selectCharacter(seat)));
         if (seat.isAlive()) {
             elements.add(buildButton(Text.of("Kill Player"), (i, c, a, g) -> {
                 seat.kill();
@@ -87,10 +77,22 @@ public class SeatMenuLayer extends Layer {
             }));
         } else {
             elements.add(buildButton(Text.of("Step Up"), (i, c, a, g) -> {
-                seat.setPlayerEntity(gui.player);
+                seat.setPlayerEntity(gui.getPlayer());
                 gui.reopen();
             }));
         }
+
+        elements.add(buildButton(Text.of("Add seat"), (i, c, a, g) -> {
+            gui.seatManager.setPlayerCount(gui.seatManager.getSeatCount() + 1);
+            gui.reopen(seat);
+        }));
+        elements.add(buildButton(Text.of("Remove seat"), (i, c, a, g) -> {
+            gui.seatManager.setPlayerCount(gui.seatManager.getSeatCount() - 1);
+            gui.reopen(seat);
+        }));
+        elements.add(buildButton(Text.of("Resize Grimoire"), (i, c, a, g) -> {
+            new ResizeGrimGUI(gui.getPlayer(), gui.seatManager).open();
+        }));
 
         for (GuiElement element : elements) {
             this.addSlot(element);
