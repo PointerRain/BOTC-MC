@@ -13,6 +13,8 @@ import golden.botc_mc.botc_mc.game.seat.Seat;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.resource.Resource;
+import net.minecraft.command.argument.IdentifierArgumentType;
+import net.minecraft.item.ItemStack;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -586,6 +588,32 @@ public final class botcCommands {
                 gui.open();
                 return 1;
             }));
+
+            root.then(literal("script").then(CommandManager.argument("script", IdentifierArgumentType.identifier())
+                            .executes(ctx -> {
+                                ServerCommandSource src = ctx.getSource();
+                                if (!(src.getEntity() instanceof ServerPlayerEntity player)) {
+                                    src.sendFeedback(() -> Text.literal("This command may only be used by players."), false);
+                                    return 0;
+                                }
+
+                                var id = IdentifierArgumentType.getIdentifier(ctx, "script");
+                                Script script = Script.fromId(String.valueOf(id));
+                                if (script == null) {
+                                    src.sendError(Text.literal("Script not found: " + id));
+                                    return 0;
+                                }
+
+                                botcItemManager itemManager = new botcItemManager();
+                                ItemStack book = itemManager.generateScriptBook(script);
+                                if (player.getInventory().insertStack(book)) {
+                                    player.sendMessage(Text.literal("Gave you the script: " + script.meta().name()), false);
+                                } else {
+                                    player.sendMessage(Text.literal("Your inventory is full!"));
+                                }
+
+                                return 1;
+                            })));
 
             dispatcher.register(root);
         });
