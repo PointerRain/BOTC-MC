@@ -13,43 +13,51 @@ import java.util.function.Function;
 
 public abstract class AbstractSelectionGUI<T> extends SimpleGui {
     protected static final int ITEMS_PER_PAGE = 5 * 9;
-    protected final List<T> items;
+    protected List<T> items;
     protected final Function<T, ?> onSelectItem;
+    protected final Runnable onCancel;
 
     public AbstractSelectionGUI(ServerPlayerEntity player, List<T> items,
-                                Function<T, ?> onSelectItem, int page) {
+                                Function<T, ?> onSelectItem,
+                                Runnable onCancel,
+                                int page) {
         super(getScreenSize(items), player, false);
         this.setTitle(Text.of("Select an Item"));
 
         this.items = items;
         this.onSelectItem = onSelectItem;
+        this.onCancel = onCancel;
 
         int pages = getPageCount();
 
         // Add all items for this page
         for (T item : getPage(page)) {
             GuiElementInterface.ClickCallback itemCallback =
-                    (index, clickType, slotActionType, gui) -> itemSelectCallback(item);
+                    (i, c, a, g) -> itemSelectCallback(item);
             this.addSlot(getItemStack(item), itemCallback);
         }
 
         // Pagination buttons
         if (page > 0) {
             GuiElementInterface.ClickCallback prevPageCallback =
-                    (index, clickType, slotActionType, gui) -> newInstance(player, page - 1).open();
+                    (i, c, a, g) -> newInstance(player, page - 1).open();
             this.setSlot(9 * this.getHeight() - 9, SeatMenuLayer.buildButton(Text.of("Previous Page"),
                     prevPageCallback));
         }
         if (page < pages - 1) {
             GuiElementInterface.ClickCallback nextPageCallback =
-                    (index, clickType, slotActionType, gui) -> newInstance(player, page + 1).open();
+                    (i, c, a, g) -> newInstance(player, page + 1).open();
             this.setSlot(9 * this.getHeight() - 1, SeatMenuLayer.buildButton(Text.of("Next Page"), nextPageCallback));
         }
 
         // Cancel button
-        this.setSlot(9 * this.getHeight() - 2, SeatMenuLayer.buildButton(Text.of("Cancel"), (index, clickType,
-                                                                                             slotActionType, gui) ->
-                this.close()));
+        GuiElementInterface.ClickCallback cancelCallback = (i, c, a, g) -> {
+            if (this.onCancel != null) {
+                this.onCancel.run();
+            } else this.close();
+        };
+        this.setSlot(9 * this.getHeight() - 2, SeatMenuLayer.buildButton(Text.of("Cancel"),
+                cancelCallback));
     }
 
     /**

@@ -23,8 +23,9 @@ public class ReminderSelectGUI extends AbstractSelectionGUI<botcCharacter.Remind
     private final boolean seeAll;
 
     public ReminderSelectGUI(ServerPlayerEntity player, Script script, botcSeatManager seatManager,
-                             Function<botcCharacter.ReminderToken, ?> onSelectItem, boolean seeAll, int page) {
-        super(player, getReminderTokens(script, seatManager, seeAll), onSelectItem, page);
+                             Function<botcCharacter.ReminderToken, ?> onSelectItem, Runnable onCancel,
+                             boolean seeAll, int page) {
+        super(player, getReminderTokens(script, seatManager, seeAll), onSelectItem, onCancel, page);
         this.setTitle(Text.of("Select Reminder"));
 
         this.script = script;
@@ -39,10 +40,10 @@ public class ReminderSelectGUI extends AbstractSelectionGUI<botcCharacter.Remind
         // Toggle see all/in play button
         if (!seeAll) {
             this.setSlot(9 * this.getHeight() - 5, SeatMenuLayer.buildButton(Text.of("See All"),
-                    (i, c, a, g) -> new ReminderSelectGUI(player, script, seatManager, onSelectItem, true, 0).open()));
+                    (i, c, a, g) -> new ReminderSelectGUI(player, script, seatManager, onSelectItem, onCancel, true, 0).open()));
         } else {
             this.setSlot(9 * this.getHeight() - 5, SeatMenuLayer.buildButton(Text.of("See In Play"),
-                    (i, c, a, g) -> new ReminderSelectGUI(player, script, seatManager, onSelectItem, false, 0).open()));
+                    (i, c, a, g) -> new ReminderSelectGUI(player, script, seatManager, onSelectItem, onCancel, false, 0).open()));
         }
     }
 
@@ -76,7 +77,8 @@ public class ReminderSelectGUI extends AbstractSelectionGUI<botcCharacter.Remind
 
     @Override
     protected AbstractSelectionGUI<botcCharacter.ReminderToken> newInstance(ServerPlayerEntity player, int page) {
-        return new ReminderSelectGUI(player, this.script, this.seatManager, this.onSelectItem, this.seeAll, page);
+        return new ReminderSelectGUI(player, this.script, this.seatManager, this.onSelectItem, this.onCancel,
+                this.seeAll, page);
     }
 
     @Override

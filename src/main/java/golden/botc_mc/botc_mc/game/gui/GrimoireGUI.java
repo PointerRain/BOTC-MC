@@ -132,20 +132,20 @@ public class GrimoireGUI extends LayeredGui {
     }
 
     public void selectCharacter(PlayerSeat seat) {
-        CharacterSelectGUI gui = new PlayerCharacterSelectGUI(this.player, script, false, (c) -> {
+        PlayerCharacterSelectGUI gui = new PlayerCharacterSelectGUI(this.player, script, (c) -> {
             seat.setCharacter(c);
             this.reopen(seat);
             return null;
-        }, 0);
+        }, () -> this.reopen(seat), false, 0);
         gui.open();
     }
 
     public void selectCharacter(StorytellerSeat seat) {
-        CharacterSelectGUI gui = new PlayerCharacterSelectGUI(this.player, script, false, (c) -> {
+        PlayerCharacterSelectGUI gui = new PlayerCharacterSelectGUI(this.player, script, (c) -> {
             seat.setCharacter(c);
             this.reopen(seat);
             return null;
-        }, 0);
+        }, () -> this.reopen(seat), false, 0);
         gui.open();
     }
 
@@ -211,17 +211,17 @@ public class GrimoireGUI extends LayeredGui {
             seat.addReminderToken(token);
             this.reopen(seat);
             return null;
-        }, false, 0);
+        }, () -> this.reopen(seat), false, 0);
         gui.open();
     }
 
     public void addNPC() {
-        CharacterSelectGUI gui = new CharacterSelectGUI(this.player, script, List.of(Team.FABLED, Team.LORIC), false,
+        NPCCharacterSelectGUI gui = new NPCCharacterSelectGUI(this.player, script, seatManager,
                 (c) -> {
             seatManager.addNPC(c);
             this.reopen();
             return null;
-        }, 0);
+        }, this::reopen, 0);
         gui.open();
     }
 
