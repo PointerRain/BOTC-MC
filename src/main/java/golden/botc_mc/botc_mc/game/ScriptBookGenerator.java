@@ -179,7 +179,7 @@ public class ScriptBookGenerator {
         List<Text> pageContent = new ArrayList<>();
 
         for (Team team : teams) {
-            List<Character> characters = this.script.getCharactersByTeam(team);
+            List<botcCharacter> characters = this.script.getCharactersByTeam(team);
             MutableText header = team.toText();
             header.append(" - ");
             header.append(team.getDefaultAlignment().toText());
@@ -195,7 +195,7 @@ public class ScriptBookGenerator {
                 else if (pageContent.size() <= 1 && pageContent.size() + characters.size() + 1 > MAX_PAGE_LINES) {
                     pageContent = new ArrayList<>();
                     pageContent.add(header);
-                    for (Character c : characters.subList(0, MAX_PAGE_LINES - 1)) {
+                    for (botcCharacter c : characters.subList(0, MAX_PAGE_LINES - 1)) {
                         pageContent.add(generateNameLine(c));
                     }
                     characters = characters.subList(MAX_PAGE_LINES - 1, characters.size());
@@ -213,7 +213,7 @@ public class ScriptBookGenerator {
                         pageContent.add(Text.of(""));
                     }
                     pageContent.add(header);
-                    for (Character c : characters) {
+                    for (botcCharacter c : characters) {
                         pageContent.add(generateNameLine(c));
                     }
                     break;
@@ -225,7 +225,7 @@ public class ScriptBookGenerator {
         }
     }
 
-    private MutableText generateNameLine(Character c) {
+    private MutableText generateNameLine(botcCharacter c) {
         MutableText nameLine = (MutableText) c.toTextWithHoverAbility(false);
         if (bookmarks.containsKey(c.id())) {
             ClickEvent click = new ClickEvent.ChangePage(bookmarks.get(c.id()));
@@ -235,7 +235,7 @@ public class ScriptBookGenerator {
         return nameLine;
     }
 
-    private Text generateJinxStars(Character c) {
+    private Text generateJinxStars(botcCharacter c) {
         MutableText nameLine = Text.empty();
         List<Script.Jinx> jinxes = this.script.getJinxesForCharacter(c);
         for (Script.Jinx jinx : jinxes) {
@@ -255,7 +255,7 @@ public class ScriptBookGenerator {
 
     private void addCharacterDetailPages() {
         for (Team team : Team.values()) {
-            List<Character> characters = this.script.getCharactersByTeam(team);
+            List<botcCharacter> characters = this.script.getCharactersByTeam(team);
             if (characters.isEmpty()) {
                 continue;
             }
@@ -265,7 +265,7 @@ public class ScriptBookGenerator {
             header.styled(style -> style.withColor(team.getColour(false)));
 
             Map<String, Text> items = new LinkedHashMap<>();
-            for (Character character : characters) {
+            for (botcCharacter character : characters) {
                 MutableText item = Text.empty();
                 MutableText nameLine = (MutableText) character.toFormattedText(true);
                 nameLine.styled(style -> style.withBold(true).withUnderline(true));
@@ -297,7 +297,7 @@ public class ScriptBookGenerator {
     }
 
     private void addJinxesPages() {
-        Map<Character, List<Script.Jinx>> jinxes = script.getJinxes();
+        Map<botcCharacter, List<Script.Jinx>> jinxes = script.getJinxes();
         botc.LOGGER.info(jinxes.toString());
         if (jinxes.isEmpty()) {
             return;
@@ -306,10 +306,10 @@ public class ScriptBookGenerator {
                 .withBold(true).withUnderline(true));
 
         Map<String, Text> pageContent = new LinkedHashMap<>();
-        for (Character primary : jinxes.keySet()) {
+        for (botcCharacter primary : jinxes.keySet()) {
             List<Script.Jinx> charJinxes = jinxes.get(primary);
             for (Script.Jinx jinx : charJinxes) {
-                Character secondary = new Character(jinx.id());
+                botcCharacter secondary = new botcCharacter(jinx.id());
                 MutableText primaryText = (MutableText) primary.toTextWithHoverAbility(true);
                 if (bookmarks.containsKey(primary.id())) {
                     ClickEvent click = new ClickEvent.ChangePage(bookmarks.get(primary.id()));
