@@ -19,8 +19,12 @@ public class StorytellerLayer extends Layer {
             ItemStack headItem = PlayerHeadItemStack.of(seat);
             ItemStack tokenItem = TokenItemStack.of(seat);
 
-            GuiElementInterface.ClickCallback headCallback = (i, c, a, g) ->
+            GuiElementInterface.ClickCallback headCallback = (i, c, a, g) -> {
+                if (c == ClickType.MOUSE_LEFT_SHIFT) {
+                    gui.editGrimoire();
+                }
                 gui.showPlayerPopout(seat);
+            };
             GuiElementInterface.ClickCallback tokenCallback = (i, c, a, g) ->
                 gui.selectCharacter(seat);
 

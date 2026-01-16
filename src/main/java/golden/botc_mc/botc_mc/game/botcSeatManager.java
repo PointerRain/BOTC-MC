@@ -7,14 +7,20 @@ import golden.botc_mc.botc_mc.game.seat.StorytellerSeat;
 import net.minecraft.server.network.ServerPlayerEntity;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import static java.lang.Math.floorMod;
 
 public class botcSeatManager {
     private final List<PlayerSeat> playerSeats = new ArrayList<>();
     private final List<StorytellerSeat> storytellerSeats = new ArrayList<>();
     private final List<botcCharacter> npcCharacters = new ArrayList<>();
 
-    private static final int MAX_STORYTELLERS = 3;
+    public static final int MIN_PLAYERS = 4;
+    public static final int MAX_PLAYERS = 18;
+    public static final int MAX_STORYTELLERS = 3;
 
     // Constructor for default 8 player seats
     public botcSeatManager() {
@@ -38,14 +44,24 @@ public class botcSeatManager {
      * @throws IllegalArgumentException if count is out of range.
      */
     public void setPlayerCount(int count) throws IllegalArgumentException {
-        if (count < 5 || count > 20) {
-            throw new IllegalArgumentException("Count must be between 5 and 20.");
+        if (count < MIN_PLAYERS || count > MAX_PLAYERS) {
+            throw new IllegalArgumentException("Count must be between " + MIN_PLAYERS + " and " + MAX_PLAYERS);
         }
         // Add seats until we reach the desired count
         while (this.playerSeats.size() < count) {
             this.playerSeats.add(new PlayerSeat());
         }
-        // Remove empty seats from the end
+
+        // Remove seats with no player, no character, and no reminders first
+        for (int i = this.playerSeats.size() - 1; i >= 0 && this.playerSeats.size() > count; i--) {
+            PlayerSeat seat = this.playerSeats.get(i);
+            if (seat.getPlayerEntity() == null && seat.getCharacter() == botcCharacter.EMPTY && seat.getReminders().isEmpty()) {
+                seat.clearCharacter();
+                seat.removePlayerEntity();
+                this.playerSeats.remove(i);
+            }
+        }
+        // Remove seats with no player next
         for (int i = this.playerSeats.size() - 1; i >= 0 && this.playerSeats.size() > count; i--) {
             PlayerSeat seat = this.playerSeats.get(i);
             if (seat.getPlayerEntity() == null) {
@@ -284,6 +300,61 @@ public class botcSeatManager {
      */
     public boolean removeNPC(botcCharacter character) {
         return this.npcCharacters.remove(character);
+    }
+
+    /**
+     * Shuffles the order of player seats.
+     */
+    public void shuffle() {
+        Collections.shuffle(this.playerSeats);
+    }
+
+    /**
+     * Inserts a new player seat at position n (1-based index).
+     * @param seatNumber The position to insert the new seat at (1-based index).
+     * @throws IllegalArgumentException If the position is out of range or max players exceeded.
+     */
+    public void insert(int seatNumber) {
+        if (seatNumber < 1 || seatNumber > this.playerSeats.size() + 1) {
+            throw new IllegalArgumentException("Insert position must be between 1 and " + (this.playerSeats.size() + 1));
+        }
+        if (this.playerSeats.size() >= MAX_PLAYERS) {
+            throw new IllegalArgumentException("Cannot have more than " + MAX_PLAYERS + " player seats.");
+        }
+        this.playerSeats.add(seatNumber - 1, new PlayerSeat());
+    }
+
+    /**
+     * Removes the player seat at position n (1-based index).
+     * @param seatNumber The position of the seat to remove (1-based index).
+     * @throws IllegalArgumentException If the position is out of range or min players exceeded.
+     */
+    public void remove(int seatNumber) {
+        if (seatNumber < 1 || seatNumber > this.playerSeats.size()) {
+            throw new IllegalArgumentException("Remove position must be between 1 and " + this.playerSeats.size());
+        }
+        if (this.playerSeats.size() <= MIN_PLAYERS) {
+            throw new IllegalArgumentException("Cannot have fewer than " + MIN_PLAYERS + " player seats.");
+        }
+        this.playerSeats.remove(seatNumber - 1);
+    }
+
+    /**
+     * Moves a player seat from one position to another (1-based index).
+     * @param from The current position of the seat to move (1-based index).
+     * @param to The new position to move the seat to (1-based index). Wraps around if out of range.
+     * @throws IllegalArgumentException If the from position is out of range.
+     */
+    public void moveSeat(int from, int to) {
+        to = floorMod(to - 1, this.playerSeats.size()) + 1;
+        if (from < 1 || from > this.playerSeats.size()) {
+            throw new IllegalArgumentException("Move positions must be between 1 and " + this.playerSeats.size());
+        }
+        if (from == to) {
+            return; // No need to move
+        }
+        PlayerSeat seat = this.playerSeats.remove(from - 1);
+        this.playerSeats.add(to - 1, seat);
     }
 
     @Override

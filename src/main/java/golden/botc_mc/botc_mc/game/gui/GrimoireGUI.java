@@ -7,7 +7,6 @@ import eu.pb4.sgui.api.gui.layered.LayerView;
 import eu.pb4.sgui.api.gui.layered.LayeredGui;
 import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.Script;
-import golden.botc_mc.botc_mc.game.Team;
 import golden.botc_mc.botc_mc.game.botcCharacter;
 import golden.botc_mc.botc_mc.game.botcSeatManager;
 import golden.botc_mc.botc_mc.game.seat.PlayerSeat;
@@ -29,7 +28,6 @@ import java.util.List;
 public class GrimoireGUI extends LayeredGui {
     protected final botcSeatManager seatManager;
     protected final Script script;
-    protected final ServerPlayerEntity player;
     private LayerView playerPopoutView = null;
     private LayerView playerMenuView = null;
     private LayerView storytellerView;
@@ -40,7 +38,6 @@ public class GrimoireGUI extends LayeredGui {
 
         this.seatManager = seatManager;
         this.script = script;
-        this.player = player;
 
         LayoutStyle layout = LayoutStyle.getLayoutType(seatManager.getSeatCount());
 
@@ -79,7 +76,7 @@ public class GrimoireGUI extends LayeredGui {
     }
 
     public GrimoireGUI reopen() {
-        GrimoireGUI newGui = new GrimoireGUI(this.player, this.seatManager, this.script);
+        GrimoireGUI newGui = new GrimoireGUI(this.getPlayer(), this.seatManager, this.script);
         newGui.open();
         this.close();
         return newGui;
@@ -132,7 +129,7 @@ public class GrimoireGUI extends LayeredGui {
     }
 
     public void selectCharacter(PlayerSeat seat) {
-        PlayerCharacterSelectGUI gui = new PlayerCharacterSelectGUI(this.player, script, (c) -> {
+        PlayerCharacterSelectGUI gui = new PlayerCharacterSelectGUI(this.getPlayer(), script, (c) -> {
             seat.setCharacter(c);
             this.reopen(seat);
             return null;
@@ -141,7 +138,7 @@ public class GrimoireGUI extends LayeredGui {
     }
 
     public void selectCharacter(StorytellerSeat seat) {
-        PlayerCharacterSelectGUI gui = new PlayerCharacterSelectGUI(this.player, script, (c) -> {
+        PlayerCharacterSelectGUI gui = new PlayerCharacterSelectGUI(this.getPlayer(), script, (c) -> {
             seat.setCharacter(c);
             this.reopen(seat);
             return null;
@@ -189,7 +186,7 @@ public class GrimoireGUI extends LayeredGui {
                 this.reopen(seat);
             } else if (c == ClickType.MOUSE_RIGHT && reminders.get(n).character() == botcCharacter.EMPTY) {
                 // Edit reminder
-                ReminderSelectGUI.CustomTokenBox box = new ReminderSelectGUI.CustomTokenBox(player, (token) -> {
+                ReminderSelectGUI.CustomTokenBox box = new ReminderSelectGUI.CustomTokenBox(this.getPlayer(), (token) -> {
                     seat.removeReminder(n);
                     seat.addReminderToken(token);
                     this.reopen(seat);
@@ -207,7 +204,7 @@ public class GrimoireGUI extends LayeredGui {
     }
 
     public void addReminder(PlayerSeat seat) {
-        ReminderSelectGUI gui = new ReminderSelectGUI(this.player, script, seatManager, (token) -> {
+        ReminderSelectGUI gui = new ReminderSelectGUI(this.getPlayer(), script, seatManager, (token) -> {
             seat.addReminderToken(token);
             this.reopen(seat);
             return null;
@@ -216,12 +213,17 @@ public class GrimoireGUI extends LayeredGui {
     }
 
     public void addNPC() {
-        NPCCharacterSelectGUI gui = new NPCCharacterSelectGUI(this.player, script, seatManager,
+        NPCCharacterSelectGUI gui = new NPCCharacterSelectGUI(this.getPlayer(), script, seatManager,
                 (c) -> {
             seatManager.addNPC(c);
             this.reopen();
             return null;
         }, this::reopen, 0);
+        gui.open();
+    }
+
+    public void editGrimoire() {
+        ResizeGrimGUI gui = new ResizeGrimGUI(this.getPlayer(), this.seatManager);
         gui.open();
     }
 

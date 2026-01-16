@@ -6,7 +6,6 @@ import eu.pb4.sgui.api.gui.layered.LayerView;
 import eu.pb4.sgui.api.gui.layered.LayeredGui;
 import golden.botc_mc.botc_mc.game.botcSeatManager;
 import golden.botc_mc.botc_mc.game.seat.PlayerSeat;
-import golden.botc_mc.botc_mc.game.seat.Seat;
 import net.minecraft.item.ItemStack;
 import net.minecraft.screen.ScreenHandlerType;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -26,15 +25,14 @@ public class ResizeGrimGUI extends LayeredGui {
         this.seatManager = seatManager;
 
         this.addLayer(new ResizeTownLayer(this), 0, 0);
-        this.addLayer(new ResizeMenuLayer(this), 0, this.getHeight()-1);
-        showResizePopout(seatManager.getSeatFromNumber(1), 1);
+        this.addLayer(new ResizeMenuLayer(this), 0, this.getHeight() - 1);
     }
 
     private void showResizePopout(PlayerSeat seat, int seatNumber) {
         if (this.resizePopoutLayer != null) {
             this.removeLayer(this.resizePopoutLayer);
         }
-        this.resizePopoutLayer = this.addLayer(new ResizePopoutLayer(this, seat, seatNumber), 2, this.getHeight()-3);
+        this.resizePopoutLayer = this.addLayer(new ResizePopoutLayer(this, seat, seatNumber), 2, this.getHeight() - 3);
     }
 
     private ResizeGrimGUI reopen() {
@@ -68,30 +66,39 @@ public class ResizeGrimGUI extends LayeredGui {
     }
 
     private static class ResizePopoutLayer extends Layer {
-        public ResizePopoutLayer(ResizeGrimGUI gui, Seat seat, int seatNumber) {
+        public ResizePopoutLayer(ResizeGrimGUI gui, PlayerSeat seat, int seatNumber) {
             super(2, 5);
 
             // Head in centre
             ItemStack headItem = PlayerHeadItemStack.of(seat, seatNumber);
             this.setSlot(2, headItem);
             // Add before and add after buttons
-            this.setSlot(1, buildButton(Text.of("Add Before"), (i, c, a, g) -> {
-                // Implement add before logic here
-            }));
-            this.setSlot(3, buildButton(Text.of("Add After"), (i, c, a, g) -> {
-                // Implement add after logic here
-            }));
+            if (gui.seatManager.getSeatCount() < botcSeatManager.MAX_PLAYERS) {
+                this.setSlot(1, buildButton(Text.of("Add Before"), (i, c, a, g) -> {
+                    gui.seatManager.insert(seatNumber > 1 ? seatNumber : gui.seatManager.getSeatCount() + 1);
+                    gui.reopen(seat);
+                }));
+                this.setSlot(3, buildButton(Text.of("Add After"), (i, c, a, g) -> {
+                    gui.seatManager.insert(seatNumber + 1);
+                    gui.reopen(seat);
+                }));
+            }
             // Move left and move right buttons
             this.setSlot(0, buildButton(Text.of("Move Left"), (i, c, a, g) -> {
-                // Implement move left logic here
+                gui.seatManager.moveSeat(seatNumber, seatNumber - 1);
+                gui.reopen(seat);
             }));
             this.setSlot(4, buildButton(Text.of("Move Right"), (i, c, a, g) -> {
-                // Implement move right logic here
+                gui.seatManager.moveSeat(seatNumber, seatNumber + 1);
+                gui.reopen(seat);
             }));
             // Remove seat button
-            this.setSlot(7, buildButton(Text.of("Remove Seat"), (i, c, a, g) -> {
-                // Implement remove seat logic here
-            }));
+            if (gui.seatManager.getSeatCount() > botcSeatManager.MIN_PLAYERS) {
+                this.setSlot(7, buildButton(Text.of("Remove Seat"), (i, c, a, g) -> {
+                    gui.seatManager.remove(seatNumber);
+                    gui.reopen();
+                }));
+            }
         }
     }
 
@@ -101,22 +108,31 @@ public class ResizeGrimGUI extends LayeredGui {
 
             // Close button
             this.setSlot(0, buildButton(Text.of("Close Menu"), (i, c, a, g) -> {
-                gui.close();
+                if (gui.resizePopoutLayer != null) {
+                    gui.removeLayer(gui.resizePopoutLayer);
+                    gui.resizePopoutLayer = null;
+                } else {
+                    gui.close();
+                }
             }));
-
             // Remove seat button
-            this.setSlot(3, buildButton(Text.of("Remove Seat"), (i, c, a, g) -> {
-                gui.seatManager.setPlayerCount(gui.seatManager.getSeatCount() - 1);
-                gui.reopen();
-            }));
+            if (gui.seatManager.getSeatCount() > botcSeatManager.MIN_PLAYERS) {
+                this.setSlot(3, buildButton(Text.of("Remove Seat"), (i, c, a, g) -> {
+                    gui.seatManager.setPlayerCount(gui.seatManager.getSeatCount() - 1);
+                    gui.reopen();
+                }));
+            }
             // Add seat button
-            this.setSlot(4, buildButton(Text.of("Add Seat"), (i, c, a, g) -> {
-                gui.seatManager.setPlayerCount(gui.seatManager.getSeatCount() + 1);
-                gui.reopen();
-            }));
+            if (gui.seatManager.getSeatCount() < botcSeatManager.MAX_PLAYERS) {
+                this.setSlot(5, buildButton(Text.of("Add Seat"), (i, c, a, g) -> {
+                    gui.seatManager.setPlayerCount(gui.seatManager.getSeatCount() + 1);
+                    gui.reopen();
+                }));
+            }
             // Shuffle seats button
             this.setSlot(8, buildButton(Text.of("Shuffle Seats"), (i, c, a, g) -> {
-                // Implement shuffle logic here
+                gui.seatManager.shuffle();
+                gui.reopen();
             }));
         }
     }

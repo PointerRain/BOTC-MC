@@ -82,17 +82,7 @@ public class SeatMenuLayer extends Layer {
             }));
         }
 
-        elements.add(buildButton(Text.of("Add seat"), (i, c, a, g) -> {
-            gui.seatManager.setPlayerCount(gui.seatManager.getSeatCount() + 1);
-            gui.reopen(seat);
-        }));
-        elements.add(buildButton(Text.of("Remove seat"), (i, c, a, g) -> {
-            gui.seatManager.setPlayerCount(gui.seatManager.getSeatCount() - 1);
-            gui.reopen(seat);
-        }));
-        elements.add(buildButton(Text.of("Resize Grimoire"), (i, c, a, g) -> {
-            new ResizeGrimGUI(gui.getPlayer(), gui.seatManager).open();
-        }));
+        elements.add(buildButton(Text.of("Edit Grimoire"), (i, c, a, g) -> gui.editGrimoire()));
 
         for (GuiElement element : elements) {
             this.addSlot(element);
@@ -105,12 +95,3 @@ public class SeatMenuLayer extends Layer {
         return new GuiElement(itemButton, callback);
     }
 }
-
-// Buttons
-// Change character
-// Change alignment
-// Add / Remove reminders
-// Kill / Revive
-// Remove dead vote
-// Start nomination
-// Empty seat
