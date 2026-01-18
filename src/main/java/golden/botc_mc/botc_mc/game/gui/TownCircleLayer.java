@@ -45,39 +45,34 @@ public class TownCircleLayer extends Layer {
                 }
             };
 
-            if (layout == GrimoireGUI.LayoutStyle.SINGLE_COLUMN) {
-                this.setSlot(9 * n, headItem, headCallback);
-                this.setSlot(9 * n + 1, tokenItem, tokenCallback);
-                for (int i = 0; i < reminderItems.size(); i++) {
-                    this.setSlot(9 * n + 2 + i, reminderItems.get(i));
-                }
-            }
-            if (layout == GrimoireGUI.LayoutStyle.SINGLE_ROW) {
-                this.setSlot(n, headItem, headCallback);
-                this.setSlot(n + 9, tokenItem, tokenCallback);
-                for (int i = 0; i < reminderItems.size(); i++) {
-                    this.setSlot(n + 18 + 9 * i, reminderItems.get(i));
-                }
-            }
-            if (layout == GrimoireGUI.LayoutStyle.TWO_COLUMNS) {
-                int perColumn = gui.seatManager.getSeatCount() / 2 + gui.seatManager.getSeatCount() % 2;
-                this.setSlot(n < perColumn ? 9 * n + 8 : 9 * ((gui.getHeight() - 5) - n % perColumn),
-                        headItem, headCallback);
-                this.setSlot(n < perColumn ? 9 * n + 7 : 9 * ((gui.getHeight() - 5) - n % perColumn) + 1,
-                        tokenItem, tokenCallback);
-                for (int i = 0; i < reminderItems.size(); i++) {
-                    this.setSlot(n < perColumn ? 9 * n + 6 - i : 9 * ((gui.getHeight() - 5) - n % perColumn) + 2 + i,
-                            reminderItems.get(i));
-                }
-            }
-            if (layout == GrimoireGUI.LayoutStyle.TWO_ROWS) {
-                int perRow = gui.seatManager.getSeatCount() / 2 + gui.seatManager.getSeatCount() % 2;
-                this.setSlot(n < perRow ? n     : 6 * 9 - (n % perRow) - 1, headItem, headCallback);
-                this.setSlot(n < perRow ? n + 9 : 5 * 9 - (n % perRow) - 1, tokenItem, tokenCallback);
-                if (!reminderItems.isEmpty()) {
-                    this.setSlot(n < perRow ? n + 18 : 4 * 9 - (n % perRow) - 1, reminderItems.getFirst());
-                }
+            this.setSlot(getIndexForLayout(layout, n, 0, seatCount), headItem, headCallback);
+            this.setSlot(getIndexForLayout(layout, n, 1, seatCount), tokenItem, tokenCallback);
+            for (int i = 0; i < reminderItems.size(); i++) {
+                this.setSlot(getIndexForLayout(layout, n, 2 + i, seatCount), reminderItems.get(i));
             }
         }
+    }
+
+    /**
+     * Calculate the slot index for a given layout style, seat number, and item index.
+     * @param layout The layout style to use.
+     * @param seatNumber The seat number (0-indexed).
+     * @param i The item index for the seat (0=head, 1=token, 2+=reminders).
+     * @param seatCount The total number of seats.
+     * @return The calculated slot index.
+     */
+    private int getIndexForLayout(GrimoireGUI.LayoutStyle layout, int seatNumber, int i, int seatCount) {
+        int perColumn = seatCount / 2 + seatCount % 2;
+        return switch (layout) {
+            case UNKNOWN -> 0;
+            case SINGLE_COLUMN -> 9 * seatNumber + i;
+            case SINGLE_ROW -> seatNumber + 9 * i;
+            case TWO_COLUMNS -> seatNumber < perColumn ?
+                    9 * seatNumber + 8 - i :
+                    9 * (this.getHeight() - 5 - seatNumber % perColumn) + i;
+            case TWO_ROWS -> seatNumber < perColumn ?
+                    seatNumber + i * 9 :
+                    (6 - i) * 9 - seatNumber % perColumn - 1;
+        };
     }
 }
