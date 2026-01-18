@@ -12,10 +12,22 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
 
+/**
+ * Selection GUI for player characters.
+ */
 public class PlayerCharacterSelectGUI extends AbstractSelectionGUI<botcCharacter> {
     private final boolean seeTravellers;
     protected final Script script;
 
+    /**
+     * Constructor for PlayerCharacterSelectGUI.
+     * @param player The player for whom the GUI is being created.
+     * @param script The game script containing character information.
+     * @param onSelectCharacter A function to call when a character is selected.
+     * @param onCancel A runnable to call when the selection is cancelled.
+     * @param seeTravellers Whether to include Traveller characters in the selection.
+     * @param page The current page number (0-indexed).
+     */
     public PlayerCharacterSelectGUI(ServerPlayerEntity player, Script script,
                                     Function<botcCharacter, ?> onSelectCharacter, Runnable onCancel,
                                     boolean seeTravellers, int page) {
@@ -44,6 +56,12 @@ public class PlayerCharacterSelectGUI extends AbstractSelectionGUI<botcCharacter
         }
     }
 
+    /**
+     * Get a list of player roles based on the provided teams.
+     * @param script The game script containing character information.
+     * @param teams The collection of teams to filter characters by.
+     * @return A list of player characters.
+     */
     protected static List<botcCharacter> getRoles(Script script, Collection<Team> teams) {
         List<botcCharacter> roles = new ArrayList<>();
         roles.add(botcCharacter.EMPTY);

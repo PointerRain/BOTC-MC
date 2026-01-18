@@ -10,6 +10,10 @@ import net.minecraft.item.ItemStack;
 
 import java.util.List;
 
+/**
+ * Popout layer showing details for a player or storyteller seat.
+ * Includes head, token, and reminders (for player seats).
+ */
 public class SeatPopoutLayer extends Layer {
     public SeatPopoutLayer(GrimoireGUI gui, PlayerSeat seat, int seatNumber) {
         super(1, Math.min(9, 2 + seat.getReminders().size()));
@@ -17,8 +21,7 @@ public class SeatPopoutLayer extends Layer {
         ItemStack headItem = PlayerHeadItemStack.of(seat, seatNumber);
         ItemStack tokenItem = TokenItemStack.of(seat);
 
-        GuiElementInterface.ClickCallback tokenCallback = (i, c, a, g) ->
-                gui.selectCharacter(seat);
+        GuiElementInterface.ClickCallback tokenCallback = (i, c, a, g) -> gui.selectCharacter(seat);
 
         List<GuiElement> reminderItems = gui.getReminderItems(seat, seat.getReminders(), 16);
         botc.LOGGER.info("Showing popout for player seat {} with {} reminders.", seatNumber, reminderItems.size());

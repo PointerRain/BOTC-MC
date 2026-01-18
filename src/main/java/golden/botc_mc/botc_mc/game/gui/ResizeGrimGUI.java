@@ -13,6 +13,9 @@ import net.minecraft.text.Text;
 
 import static golden.botc_mc.botc_mc.game.gui.SeatMenuLayer.buildButton;
 
+/**
+ * GUI for resizing and managing the player seats in the Grimoire.
+ */
 public class ResizeGrimGUI extends LayeredGui {
     botcSeatManager seatManager;
     LayerView resizePopoutLayer;
@@ -28,6 +31,12 @@ public class ResizeGrimGUI extends LayeredGui {
         this.addLayer(new ResizeMenuLayer(this), 0, this.getHeight() - 1);
     }
 
+    /**
+     * Show the resize popout layer for a specific seat.
+     * Includes options to add, remove, and move seats.
+     * @param seat The player seat to manage.
+     * @param seatNumber The number of the seat.
+     */
     private void showResizePopout(PlayerSeat seat, int seatNumber) {
         if (this.resizePopoutLayer != null) {
             this.removeLayer(this.resizePopoutLayer);
@@ -35,17 +44,28 @@ public class ResizeGrimGUI extends LayeredGui {
         this.resizePopoutLayer = this.addLayer(new ResizePopoutLayer(this, seat, seatNumber), 2, this.getHeight() - 3);
     }
 
+    /**
+     * Reopen the GUI to reflect any changes made.
+     * @return The new instance of ResizeGrimGUI.
+     */
     private ResizeGrimGUI reopen() {
         ResizeGrimGUI newGui = new ResizeGrimGUI(this.getPlayer(), this.seatManager);
         newGui.open();
         return newGui;
     }
 
+    /**
+     * Reopen the GUI and show the resize popout for a specific seat.
+     * @param seat The player seat to manage.
+     */
     private void reopen(PlayerSeat seat) {
         ResizeGrimGUI newGui = this.reopen();
         newGui.showResizePopout(seat, this.seatManager.getSeatNumber(seat));
     }
 
+    /**
+     * Layer displaying the current player seats for resizing.
+     */
     private static class ResizeTownLayer extends Layer {
         public ResizeTownLayer(ResizeGrimGUI gui) {
             super(3, 9);
@@ -65,6 +85,9 @@ public class ResizeGrimGUI extends LayeredGui {
         }
     }
 
+    /**
+     * Layer for managing a specific seat (add, remove, move).
+     */
     private static class ResizePopoutLayer extends Layer {
         public ResizePopoutLayer(ResizeGrimGUI gui, PlayerSeat seat, int seatNumber) {
             super(2, 5);
@@ -102,6 +125,12 @@ public class ResizeGrimGUI extends LayeredGui {
         }
     }
 
+    /**
+     * Layer containing general resize options (add/remove/shuffle seats).
+     * Shown at the bottom of the GUI.
+     * Seats are added to the end when added from here.
+     * Seats are removed in a smart order to minimise disruption.
+     */
     private static class ResizeMenuLayer extends Layer {
         public ResizeMenuLayer(ResizeGrimGUI gui) {
             super(1, 9);

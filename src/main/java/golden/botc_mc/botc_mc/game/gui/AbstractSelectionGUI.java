@@ -13,10 +13,18 @@ import java.util.function.Function;
 
 public abstract class AbstractSelectionGUI<T> extends SimpleGui {
     protected static final int ITEMS_PER_PAGE = 5 * 9;
-    protected List<T> items;
+    protected final List<T> items;
     protected final Function<T, ?> onSelectItem;
     protected final Runnable onCancel;
 
+    /**
+     * Constructor for AbstractSelectionGUI.
+     * @param player The player for whom the GUI is being created.
+     * @param items The list of items to display for selection.
+     * @param onSelectItem A function to call when an item is selected.
+     * @param onCancel A runnable to call when the selection is cancelled.
+     * @param page The current page number (0-indexed).
+     */
     public AbstractSelectionGUI(ServerPlayerEntity player, List<T> items,
                                 Function<T, ?> onSelectItem,
                                 Runnable onCancel,
@@ -32,15 +40,13 @@ public abstract class AbstractSelectionGUI<T> extends SimpleGui {
 
         // Add all items for this page
         for (T item : getPage(page)) {
-            GuiElementInterface.ClickCallback itemCallback =
-                    (i, c, a, g) -> itemSelectCallback(item);
+            GuiElementInterface.ClickCallback itemCallback = (i, c, a, g) -> itemSelectCallback(item);
             this.addSlot(getItemStack(item), itemCallback);
         }
 
         // Pagination buttons
         if (page > 0) {
-            GuiElementInterface.ClickCallback prevPageCallback =
-                    (i, c, a, g) -> newInstance(player, page - 1).open();
+            GuiElementInterface.ClickCallback prevPageCallback = (i, c, a, g) -> newInstance(player, page - 1).open();
             this.setSlot(9 * this.getHeight() - 9, SeatMenuLayer.buildButton(Text.of("Previous Page"),
                     prevPageCallback));
         }
@@ -88,12 +94,27 @@ public abstract class AbstractSelectionGUI<T> extends SimpleGui {
         return this.items.subList(start, end);
     }
 
+    /**
+     * Callback function when an item is selected.
+     * @param item The selected item.
+     */
     protected void itemSelectCallback(T item) {
         this.onSelectItem.apply(item);
         this.close();
     }
 
+    /**
+     * Create a new instance of the selection GUI for pagination.
+     * @param player The player for whom the GUI is being created.
+     * @param page The page number (0-indexed).
+     * @return A new instance of AbstractSelectionGUI for the specified page.
+     */
     protected abstract AbstractSelectionGUI<T> newInstance(ServerPlayerEntity player, int page);
 
+    /**
+     * Get the ItemStack representation of the item.
+     * @param item The item to convert.
+     * @return The ItemStack representing the item.
+     */
     protected abstract ItemStack getItemStack(T item);
 }

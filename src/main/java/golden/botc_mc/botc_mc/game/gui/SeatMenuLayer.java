@@ -12,8 +12,24 @@ import net.minecraft.text.Text;
 
 import java.util.ArrayList;
 
+/**
+ * Menu layer for actions on player and storyteller seats.
+ */
 public class SeatMenuLayer extends Layer {
 
+    /**
+     * Constructor for SeatMenuLayer for PlayerSeat.
+     * Buttons:
+     * - Close Menu
+     * - Add Reminder
+     * - Kill Player / Revive Player
+     * - Remove Dead Vote (if dead)
+     * - Start Nomination
+     * - Empty Seat (if occupied)
+     * - Promote to Storyteller (if occupied)
+     * @param gui The GrimoireGUI instance.
+     * @param seat The PlayerSeat to manage.
+     */
     public SeatMenuLayer(GrimoireGUI gui, PlayerSeat seat) {
         super(1, 9);
 
@@ -54,6 +70,16 @@ public class SeatMenuLayer extends Layer {
         }
     }
 
+    /**
+     * Constructor for SeatMenuLayer for StorytellerSeat.
+     * Buttons:
+     * - Close Menu
+     * - Kill Player / Revive Player
+     * - Step Up / Step Down
+     * - Edit Grimoire
+     * @param gui The GrimoireGUI instance.
+     * @param seat The StorytellerSeat to manage.
+     */
     public SeatMenuLayer(GrimoireGUI gui, StorytellerSeat seat) {
         super(1, 9);
 
@@ -89,9 +115,29 @@ public class SeatMenuLayer extends Layer {
         }
     }
 
+    /**
+     * Build a simple button GuiElement with a paper icon and custom name and click callback.
+     * TODO: Replace paper icon with custom button icons.
+     * @param name The display name of the button.
+     * @param callback The click callback for the button.
+     * @return The constructed GuiElement button.
+     */
     public static GuiElement buildButton(Text name, GuiElement.ClickCallback callback) {
         ItemStack itemButton = new ItemStack(Items.PAPER);
         itemButton.set(DataComponentTypes.CUSTOM_NAME, name);
         return new GuiElement(itemButton, callback);
     }
+
+    // Button icons
+    // Add       +
+    // Delete    bin
+    // Left      <
+    // Right     >
+    // Close     X
+    // Shuffle   ><
+    // Up        ^
+    // Down      v
+    // Edit      ✎
+    // Kill      skull
+    // Revive    skull
 }

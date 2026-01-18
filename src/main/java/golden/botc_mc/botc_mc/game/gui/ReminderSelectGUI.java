@@ -16,12 +16,25 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.function.Function;
 
+/**
+ * Selection GUI for reminder tokens.
+ */
 public class ReminderSelectGUI extends AbstractSelectionGUI<botcCharacter.ReminderToken> {
 
     private final Script script;
     private final botcSeatManager seatManager;
     private final boolean seeAll;
 
+    /**
+     * Constructor for ReminderSelectGUI.
+     * @param player The player for whom the GUI is being created.
+     * @param script The game script containing character information.
+     * @param seatManager The seat manager managing NPC assignments.
+     * @param onSelectItem A function to call when a reminder token is selected.
+     * @param onCancel A runnable to call when the selection is cancelled.
+     * @param seeAll Whether to include all reminder tokens or only those in play.
+     * @param page The current page number (0-indexed).
+     */
     public ReminderSelectGUI(ServerPlayerEntity player, Script script, botcSeatManager seatManager,
                              Function<botcCharacter.ReminderToken, ?> onSelectItem, Runnable onCancel,
                              boolean seeAll, int page) {
@@ -47,6 +60,13 @@ public class ReminderSelectGUI extends AbstractSelectionGUI<botcCharacter.Remind
         }
     }
 
+    /**
+     * Get a list of reminder tokens based on whether to see all or only those in play.
+     * @param script The game script containing character information.
+     * @param seatManager The seat manager managing NPC assignments.
+     * @param seeAll Whether to include all reminder tokens or only those in play.
+     * @return A list of reminder tokens.
+     */
     private static List<botcCharacter.ReminderToken> getReminderTokens(Script script, botcSeatManager seatManager, boolean seeAll) {
         LinkedHashSet<botcCharacter.ReminderToken> tokens = new LinkedHashSet<>();
         if (!seeAll) {
@@ -56,6 +76,7 @@ public class ReminderSelectGUI extends AbstractSelectionGUI<botcCharacter.Remind
                     tokens.addAll(character.reminderTokens());
                 }
             }
+            // TODO: Include storyteller seats
         } else {
             for (botcCharacter character : script.characters()) {
                 tokens.addAll(character.reminderTokens());
@@ -70,6 +91,10 @@ public class ReminderSelectGUI extends AbstractSelectionGUI<botcCharacter.Remind
         return tokens.stream().toList();
     }
 
+    /**
+     * Open a box for entering a custom reminder token.
+     * @param player The player for whom to open the custom token box.
+     */
     void customTokenBox(ServerPlayerEntity player) {
         CustomTokenBox box = new CustomTokenBox(player, this.onSelectItem);
         box.open();
@@ -86,9 +111,17 @@ public class ReminderSelectGUI extends AbstractSelectionGUI<botcCharacter.Remind
         return TokenItemStack.of(item);
     }
 
+    /**
+     * Custom sign GUI for entering a custom reminder token.
+     */
     static class CustomTokenBox extends SignGui {
         private final Function<? super botcCharacter.ReminderToken, ?> onEnterReminder;
 
+        /**
+         * Constructor for CustomTokenBox.
+         * @param player The player for whom the custom token box is being created.
+         * @param onEnterReminder A function to call when a custom reminder is entered.
+         */
         public CustomTokenBox(ServerPlayerEntity player,
                               Function<? super botcCharacter.ReminderToken, ?> onEnterReminder) {
             super(player);

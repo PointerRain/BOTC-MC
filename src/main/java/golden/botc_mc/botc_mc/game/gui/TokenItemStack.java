@@ -14,8 +14,18 @@ import net.minecraft.util.Formatting;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Utility class for creating token ItemStacks for characters and seats.
+ */
 public record TokenItemStack(ItemStack tokenItem) {
 
+    /**
+     * Create a token ItemStack for the given character.
+     * The token's appearance and lore are based on the character's team and ability.
+     * {@code of(Seat)} is preferred when creating tokens for seats, as it sets the name and alignment appropriately.
+     * @param character The character for whom to create the token.
+     * @return An ItemStack representing the character's token.
+     */
     public static ItemStack of(botcCharacter character) {
         ItemStack tokenItem = new ItemStack(
                 character.team() == null ? Items.FLOW_POTTERY_SHERD :
@@ -29,6 +39,7 @@ public record TokenItemStack(ItemStack tokenItem) {
                     case Team.LORIC -> Items.PLENTY_POTTERY_SHERD;
                 }
         );
+//        tokenItem = new ItemStack(Items.PAPER);
         MutableText nameText = (MutableText) character.toFormattedText(false);
         nameText.styled(style -> style.withBold(true).withItalic(false));
         tokenItem.set(DataComponentTypes.CUSTOM_NAME, nameText);
@@ -45,12 +56,24 @@ public record TokenItemStack(ItemStack tokenItem) {
         return tokenItem;
     }
 
+    /**
+     * Create a token ItemStack for the given seat.
+     * The token's name is set according to the seat's character text.
+     * @param seat The seat for whom to create the token.
+     * @return An ItemStack representing the seat's token.
+     */
     public static ItemStack of(Seat seat) {
         ItemStack tokenItem = of(seat.getCharacter());
         tokenItem.set(DataComponentTypes.CUSTOM_NAME, seat.getCharacterText());
         return tokenItem;
     }
 
+    /**
+     * Create a token ItemStack for the given reminder token.
+     * The token's name and lore are set according to the reminder text and associated character.
+     * @param token The reminder token for whom to create the ItemStack.
+     * @return An ItemStack representing the reminder token.
+     */
     public static ItemStack of(botcCharacter.ReminderToken token) {
         ItemStack tokenItem = new ItemStack(Items.PAPER);
         MutableText reminderText = (MutableText) Text.of(token.reminder().replace('\n', ' '));

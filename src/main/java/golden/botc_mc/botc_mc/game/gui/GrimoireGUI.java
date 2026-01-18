@@ -25,13 +25,22 @@ import net.minecraft.util.Formatting;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * The main GUI for Storytellers. All storyteller interactions are done through this GUI.
+ */
 public class GrimoireGUI extends LayeredGui {
     protected final botcSeatManager seatManager;
     protected final Script script;
-    private LayerView playerPopoutView = null;
-    private LayerView playerMenuView = null;
+    private LayerView playerPopoutView;
+    private LayerView playerMenuView;
     private LayerView storytellerView;
 
+    /**
+     * Constructor for GrimoireGUI.
+     * @param player      The player for whom the GUI is being created.
+     * @param seatManager The seat manager containing player and storyteller seats.
+     * @param script      The game script containing characters and other game data.
+     */
     public GrimoireGUI(ServerPlayerEntity player, botcSeatManager seatManager, Script script) {
         super(getScreenSize(seatManager), player, true);
         this.setTitle(Text.of("Grimoire"));
@@ -45,7 +54,12 @@ public class GrimoireGUI extends LayeredGui {
         this.storytellerView = this.addLayer(new StorytellerLayer(this), 0, this.getHeight() - 4);
     }
 
-    static ScreenHandlerType<GenericContainerScreenHandler> getScreenSizeOfRows(int rows) {
+    /**
+     * Determines the appropriate screen size based on the number of rows.
+     * @param rows The number of rows needed.
+     * @return The corresponding ScreenHandlerType for the given number of rows.
+     */
+    public static ScreenHandlerType<GenericContainerScreenHandler> getScreenSizeOfRows(int rows) {
         return switch (rows) {
             case 1 -> ScreenHandlerType.GENERIC_9X1;
             case 2 -> ScreenHandlerType.GENERIC_9X2;
@@ -56,6 +70,11 @@ public class GrimoireGUI extends LayeredGui {
         };
     }
 
+    /**
+     * Determines the appropriate screen size based on the seat manager's seat count and layout style.
+     * @param seatManager The seat manager containing player and storyteller seats.
+     * @return The corresponding ScreenHandlerType for the given seat configuration.
+     */
     static ScreenHandlerType<?> getScreenSize(botcSeatManager seatManager) {
         LayoutStyle layout = LayoutStyle.getLayoutType(seatManager.getSeatCount());
         if (layout == LayoutStyle.SINGLE_COLUMN) {
@@ -75,6 +94,10 @@ public class GrimoireGUI extends LayeredGui {
         return ScreenHandlerType.GENERIC_9X6;
     }
 
+    /**
+     * Reopens the GrimoireGUI for the same player, seat manager, and script.
+     * @return The newly opened GrimoireGUI instance.
+     */
     public GrimoireGUI reopen() {
         GrimoireGUI newGui = new GrimoireGUI(this.getPlayer(), this.seatManager, this.script);
         newGui.open();
@@ -82,27 +105,44 @@ public class GrimoireGUI extends LayeredGui {
         return newGui;
     }
 
+    /**
+     * Reopens the GrimoireGUI and shows the player popout for the specified player seat.
+     * @param seat The player seat for which to show the popout.
+     */
     public void reopen(PlayerSeat seat) {
         GrimoireGUI newGui = this.reopen();
-        newGui.showPlayerPopout(seat);
+        newGui.showSeatPopout(seat);
     }
 
+    /**
+     * Reopens the GrimoireGUI and shows the player popout for the specified storyteller seat.
+     * @param seat The storyteller seat for which to show the popout.
+     */
     public void reopen(StorytellerSeat seat) {
         GrimoireGUI newGui = this.reopen();
-        newGui.showPlayerPopout(seat);
+        newGui.showSeatPopout(seat);
     }
 
-    public void showPlayerPopout(PlayerSeat seat) {
+    /**
+     * Shows the player popout for the specified player seat.
+     * @param seat The player seat for which to show the popout.
+     */
+    public void showSeatPopout(PlayerSeat seat) {
         clearInventorySection();
         int offset = (7 - Math.min(seat.getReminders().size(), 7)) / 2;
         int seatNumber = seatManager.getSeatNumber(seat);
         botc.LOGGER.info("Showing popout for seat {} at offset {}.", seatNumber, offset);
-        this.playerPopoutView = this.addLayer(new SeatPopoutLayer(this, seat, seatNumber), offset, this.getHeight() - 3);
+        this.playerPopoutView = this.addLayer(new SeatPopoutLayer(this, seat, seatNumber), offset,
+                this.getHeight() - 3);
         this.playerMenuView = this.addLayer(new SeatMenuLayer(this, seat), 0, this.getHeight() - 1);
         this.markDirty();
     }
 
-    public void showPlayerPopout(StorytellerSeat seat) {
+    /**
+     * Shows the player popout for the specified storyteller seat.
+     * @param seat The storyteller seat for which to show the popout.
+     */
+    public void showSeatPopout(StorytellerSeat seat) {
         clearInventorySection();
         botc.LOGGER.info("Showing menu for storyteller seat.");
         this.playerPopoutView = this.addLayer(new SeatPopoutLayer(this, seat), 3, this.getHeight() - 3);
@@ -113,7 +153,7 @@ public class GrimoireGUI extends LayeredGui {
     /**
      * Clears the inventory section layers (popout and menu) if they exist.
      */
-    void clearInventorySection() {
+    private void clearInventorySection() {
         if (this.playerPopoutView != null) {
             this.removeLayer(this.playerPopoutView);
             this.playerPopoutView = null;
@@ -128,6 +168,10 @@ public class GrimoireGUI extends LayeredGui {
         }
     }
 
+    /**
+     * Opens the character selection GUI for the specified player seat.
+     * @param seat The player seat for which to select a character.
+     */
     public void selectCharacter(PlayerSeat seat) {
         PlayerCharacterSelectGUI gui = new PlayerCharacterSelectGUI(this.getPlayer(), script, (c) -> {
             seat.setCharacter(c);
@@ -137,6 +181,10 @@ public class GrimoireGUI extends LayeredGui {
         gui.open();
     }
 
+    /**
+     * Opens the character selection GUI for the specified storyteller seat.
+     * @param seat The storyteller seat for which to select a character.
+     */
     public void selectCharacter(StorytellerSeat seat) {
         PlayerCharacterSelectGUI gui = new PlayerCharacterSelectGUI(this.getPlayer(), script, (c) -> {
             seat.setCharacter(c);
@@ -146,6 +194,13 @@ public class GrimoireGUI extends LayeredGui {
         gui.open();
     }
 
+    /**
+     * Generates GUI elements for the reminder tokens of a player seat.
+     * @param seat         The player seat whose reminders are being displayed.
+     * @param reminders    The list of reminder tokens to display.
+     * @param maxReminders The maximum number of reminders to display before adding a "See All" item.
+     * @return A list of GUI elements representing the reminder tokens.
+     */
     public List<GuiElement> getReminderItems(PlayerSeat seat, List<botcCharacter.ReminderToken> reminders,
                                              int maxReminders) {
         List<GuiElement> elements = new ArrayList<>();
@@ -172,21 +227,35 @@ public class GrimoireGUI extends LayeredGui {
             }
             LoreComponent loreComponent = new LoreComponent(allRemindersText);
             moreItem.set(DataComponentTypes.LORE, loreComponent);
-            GuiElementInterface.ClickCallback moreCallback = (i, c, a, g) -> showPlayerPopout(seat);
+            GuiElementInterface.ClickCallback moreCallback = (i, c, a, g) -> showSeatPopout(seat);
             GuiElement moreElement = new GuiElement(moreItem, moreCallback);
             elements.add(moreElement);
         }
         return elements;
     }
 
-    private GuiElementInterface.ClickCallback reminderClickCallback(PlayerSeat seat, List<botcCharacter.ReminderToken> reminders, int n) {
+    /**
+     * Creates a click callback for a reminder token item.
+     * If the item is shift-right-clicked, it removes the reminder.
+     * If the item is right-clicked and is a custom reminder, it opens the editing GUI.
+     * Otherwise, it shows the player seat popout.
+     * @param seat      The player seat associated with the reminder.
+     * @param reminders The list of reminder tokens.
+     * @param n         The index of the reminder token.
+     * @return A ClickCallback that handles interactions with the reminder token item.
+     */
+    private GuiElementInterface.ClickCallback reminderClickCallback(PlayerSeat seat,
+                                                                    List<botcCharacter.ReminderToken> reminders,
+                                                                    int n) {
         return (i, c, a, g) -> {
+            // Remove reminder
             if (c == ClickType.MOUSE_RIGHT_SHIFT) {
                 seat.removeReminder(n);
                 this.reopen(seat);
-            } else if (c == ClickType.MOUSE_RIGHT && reminders.get(n).character() == botcCharacter.EMPTY) {
                 // Edit reminder
-                ReminderSelectGUI.CustomTokenBox box = new ReminderSelectGUI.CustomTokenBox(this.getPlayer(), (token) -> {
+            } else if (c == ClickType.MOUSE_RIGHT && reminders.get(n).character() == botcCharacter.EMPTY) {
+                ReminderSelectGUI.CustomTokenBox box = new ReminderSelectGUI.CustomTokenBox(this.getPlayer(),
+                        (token) -> {
                     seat.removeReminder(n);
                     seat.addReminderToken(token);
                     this.reopen(seat);
@@ -198,11 +267,15 @@ public class GrimoireGUI extends LayeredGui {
                 }
                 box.open();
             } else {
-                showPlayerPopout(seat);
+                showSeatPopout(seat);
             }
         };
     }
 
+    /**
+     * Opens the reminder selection GUI to add a reminder token to the specified player seat.
+     * @param seat The player seat to which the reminder token will be added.
+     */
     public void addReminder(PlayerSeat seat) {
         ReminderSelectGUI gui = new ReminderSelectGUI(this.getPlayer(), script, seatManager, (token) -> {
             seat.addReminderToken(token);
@@ -212,21 +285,35 @@ public class GrimoireGUI extends LayeredGui {
         gui.open();
     }
 
+    /**
+     * Opens the NPC character selection GUI to add an NPC to the seat manager.
+     */
     public void addNPC() {
         NPCCharacterSelectGUI gui = new NPCCharacterSelectGUI(this.getPlayer(), script, seatManager,
                 (c) -> {
-            seatManager.addNPC(c);
-            this.reopen();
-            return null;
-        }, this::reopen, 0);
+                    seatManager.addNPC(c);
+                    this.reopen();
+                    return null;
+                }, this::reopen, 0);
         gui.open();
     }
 
+    /**
+     * Opens the grimoire resizing GUI to edit the layout of the grimoire.
+     */
     public void editGrimoire() {
         ResizeGrimGUI gui = new ResizeGrimGUI(this.getPlayer(), this.seatManager);
         gui.open();
     }
 
+    /**
+     * Enum representing different layout styles for the grimoire GUI.
+     * The layout style is determined based on the number of seats.
+     * SINGLE_COLUMN: Up to 6 seats.
+     * SINGLE_ROW: Up to 9 seats.
+     * TWO_COLUMNS: Up to 12 seats.
+     * TWO_ROWS: Up to 18 seats.
+     */
     public enum LayoutStyle {
         UNKNOWN,
         SINGLE_COLUMN,
@@ -234,6 +321,11 @@ public class GrimoireGUI extends LayeredGui {
         TWO_COLUMNS,
         TWO_ROWS;
 
+        /**
+         * Determines the layout style based on the number of seats.
+         * @param seatCount The number of seats in the game.
+         * @return The corresponding LayoutStyle.
+         */
         static LayoutStyle getLayoutType(int seatCount) {
             if (seatCount <= 6) return SINGLE_COLUMN;
             if (seatCount <= 9) return SINGLE_ROW;
@@ -242,6 +334,12 @@ public class GrimoireGUI extends LayeredGui {
             return UNKNOWN;
         }
 
+        /**
+         * Determines the maximum number of reminders to display based on the layout style.
+         * This is limited by available space in the GUI.
+         * @param layoutStyle The layout style of the grimoire GUI.
+         * @return The maximum number of reminders that can be displayed.
+         */
         static int getMaxReminders(LayoutStyle layoutStyle) {
             return switch (layoutStyle) {
                 case SINGLE_COLUMN -> 7;

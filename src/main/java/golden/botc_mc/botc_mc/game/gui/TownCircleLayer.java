@@ -10,14 +10,19 @@ import net.minecraft.item.ItemStack;
 
 import java.util.List;
 
-
+/**
+ * Layer for displaying player seats in the Grimoire GUI.
+ * Arranges seats based on the selected layout style to maximise number of visible reminders.
+ * @see GrimoireGUI.LayoutStyle
+ */
 public class TownCircleLayer extends Layer {
     public TownCircleLayer(GrimoireGUI gui, GrimoireGUI.LayoutStyle layout) {
         super(gui.getHeight(), gui.getWidth());
 
+        int seatCount = gui.seatManager.getSeatCount();
         int maxReminders = GrimoireGUI.LayoutStyle.getMaxReminders(layout);
 
-        for (int n = 0; n < gui.seatManager.getSeatCount(); n++) {
+        for (int n = 0; n < seatCount; n++) {
             PlayerSeat seat = gui.seatManager.getSeatFromNumber(n+1);
 
             ItemStack headItem = PlayerHeadItemStack.of(seat, n + 1);
@@ -29,7 +34,7 @@ public class TownCircleLayer extends Layer {
                     if (seat.isAlive()) seat.kill();
                     else seat.revive();
                 }
-                gui.showPlayerPopout(seat);
+                gui.showSeatPopout(seat);
             };
             GuiElementInterface.ClickCallback tokenCallback = (i, c, a, g) -> {
                 switch (c) {
@@ -38,10 +43,8 @@ public class TownCircleLayer extends Layer {
                         seat.toggleAlignment();
                         gui.reopen(seat);
                     }
-                    case MOUSE_RIGHT_SHIFT -> {
-                        seat.setCharacter(botcCharacter.EMPTY);
-                    }
-                    default -> gui.showPlayerPopout(seat);
+                    case MOUSE_RIGHT_SHIFT -> seat.setCharacter(botcCharacter.EMPTY);
+                    default -> gui.showSeatPopout(seat);
                 }
             };
 

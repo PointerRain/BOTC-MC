@@ -8,12 +8,16 @@ import eu.pb4.sgui.api.elements.GuiElementInterface;
 import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
 
+/**
+ * Layer displaying storyteller seats and NPC tokens in the Grimoire GUI.
+ */
 public class StorytellerLayer extends Layer {
     public StorytellerLayer(GrimoireGUI gui) {
         super(3, 9);
 
         GrimoireGUI.LayoutStyle layout = gui.seatManager.getStorytellers().size() <= 3 ? GrimoireGUI.LayoutStyle.SINGLE_COLUMN : GrimoireGUI.LayoutStyle.SINGLE_ROW;
 
+        // Storyteller seats
         for (int n = 0; n < gui.seatManager.getStorytellers().size(); n++) {
             StorytellerSeat seat = gui.seatManager.getStorytellers().get(n);
             ItemStack headItem = PlayerHeadItemStack.of(seat);
@@ -23,7 +27,7 @@ public class StorytellerLayer extends Layer {
                 if (c == ClickType.MOUSE_LEFT_SHIFT) {
                     gui.editGrimoire();
                 }
-                gui.showPlayerPopout(seat);
+                gui.showSeatPopout(seat);
             };
             GuiElementInterface.ClickCallback tokenCallback = (i, c, a, g) ->
                 gui.selectCharacter(seat);
@@ -38,6 +42,7 @@ public class StorytellerLayer extends Layer {
             }
         }
 
+        // NPC tokens
         int perRow = layout == GrimoireGUI.LayoutStyle.SINGLE_COLUMN ? 7 : 9 - gui.seatManager.getStorytellers().size();
         if (gui.seatManager.getNPCs().size() > 5) {
             perRow = (int) Math.min(perRow, Math.ceil((double) (gui.seatManager.getNPCs().size() + 1) / 3));
