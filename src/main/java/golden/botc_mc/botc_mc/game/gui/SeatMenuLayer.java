@@ -46,9 +46,17 @@ public class SeatMenuLayer extends Layer {
                 seat.revive();
                 gui.reopen(seat);
             }));
-            elements.add(buildButton(Text.of("Remove Dead Vote"), (i, c, a, g) -> {
-                // Implement removing dead vote logic here
-            }));
+            if (seat.canGhostVote()) {
+                elements.add(buildButton(Text.of("Remove Dead Vote"), (i, c, a, g) -> {
+                    seat.removeGhostVote();
+                    gui.reopen(seat);
+                }));
+            } else {
+                elements.add(buildButton(Text.of("Restore Dead Vote"), (i, c, a, g) -> {
+                    seat.restoreGhostVote();
+                    gui.reopen(seat);
+                }));
+            }
         }
         elements.add(buildButton(Text.of("Start Nomination"), (i, c, a, g) -> {
             // Implement start nomination logic here

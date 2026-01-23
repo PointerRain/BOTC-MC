@@ -11,6 +11,7 @@ import java.util.List;
 public class PlayerSeat extends Seat {
 
     Team.Alignment alignment = Team.Alignment.NEUTRAL;
+    int ghostVotes = 0;
 
     final List<botcCharacter.ReminderToken> reminders = new ArrayList<>();
 
@@ -32,6 +33,40 @@ public class PlayerSeat extends Seat {
 
     public Team.Alignment getAlignment() {
         return this.alignment;
+    }
+
+    @Override
+    public boolean kill() {
+        boolean result = super.kill();
+        if (result) {
+            restoreGhostVote();
+        }
+        return result;
+    }
+
+    /**
+     * Checks if the player seat has a ghost vote available.
+     * @return True if there is at least one ghost vote, false otherwise.
+     */
+    public boolean canGhostVote() {
+        return this.ghostVotes > 0;
+    }
+
+    /**
+     * Restores the ghost vote to 1 for the player seat.
+     * If the player already has a ghost vote, this will set it to 1 regardless.
+     */
+    public void restoreGhostVote() {
+        this.ghostVotes = 1;
+    }
+
+    /**
+     * Removes a ghost vote from the player seat if available.
+     */
+    public void removeGhostVote() {
+        if (this.ghostVotes > 0) {
+            this.ghostVotes--;
+        }
     }
 
     /**
@@ -97,14 +132,6 @@ public class PlayerSeat extends Seat {
     public void addReminderToken(botcCharacter.ReminderToken token) {
         this.reminders.add(token);
     }
-
-//    public boolean hasReminder(String reminder) {
-//        return this.reminders.contains(reminder);
-//    }
-
-//    public void removeReminder(String reminder) {
-//        this.reminders.remove(reminder);
-//    }
 
     public botcCharacter.ReminderToken removeReminder(int index) {
         if (index >= 0 && index < this.reminders.size()) {
