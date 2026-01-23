@@ -35,7 +35,7 @@ public abstract class AbstractSelectionGUI<T> extends SimpleGui {
                                 Runnable onCancel,
                                 int page) {
         super(getScreenSize(items), player, false);
-        this.setTitle(Text.of("Select an Item"));
+        this.setTitle(Text.translatable("gui.botc-mc.selection"));
 
         this.items = items;
         this.onSelectItem = onSelectItem;
@@ -52,13 +52,13 @@ public abstract class AbstractSelectionGUI<T> extends SimpleGui {
         // Pagination buttons
         if (page > 0) {
             GuiElementInterface.ClickCallback prevPageCallback = (i, c, a, g) -> newInstance(player, page - 1).open();
-            this.setSlot(9 * this.getHeight() - 9, SeatMenuLayer.buildButton(Text.of("Previous Page"),
+            this.setSlot(9 * this.getHeight() - 9, SeatMenuLayer.buildButton(Text.translatable("book.page_button.previous"),
                     prevPageCallback));
         }
         if (page < pages - 1) {
             GuiElementInterface.ClickCallback nextPageCallback =
                     (i, c, a, g) -> newInstance(player, page + 1).open();
-            this.setSlot(9 * this.getHeight() - 1, SeatMenuLayer.buildButton(Text.of("Next Page"), nextPageCallback));
+            this.setSlot(9 * this.getHeight() - 1, SeatMenuLayer.buildButton(Text.translatable("book.page_button.next"), nextPageCallback));
         }
 
         // Cancel button
@@ -67,7 +67,7 @@ public abstract class AbstractSelectionGUI<T> extends SimpleGui {
                 this.onCancel.run();
             } else this.close();
         };
-        this.setSlot(9 * this.getHeight() - 2, SeatMenuLayer.buildButton(Text.of("Cancel"),
+        this.setSlot(9 * this.getHeight() - 2, SeatMenuLayer.buildButton(Text.translatable("gui.cancel"),
                 cancelCallback));
     }
 

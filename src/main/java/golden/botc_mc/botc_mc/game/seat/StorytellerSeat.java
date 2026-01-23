@@ -15,7 +15,7 @@ public class StorytellerSeat extends Seat {
 
     public Text getCharacterText() {
         MutableText text = (MutableText) ((character == null || character == botcCharacter.EMPTY) ?
-                Text.of("Storyteller") : character.toFormattedText(false));
+                Text.translatable("character.botc-mc.storyteller") : character.toFormattedText(false));
         text.styled(style -> style.withFormatting(getColour(false)).withBold(true).withItalic(false));
         return text;
     }

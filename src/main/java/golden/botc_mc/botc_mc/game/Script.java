@@ -341,10 +341,10 @@ public record Script(Meta meta, List<botcCharacter> characters) {
         public MutableText jinxStar() {
             MutableText jinxText = Text.empty();
             jinxText.append(new botcCharacter(this.id()).toFormattedText(false));
-            jinxText.append(Text.literal("\n"));
+            jinxText.append(Text.of("\n"));
             jinxText.append(Text.literal(this.reason()).setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)));
             HoverEvent hover = new HoverEvent.ShowText(jinxText);
-            return Text.literal("*")
+            return Text.translatable("book.botc-mc.jinx_star")
                             .styled(style -> style
                                     .withColor(Team.FABLED.getColour(false))
                                     .withBold(false).withUnderline(false)

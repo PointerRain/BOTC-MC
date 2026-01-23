@@ -32,7 +32,7 @@ public class NPCCharacterSelectGUI extends AbstractSelectionGUI<botcCharacter> {
     public NPCCharacterSelectGUI(ServerPlayerEntity player, Script script, botcSeatManager seatManager,
                                 Function<botcCharacter, ?> onSelectCharacter, Runnable onCancel, int page) {
         super(player, getRoles(script, seatManager, List.of(Team.FABLED, Team.LORIC)), onSelectCharacter, onCancel, page);
-        this.setTitle(Text.of("Select Character"));
+        this.setTitle(Text.translatable("gui.botc-mc.selection.character"));
 
         this.script = script;
         this.seatManager = seatManager;

@@ -1,0 +1,66 @@
+{
+  "gameType.botc-mc.botc-mc": "Blood On The Clocktower",
+
+  "team.botc-mc.townsfolk": "Townsfolk",
+  "team.botc-mc.outsider": "Outsider",
+  "team.botc-mc.minion": "Minion",
+  "team.botc-mc.demon": "Demon",
+  "team.botc-mc.traveller": "Traveller",
+  "team.botc-mc.fabled": "Fabled",
+  "team.botc-mc.loric": "Loric",
+  "team.botc-mc.alignment.good": "Good",
+  "team.botc-mc.alignment.evil": "Evil",
+  "team.botc-mc.alignment.npc": "NPC",
+  "team.botc-mc.alignment.neutral": "Neutral",
+  "character.botc-mc.empty": "Empty",
+  "character.botc-mc.unknown": "Unknown",
+  "character.botc-mc.no_ability": "No Ability",
+  "character.botc-mc.storyteller": "Storyteller",
+
+  "book.botc-mc.bootlegger": "Bootlegger",
+  "book.botc-mc.jinxes": "Jinxes",
+  "book.botc-mc.jinx_star": "*",
+  "book.botc-mc.player_count": "Player Count",
+  "book.botc-mc.night_order.first": "First Night Order",
+  "book.botc-mc.night_order.other": "Other Nights Order",
+
+  "book.botc-mc.script.no_title": "Script",
+
+  "gui.botc-mc.grimoire.title": "Grimoire",
+  "gui.botc-mc.see_all": "See All",
+
+  "gui.botc-mc.selection": "Select an Item",
+  "gui.botc-mc.selection.character": "Select Character",
+  "gui.botc-mc.selection.character.non_travellers": "See All",
+  "gui.botc-mc.selection.character.travellers": "Travellers",
+  "gui.botc-mc.selection.reminder": "Select Reminder",
+  "gui.botc-mc.selection.reminder.see_all": "See All",
+  "gui.botc-mc.selection.reminder.in_play": "See in Play",
+  "gui.botc-mc.reminder.custom": "Custom note",
+
+  "gui.botc-mc.seat.unoccupied": "(Unoccupied)",
+  "gui.botc-mc.seat.occupied": "(Occupied)",
+
+  "gui.botc-mc.add_reminder": "Add Reminder",
+  "gui.botc-mc.kill": "Kill",
+  "gui.botc-mc.revive": "Revive",
+  "gui.botc-mc.remove_ghost_vote": "Remove Ghost Vote",
+  "gui.botc-mc.return_ghost_vote": "Return Ghost Vote",
+  "gui.botc-mc.empty_seat": "Empty Seat",
+  "gui.botc-mc.promote": "Promote to Storyteller",
+  "gui.botc-mc.step_up": "Step Up",
+  "gui.botc-mc.step_down": "Step Down",
+  "gui.botc-mc.edit_grim": "Edit Grimoire",
+  "gui.botc-mc.add_npc": "Add NPC",
+  "gui.botc-mc.start_nomination": "Start Nomination",
+
+  "gui.botc-mc.seats.add_before": "Add Before",
+  "gui.botc-mc.seats.add_after": "Add After",
+  "gui.botc-mc.seats.move_left": "Move Left",
+  "gui.botc-mc.seats.move_right": "Move Right",
+  "gui.botc-mc.seats.remove": "Remove Seat",
+  "gui.botc-mc.seats.add": "Add Seat",
+  "gui.botc-mc.seats.shuffle": "Shuffle Seats",
+
+  "gui.botc-mc.unseated_warning": "You do not have a seat assigned!"
+}

@@ -39,7 +39,7 @@ public class ReminderSelectGUI extends AbstractSelectionGUI<botcCharacter.Remind
                              Function<botcCharacter.ReminderToken, ?> onSelectItem, Runnable onCancel,
                              boolean seeAll, int page) {
         super(player, getReminderTokens(script, seatManager, seeAll), onSelectItem, onCancel, page);
-        this.setTitle(Text.of("Select Reminder"));
+        this.setTitle(Text.translatable("gui.botc-mc.selection.reminder"));
 
         this.script = script;
         this.seatManager = seatManager;
@@ -52,10 +52,10 @@ public class ReminderSelectGUI extends AbstractSelectionGUI<botcCharacter.Remind
 
         // Toggle see all/in play button
         if (!seeAll) {
-            this.setSlot(9 * this.getHeight() - 5, SeatMenuLayer.buildButton(Text.of("See All"),
+            this.setSlot(9 * this.getHeight() - 5, SeatMenuLayer.buildButton(Text.translatable("gui.botc-mc.selection.reminder.see_all"),
                     (i, c, a, g) -> new ReminderSelectGUI(player, script, seatManager, onSelectItem, onCancel, true, 0).open()));
         } else {
-            this.setSlot(9 * this.getHeight() - 5, SeatMenuLayer.buildButton(Text.of("See In Play"),
+            this.setSlot(9 * this.getHeight() - 5, SeatMenuLayer.buildButton(Text.translatable("gui.botc-mc.selection.reminder.in_play"),
                     (i, c, a, g) -> new ReminderSelectGUI(player, script, seatManager, onSelectItem, onCancel, false, 0).open()));
         }
     }

@@ -168,7 +168,7 @@ public class ScriptBookGenerator {
         List<Text> pageContent = new ArrayList<>();
         pageContent.add(script.toFormattedText().styled(style -> style.withBold(true).withUnderline(true)));
         if (script.meta().author() != null && !script.meta().author().isEmpty()) {
-            MutableText authorText = Text.literal("By ").append(script.meta().author());
+            MutableText authorText = Text.translatable("book.byAuthor", script.meta().author());
             authorText.styled(style -> style.withBold(true));
             pageContent.add(authorText);
         }
@@ -270,7 +270,7 @@ public class ScriptBookGenerator {
                 MutableText nameLine = (MutableText) character.toFormattedText(true);
                 nameLine.styled(style -> style.withBold(true).withUnderline(true));
                 nameLine.append(generateJinxStars(character));
-                Text abilityLine = Text.literal(character.ability() != null ? character.ability() : "No ability.");
+                Text abilityLine = character.ability() != null ? Text.of(character.ability()) : Text.translatable("character.botc-mc.no_ability");
 
                 item.append(nameLine);
                 item.append("\n");
@@ -287,7 +287,7 @@ public class ScriptBookGenerator {
         if (script.meta().bootlegger() == null || script.meta().bootlegger().isEmpty()) {
             return;
         }
-        Text header = Text.literal("Bootlegger")
+        Text header = Text.translatable("book.botc-mc.bootlegger")
                 .styled(style -> style.withColor(Team.LORIC.getColour(true)).withBold(true).withUnderline(true));
         List<Text> pageContent = new ArrayList<>();
         for (String rule : script.meta().bootlegger()) {
@@ -302,7 +302,7 @@ public class ScriptBookGenerator {
         if (jinxes.isEmpty()) {
             return;
         }
-        Text header = Text.literal("Jinxes").styled(style -> style.withColor(Team.FABLED.getColour(true))
+        Text header = Text.translatable("book.botc-mc.jinxes").styled(style -> style.withColor(Team.FABLED.getColour(true))
                 .withBold(true).withUnderline(true));
 
         Map<String, Text> pageContent = new LinkedHashMap<>();
@@ -337,13 +337,8 @@ public class ScriptBookGenerator {
         if (nightOrder.isEmpty()) {
             return;
         }
-        Text header = Text.literal(
-            switch (night) {
-                case "first" -> "First Night Order";
-                case "other" -> "Other Night Order";
-                default -> "Night Order";
-            }
-        ).styled(style -> style.withBold(true).withUnderline(true));
+        Text header = Text.translatable("book.botc-mc.night_order." + night)
+                .styled(style -> style.withBold(true).withUnderline(true));
 
         List<Text> pageContent = new ArrayList<>();
         for (int i = 0; i < nightOrder.size(); i++) {
@@ -353,7 +348,7 @@ public class ScriptBookGenerator {
             if (i < 9) {
                 item.append(" ");
             }
-            item.append(Text.literal((i + 1) + ": "));
+            item.append(Text.of((i + 1) + ": "));
             MutableText text = nightAction.toFormattedText().styled(style -> style.withHoverEvent(hover));
             if (bookmarks.containsKey(nightAction.id)) {
                 ClickEvent click = new ClickEvent.ChangePage(bookmarks.get(nightAction.id));
@@ -366,7 +361,7 @@ public class ScriptBookGenerator {
     }
 
     private void addPlayerCountPage() {
-        Text header = Text.literal("Player Counts").styled(style -> style.withBold(true).withUnderline(true));
+        Text header = Text.translatable("book.botc-mc.player_count").styled(style -> style.withBold(true).withUnderline(true));
 
         HashMap<Integer, int[]> counts = new HashMap<>();
         counts.put(5, new int[]{3, 0, 1, 1});
@@ -391,13 +386,13 @@ public class ScriptBookGenerator {
             int[] roles = counts.get(n);
             MutableText item = Text.empty()
                 .append(n < 10 ? " " : "")
-                .append(Text.literal(n + ": "))
+                .append(Text.of(n + ": "))
                 .append(Text.literal(String.valueOf(roles[0])).styled(style -> style.withColor(Team.TOWNSFOLK.getColour(false))))
-                .append(Text.literal(", "))
+                .append(Text.of(", "))
                 .append(Text.literal(String.valueOf(roles[1])).styled(style -> style.withColor(Team.OUTSIDER.getColour(false))))
-                .append(Text.literal(", "))
+                .append(Text.of(", "))
                 .append(Text.literal(String.valueOf(roles[2])).styled(style -> style.withColor(Team.MINION.getColour(false))))
-                .append(Text.literal(", "))
+                .append(Text.of(", "))
                 .append(Text.literal(String.valueOf(roles[3])).styled(style -> style.withColor(Team.DEMON.getColour(false))));
 
             pageContent.add(item);

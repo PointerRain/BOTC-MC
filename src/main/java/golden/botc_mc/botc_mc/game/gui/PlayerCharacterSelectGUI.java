@@ -38,21 +38,19 @@ public class PlayerCharacterSelectGUI extends AbstractSelectionGUI<botcCharacter
                 Team.MINION,
                 Team.DEMON
         ) : List.of(Team.TRAVELLER), seeTravellers), onSelectCharacter, onCancel, page);
-        this.setTitle(Text.of("Select Character"));
+        this.setTitle(Text.translatable("gui.botc-mc.selection.character"));
 
         this.script = script;
         this.seeTravellers = seeTravellers;
 
         if (seeTravellers) {
-            this.setSlot(9 * this.getHeight() - 5, SeatMenuLayer.buildButton(Text.of("All Characters"),
-                    (i, c, a, g) ->
-                            new PlayerCharacterSelectGUI(player, script, onSelectCharacter, onCancel,
-                                    false, 0).open()));
+            this.setSlot(9 * this.getHeight() - 5, SeatMenuLayer.buildButton(Text.translatable("gui.botc-mc.selection.character.non_travellers"),
+                    (i, c, a, g) -> new PlayerCharacterSelectGUI(player, script, onSelectCharacter, onCancel,
+                                                     false, 0).open()));
         } else {
-            this.setSlot(9 * this.getHeight() - 5, SeatMenuLayer.buildButton(Text.of("Travellers"),
-                    (i, c, a, g) ->
-                            new PlayerCharacterSelectGUI(player, script, onSelectCharacter, onCancel,
-                                    true, 0).open()));
+            this.setSlot(9 * this.getHeight() - 5, SeatMenuLayer.buildButton(Text.translatable("gui.botc-mc.selection.character.travellers"),
+                    (i, c, a, g) -> new PlayerCharacterSelectGUI(player, script, onSelectCharacter, onCancel,
+                                                     true, 0).open()));
         }
     }
 

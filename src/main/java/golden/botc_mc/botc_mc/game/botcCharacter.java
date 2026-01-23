@@ -188,7 +188,7 @@ public record botcCharacter(String id,
      * @return The character's name as MutableText.
      */
     public MutableText toText() {
-        return Text.literal(this.name);
+        return (MutableText) Text.of(this.name);
     }
 
     /**
