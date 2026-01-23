@@ -11,6 +11,11 @@ import net.minecraft.text.Text;
 import java.util.List;
 import java.util.function.Function;
 
+/**
+ * Abstract GUI for selecting an item from a list with pagination support.
+ * Handles displaying items, pagination buttons, and cancel button.
+ * @param <T> The type of items to select from.
+ */
 public abstract class AbstractSelectionGUI<T> extends SimpleGui {
     protected static final int ITEMS_PER_PAGE = 5 * 9;
     protected final List<T> items;

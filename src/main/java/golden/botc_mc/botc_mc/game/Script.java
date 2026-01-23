@@ -264,16 +264,15 @@ public record Script(Meta meta, List<botcCharacter> characters) {
     /**
      * Get all characters belonging to a specific team.
      * @param team The team to filter characters by.
+     * @param seeAll Whether to include all characters or only characters on the script.
      * @return A list of characters belonging to the specified team.
      */
-    public List<botcCharacter> getCharactersByTeam(Team team) {
+    public List<botcCharacter> getCharactersByTeam(Team team, boolean seeAll) {
         LinkedHashSet<botcCharacter> teamCharacters = new LinkedHashSet<>();
-        for (botcCharacter botcCharacter : characters) {
-            if (botcCharacter.team().equals(team)) {
-                teamCharacters.add(botcCharacter);
-            }
-        }
-        if (team.isNPC()) {
+        characters.stream()
+                .filter(c -> c.team().equals(team))
+                .forEach(teamCharacters::add);
+        if (seeAll) {
             for (botcCharacter botcCharacter : botcCharacter.baseCharacters) {
                 if (botcCharacter.team().equals(team)) {
                     teamCharacters.add(botcCharacter);

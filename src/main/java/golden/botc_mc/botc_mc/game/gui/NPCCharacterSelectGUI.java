@@ -48,7 +48,7 @@ public class NPCCharacterSelectGUI extends AbstractSelectionGUI<botcCharacter> {
     protected static List<botcCharacter> getRoles(Script script, botcSeatManager seatManager, Collection<Team> teams) {
         List<botcCharacter> roles = new ArrayList<>();
         for (Team team : teams) {
-            for (botcCharacter character : script.getCharactersByTeam(team)) {
+            for (botcCharacter character : script.getCharactersByTeam(team, true)) {
                 if (!seatManager.getNPCs().contains(character)) {
                     roles.add(character);
                 }

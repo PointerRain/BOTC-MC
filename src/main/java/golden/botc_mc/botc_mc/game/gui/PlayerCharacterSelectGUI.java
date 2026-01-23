@@ -37,7 +37,7 @@ public class PlayerCharacterSelectGUI extends AbstractSelectionGUI<botcCharacter
                 Team.OUTSIDER,
                 Team.MINION,
                 Team.DEMON
-        ) : List.of(Team.TRAVELLER)), onSelectCharacter, onCancel, page);
+        ) : List.of(Team.TRAVELLER), seeTravellers), onSelectCharacter, onCancel, page);
         this.setTitle(Text.of("Select Character"));
 
         this.script = script;
@@ -62,11 +62,11 @@ public class PlayerCharacterSelectGUI extends AbstractSelectionGUI<botcCharacter
      * @param teams The collection of teams to filter characters by.
      * @return A list of player characters.
      */
-    protected static List<botcCharacter> getRoles(Script script, Collection<Team> teams) {
+    protected static List<botcCharacter> getRoles(Script script, Collection<Team> teams, boolean seeAll) {
         List<botcCharacter> roles = new ArrayList<>();
         roles.add(botcCharacter.EMPTY);
         for (Team team : teams) {
-            roles.addAll(script.getCharactersByTeam(team));
+            roles.addAll(script.getCharactersByTeam(team, seeAll));
         }
         return roles;
     }

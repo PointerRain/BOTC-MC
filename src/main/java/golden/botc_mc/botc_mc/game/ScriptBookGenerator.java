@@ -179,7 +179,7 @@ public class ScriptBookGenerator {
         List<Text> pageContent = new ArrayList<>();
 
         for (Team team : teams) {
-            List<botcCharacter> characters = this.script.getCharactersByTeam(team);
+            List<botcCharacter> characters = this.script.getCharactersByTeam(team, false);
             MutableText header = team.toText();
             header.append(" - ");
             header.append(team.getDefaultAlignment().toText());
@@ -255,7 +255,7 @@ public class ScriptBookGenerator {
 
     private void addCharacterDetailPages() {
         for (Team team : Team.values()) {
-            List<botcCharacter> characters = this.script.getCharactersByTeam(team);
+            List<botcCharacter> characters = this.script.getCharactersByTeam(team, false);
             if (characters.isEmpty()) {
                 continue;
             }
