@@ -1,5 +1,6 @@
 package golden.botc_mc.botc_mc;
 
+import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import golden.botc_mc.botc_mc.game.botcCharacter;
 import golden.botc_mc.botc_mc.game.Script;
 import golden.botc_mc.botc_mc.game.botcActive;
@@ -168,6 +169,9 @@ public class botc implements ModInitializer {
                 LOGGER.warn("Deferred region materialization error: {}", t.toString());
             }
         });
+
+        // Register mod assets for resource pack serving
+        PolymerResourcePackUtils.addModAssets(ID);
     }
 
     private static volatile boolean PRELOADED = false;
