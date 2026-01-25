@@ -18,7 +18,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
- * Represents a botcCharacter in the BOTC game, with various attributes and behaviors.
+ * Represents a botcCharacter in the BOTC game, with various attributes and behaviours.
  */
 public record botcCharacter(String id,
                             String name,
@@ -34,25 +34,8 @@ public record botcCharacter(String id,
                             List<String> reminders,
                             List<String> remindersGlobal,
                             boolean setup,
-                            List<Script.Jinx> jinxes) {
-
-    public static final Codec<botcCharacter> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-            Codec.STRING.fieldOf("id").forGetter(botcCharacter::id),
-            Codec.STRING.fieldOf("name").forGetter(botcCharacter::name),
-            Team.CODEC.fieldOf("team").forGetter(botcCharacter::team),
-            Codec.STRING.fieldOf("ability").forGetter(botcCharacter::ability),
-            Codec.STRING.fieldOf("image").forGetter(botcCharacter::image),
-            Codec.STRING.fieldOf("edition").forGetter(botcCharacter::edition),
-            Codec.STRING.fieldOf("flavor").forGetter(botcCharacter::flavor),
-            Codec.INT.fieldOf("firstNight").forGetter(botcCharacter::firstNight),
-            Codec.STRING.fieldOf("firstNightReminder").forGetter(botcCharacter::firstNightReminder),
-            Codec.INT.fieldOf("otherNight").forGetter(botcCharacter::otherNight),
-            Codec.STRING.fieldOf("otherNightReminder").forGetter(botcCharacter::otherNightReminder),
-            Codec.STRING.listOf().fieldOf("reminders").forGetter(botcCharacter::reminders),
-            Codec.STRING.listOf().fieldOf("remindersGlobal").forGetter(botcCharacter::remindersGlobal),
-            Codec.BOOL.fieldOf("setup").forGetter(botcCharacter::setup),
-            Script.Jinx.CODEC.listOf().fieldOf("jinxes").forGetter(botcCharacter::jinxes)
-    ).apply(instance, botcCharacter::new));
+                            List<Script.Jinx> jinxes,
+                            String token) {
 
     /**
      * The base botcCharacters loaded from the JSON resource.
@@ -84,7 +67,8 @@ public record botcCharacter(String id,
                 botcCharacter.reminders,
                 botcCharacter.remindersGlobal,
                 botcCharacter.setup,
-                botcCharacter.jinxes);
+                botcCharacter.jinxes,
+                botcCharacter.token);
     }
 
     public static botcCharacter EMPTY = new botcCharacter(
@@ -102,6 +86,7 @@ public record botcCharacter(String id,
             null,
             null,
             false,
+            null,
             null
     );
 
@@ -136,7 +121,8 @@ public record botcCharacter(String id,
                 botcCharacter.reminders() != null ? botcCharacter.reminders() : baseCharacter.reminders(),
                 botcCharacter.remindersGlobal() != null ? botcCharacter.remindersGlobal() : baseCharacter.remindersGlobal(),
                 botcCharacter.setup() || baseCharacter.setup(),
-                botcCharacter.jinxes != null ? botcCharacter.jinxes() : baseCharacter.jinxes());
+                botcCharacter.jinxes != null ? botcCharacter.jinxes() : baseCharacter.jinxes(),
+                botcCharacter.token() != null ? botcCharacter.token() : baseCharacter.token());
     }
 
     /**
@@ -154,7 +140,7 @@ public record botcCharacter(String id,
                 null, "", null, null, null,
                 0, null,
                 0, null, null, null,
-                false, null
+                false, null, null
         );
     }
 
@@ -192,8 +178,8 @@ public record botcCharacter(String id,
     }
 
     /**
-     * Convert the character's name to a formatted Text object based on team color.
-     * @param dark Whether to use dark mode colors.
+     * Convert the character's name to a formatted Text object based on team colour.
+     * @param dark Whether to use dark mode colours.
      * @return The character's name as formatted Text.
      */
     public Text toFormattedText(boolean dark) {
@@ -205,7 +191,7 @@ public record botcCharacter(String id,
 
     /**
      * Convert the character's name to a formatted Text object with hover text of the character's ability.
-     * @param dark Whether to use dark mode colors.
+     * @param dark Whether to use dark mode colours.
      * @return The character's name as formatted Text with hover text of the ability.
      */
     public Text toTextWithHoverAbility(boolean dark) {
