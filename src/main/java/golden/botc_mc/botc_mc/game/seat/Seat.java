@@ -115,7 +115,7 @@ public abstract class Seat {
     }
 
 
-    protected Formatting getColour(boolean dark) {
+    public Formatting getColour(boolean dark) {
         if (character != botcCharacter.EMPTY && character.team() != null) {
             return character.team().getColour(dark);
         }

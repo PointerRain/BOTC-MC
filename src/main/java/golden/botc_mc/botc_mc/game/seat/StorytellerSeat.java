@@ -9,7 +9,7 @@ import net.minecraft.util.Formatting;
 public class StorytellerSeat extends Seat {
 
     @Override
-    protected Formatting getColour(boolean dark) {
+    public Formatting getColour(boolean dark) {
         return Team.Alignment.NEUTRAL.getColour(dark);
     }
 

@@ -1,15 +1,18 @@
 package golden.botc_mc.botc_mc.game.gui;
 
+import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.Team;
 import golden.botc_mc.botc_mc.game.botcCharacter;
 import golden.botc_mc.botc_mc.game.seat.Seat;
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.CustomModelDataComponent;
 import net.minecraft.component.type.LoreComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +42,23 @@ public record TokenItemStack(ItemStack tokenItem) {
                     case Team.LORIC -> Items.PLENTY_POTTERY_SHERD;
                 }
         );
-//        tokenItem = new ItemStack(Items.PAPER);
+
+        if (character.token() != null) {
+            tokenItem.set(DataComponentTypes.ITEM_MODEL, Identifier.of(botc.ID, "tokens/" + character.token()));
+        } else {
+            tokenItem.set(DataComponentTypes.ITEM_MODEL, Identifier.of(botc.ID, "tokens/empty"));
+        }
+
+        if (character.team() != null && character.team().getColour(false) != null) {
+            Integer colourValue = character.team().getColour(false).getColorValue();
+            if (colourValue != null) {
+                CustomModelDataComponent customModelDataComponent = new CustomModelDataComponent(
+                    List.of(), List.of(), List.of(), List.of(colourValue)
+                );
+                tokenItem.set(DataComponentTypes.CUSTOM_MODEL_DATA, customModelDataComponent);
+            }
+        }
+
         MutableText nameText = (MutableText) character.toFormattedText(false);
         nameText.styled(style -> style.withBold(true).withItalic(false));
         tokenItem.set(DataComponentTypes.CUSTOM_NAME, nameText);
@@ -65,6 +84,15 @@ public record TokenItemStack(ItemStack tokenItem) {
     public static ItemStack of(Seat seat) {
         ItemStack tokenItem = of(seat.getCharacter());
         tokenItem.set(DataComponentTypes.CUSTOM_NAME, seat.getCharacterText());
+
+        Integer colourValue = seat.getColour(false).getColorValue();
+        if (colourValue != null) {
+            CustomModelDataComponent customModelDataComponent = new CustomModelDataComponent(
+                List.of(), List.of(), List.of(), List.of(colourValue)
+            );
+            tokenItem.set(DataComponentTypes.CUSTOM_MODEL_DATA, customModelDataComponent);
+        }
+
         return tokenItem;
     }
 
@@ -76,11 +104,25 @@ public record TokenItemStack(ItemStack tokenItem) {
      */
     public static ItemStack of(botcCharacter.ReminderToken token) {
         ItemStack tokenItem = new ItemStack(Items.PAPER);
+
+        if (token.character() == null || token.character() == botcCharacter.EMPTY || token.character().token() == null) {
+            tokenItem.set(DataComponentTypes.ITEM_MODEL, Identifier.of(botc.ID, "reminders/empty"));
+        } else {
+            tokenItem.set(DataComponentTypes.ITEM_MODEL, Identifier.of(botc.ID, "reminders/" + token.character().token()));
+            Integer colourValue = token.character().team().getColour(false).getColorValue();
+            if (colourValue != null) {
+                CustomModelDataComponent customModelDataComponent = new CustomModelDataComponent(
+                    List.of(), List.of(), List.of(), List.of(colourValue)
+                );
+                tokenItem.set(DataComponentTypes.CUSTOM_MODEL_DATA, customModelDataComponent);
+            }
+        }
+
         MutableText reminderText = (MutableText) Text.of(token.reminder().replace('\n', ' '));
         reminderText.styled(style -> style.withItalic(false));
         tokenItem.set(DataComponentTypes.CUSTOM_NAME, reminderText);
 
-        if (token.character() != botcCharacter.EMPTY) {
+        if (token.character() != botcCharacter.EMPTY && token.character() != null) {
             MutableText characterName = (MutableText) token.character().toFormattedText(false);
             characterName.styled(style -> style.withBold(false).withItalic(false));
             tokenItem.set(DataComponentTypes.LORE, new LoreComponent(List.of(characterName)));

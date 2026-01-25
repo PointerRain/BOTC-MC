@@ -149,7 +149,7 @@ public class PlayerSeat extends Seat {
     }
 
     @Override
-    protected Formatting getColour(boolean dark) {
+    public Formatting getColour(boolean dark) {
         // Return white if no character assigned
         if (character == botcCharacter.EMPTY) {
             return Formatting.WHITE;
