@@ -1,0 +1,16 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "botc-mc:item/tokens/prize",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 16777215
+      },
+      {
+        "type": "minecraft:custom_model_data",
+        "default": 16777215
+      }
+    ]
+  }
+}
