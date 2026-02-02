@@ -133,7 +133,7 @@ public abstract class Seat {
     }
 
     public Text getCharacterText() {
-        MutableText text = (MutableText) (character != null ? character.toFormattedText(false) : Text.of("Empty"));
+        MutableText text = (MutableText) (character != null ? character.toFormattedText(false, false, true, false) : Text.of("Empty"));
         text.styled(style -> style.withFormatting(getColour(false)).withBold(true).withItalic(false));
         return text;
     }

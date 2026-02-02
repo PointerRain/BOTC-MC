@@ -59,7 +59,7 @@ public record TokenItemStack(ItemStack tokenItem) {
             }
         }
 
-        MutableText nameText = (MutableText) character.toFormattedText(false);
+        MutableText nameText = (MutableText) character.toFormattedText(false, false, true, false);
         nameText.styled(style -> style.withBold(true).withItalic(false));
         tokenItem.set(DataComponentTypes.CUSTOM_NAME, nameText);
         if (character == botcCharacter.EMPTY) {
@@ -123,7 +123,7 @@ public record TokenItemStack(ItemStack tokenItem) {
         tokenItem.set(DataComponentTypes.CUSTOM_NAME, reminderText);
 
         if (token.character() != botcCharacter.EMPTY && token.character() != null) {
-            MutableText characterName = (MutableText) token.character().toFormattedText(false);
+            MutableText characterName = (MutableText) token.character().toFormattedText(false, false, true, false);
             characterName.styled(style -> style.withBold(false).withItalic(false));
             tokenItem.set(DataComponentTypes.LORE, new LoreComponent(List.of(characterName)));
         }

@@ -98,7 +98,6 @@ public class ScriptBookGenerator {
                 }
                 pageLength = sectionTitle != null ? countApproxLines(sectionTitle.getString()) : 0;
             }
-            botc.LOGGER.info("Adding item {} to page {}", item, pageCount);
             pageContent.add(item);
             bookmarks.put(key, pageCount + 1); // +1 because pages are 1-indexed
             pageLength += itemLines;
@@ -226,7 +225,7 @@ public class ScriptBookGenerator {
     }
 
     private MutableText generateNameLine(botcCharacter c) {
-        MutableText nameLine = (MutableText) c.toTextWithHoverAbility(false);
+        MutableText nameLine = (MutableText) c.toFormattedText(false, false, true, true);
         if (bookmarks.containsKey(c.id())) {
             ClickEvent click = new ClickEvent.ChangePage(bookmarks.get(c.id()));
             nameLine = nameLine.styled(style -> style.withClickEvent(click));
@@ -267,7 +266,7 @@ public class ScriptBookGenerator {
             Map<String, Text> items = new LinkedHashMap<>();
             for (botcCharacter character : characters) {
                 MutableText item = Text.empty();
-                MutableText nameLine = (MutableText) character.toFormattedText(true);
+                MutableText nameLine = (MutableText) character.toFormattedText(true, false, true, false);
                 nameLine.styled(style -> style.withBold(true).withUnderline(true));
                 nameLine.append(generateJinxStars(character));
                 Text abilityLine = character.ability() != null ? Text.of(character.ability()) : Text.translatable("character.botc-mc.no_ability");
@@ -310,12 +309,12 @@ public class ScriptBookGenerator {
             List<Script.Jinx> charJinxes = jinxes.get(primary);
             for (Script.Jinx jinx : charJinxes) {
                 botcCharacter secondary = new botcCharacter(jinx.id());
-                MutableText primaryText = (MutableText) primary.toTextWithHoverAbility(true);
+                MutableText primaryText = (MutableText) primary.toFormattedText(true, false, true, true);
                 if (bookmarks.containsKey(primary.id())) {
                     ClickEvent click = new ClickEvent.ChangePage(bookmarks.get(primary.id()));
                     primaryText = primaryText.styled(style -> style.withClickEvent(click));
                 }
-                MutableText secondaryText = (MutableText) secondary.toTextWithHoverAbility(true);
+                MutableText secondaryText = (MutableText) secondary.toFormattedText(true, false, true, true);
                 if (bookmarks.containsKey(secondary.id())) {
                     ClickEvent click = new ClickEvent.ChangePage(bookmarks.get(secondary.id()));
                     secondaryText = secondaryText.styled(style -> style.withClickEvent(click));

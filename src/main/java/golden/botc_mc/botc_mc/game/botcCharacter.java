@@ -1,8 +1,6 @@
 package golden.botc_mc.botc_mc.game;
 
 import com.google.gson.Gson;
-import com.mojang.serialization.Codec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
 import golden.botc_mc.botc_mc.botc;
 import net.minecraft.resource.Resource;
 import net.minecraft.text.HoverEvent;
@@ -179,26 +177,30 @@ public record botcCharacter(String id,
 
     /**
      * Convert the character's name to a formatted Text object based on team colour.
-     * @param dark Whether to use dark mode colours.
+     * @param dark             Whether to use dark mode colours.
+     * @param bold             Whether to use bold formatting.
+     * @param withIcon         Whether to include the character's icon.
+     * @param withHoverAbility Whether to include hover text of the character's ability.
      * @return The character's name as formatted Text.
      */
-    public Text toFormattedText(boolean dark) {
-        if (this.team == null) {
-            return this.toText();
+    public Text toFormattedText(boolean dark, boolean bold, boolean withIcon, boolean withHoverAbility) {
+        MutableText text = this.toText();
+        if (bold) {
+            text = text.formatted(Formatting.BOLD);
         }
-        return this.toText().formatted(this.team.getColour(dark));
-    }
-
-    /**
-     * Convert the character's name to a formatted Text object with hover text of the character's ability.
-     * @param dark Whether to use dark mode colours.
-     * @return The character's name as formatted Text with hover text of the ability.
-     */
-    public Text toTextWithHoverAbility(boolean dark) {
-        MutableText text = (MutableText) this.toFormattedText(dark);
-        if (this.ability != null && !this.ability.isEmpty()) {
+        if (withIcon) {
+            char iconChar = IconCharHelper.getIconChar(this);
+            if (iconChar != ' ') {
+                MutableText iconText = (MutableText) Text.of(String.valueOf(iconChar));
+                text = Text.empty().append(iconText).append(" ").append(text);
+            }
+        }
+        if (this.team != null) {
+            text = text.formatted(this.team.getColour(dark));
+        }
+        if (withHoverAbility && this.ability != null && !this.ability.isEmpty()) {
             MutableText abilityText = Text.empty();
-            abilityText.append(this.toFormattedText(false));
+            abilityText.append(this.toFormattedText(false, true, true, false));
             abilityText.append("\n");
             abilityText.append(Text.literal(this.ability).setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)));
             text.styled(style -> style.withHoverEvent(new HoverEvent.ShowText(abilityText)));
