@@ -19,7 +19,7 @@ void main() {
         discard;
     }
     if (color.a <= 0.15 && color.a > 0.14) {
-	color.a = 2 * color.a + 0.2;
+	    color.a = color.a + 0.5;
         float y = 0.299*color.r + 0.587*color.g + 0.114*color.b;
         color.r = y;
         color.g = y;

@@ -1,6 +1,11 @@
 package golden.botc_mc.botc_mc.game.seat;
 
 import golden.botc_mc.botc_mc.game.botcCharacter;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.scoreboard.ServerScoreboard;
+import net.minecraft.scoreboard.Team;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
@@ -15,13 +20,30 @@ public abstract class Seat {
     // Alive status. Not particularly meaningful for storyteller seats.
     boolean alive = true;
 
+    private static final String SCOREBOARD_TEAM = "botc-mc:game";
+
     /**
      * Sets the player entity associated with this seat.
      * @param playerEntity The ServerPlayerEntity to associate with this seat.
      */
     public void setPlayerEntity(ServerPlayerEntity playerEntity) {
         this.playerEntity = playerEntity;
-        // TODO: Add to the "botc_players" team on the server scoreboard.
+
+        // Add player to the "botc-mc:game" team on the server scoreboard.
+        MinecraftServer server = playerEntity.getServer();
+        assert server != null;
+        ServerScoreboard serverScoreboard = server.getScoreboard();
+        // Create the team if it doesn't exist
+        Team team = serverScoreboard.getTeam(SCOREBOARD_TEAM);
+        if (team == null) {
+            team = serverScoreboard.addTeam(SCOREBOARD_TEAM);
+        }
+        serverScoreboard.addScoreHolderToTeam(this.playerEntity.getGameProfile().getName(), team);
+
+        // If the seat is not alive, make the player invisible
+        if (!this.isAlive()) {
+            this.playerEntity.addStatusEffect(new StatusEffectInstance(StatusEffects.INVISIBILITY, -1));
+        }
     }
 
     /**
@@ -37,8 +59,21 @@ public abstract class Seat {
      * Does not affect the character or other seat properties.
      */
     public void removePlayerEntity() {
+        if (!hasPlayerEntity()) {
+            return;
+        }
+        // Remove the player from the "botc-mc:game" team
+        MinecraftServer server = this.playerEntity.getServer();
+        assert server != null;
+        ServerScoreboard serverScoreboard = server.getScoreboard();
+        Team team = serverScoreboard.getTeam(SCOREBOARD_TEAM);
+        if (team != null) {
+            serverScoreboard.removeScoreHolderFromTeam(this.playerEntity.getGameProfile().getName(), team);
+        }
+        // Clear their invisibility effect if they were invisible
+        this.playerEntity.removeStatusEffect(StatusEffects.INVISIBILITY);
+
         this.playerEntity = null;
-        // TODO: Remove any effects from the player if needed.
     }
 
     /**
@@ -95,11 +130,15 @@ public abstract class Seat {
      * @return True if the player was alive and is now killed, false if they were already dead.
      */
     public boolean kill() {
-        if (this.alive) {
-            this.alive = false;
-            return true;
+        if (!this.alive) {
+            return false;
         }
-        return false;
+
+        this.alive = false;
+        if (this.hasPlayerEntity()) {
+            this.playerEntity.addStatusEffect(new StatusEffectInstance(StatusEffects.INVISIBILITY, -1));
+        }
+        return true;
     }
 
     /**
@@ -107,11 +146,15 @@ public abstract class Seat {
      * @return True if the player was dead and is now revived, false if they were already alive.
      */
     public boolean revive() {
-        if (!this.alive) {
-            this.alive = true;
-            return true;
+        if (this.alive) {
+            return false;
         }
-        return false;
+
+        this.alive = true;
+        if (this.hasPlayerEntity()) {
+            this.playerEntity.removeStatusEffect(StatusEffects.INVISIBILITY);
+        }
+        return true;
     }
 
 
