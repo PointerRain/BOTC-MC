@@ -33,6 +33,7 @@ public class TownCircleLayer extends Layer {
                 if (c == ClickType.MOUSE_LEFT_SHIFT) {
                     if (seat.isAlive()) seat.kill();
                     else seat.revive();
+                    gui.reopen(seat);
                 }
                 gui.showSeatPopout(seat);
             };
