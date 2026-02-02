@@ -1,5 +1,6 @@
 package golden.botc_mc.botc_mc.game.gui;
 
+import com.mojang.authlib.properties.PropertyMap;
 import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.seat.PlayerSeat;
 import golden.botc_mc.botc_mc.game.seat.Seat;
@@ -12,12 +13,18 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Utility class for creating player head ItemStacks.
  * Can create heads for specific players or seats.
  */
 public class PlayerHeadItemStack {
+
+    // Set to true to assign default profiles to empty seats.
+    private static final boolean POPULATE_HEADS = true;
+
     /**
      * Create a player head ItemStack for the given player.
      * @param player The player whose head to create.
@@ -65,6 +72,12 @@ public class PlayerHeadItemStack {
     public static ItemStack of(Seat seat, int seatNumber) {
         ItemStack headItem = of(seat);
         headItem.setCount(seatNumber);
+        if (POPULATE_HEADS && !seat.hasPlayerEntity()) {
+            ProfileComponent profile = new ProfileComponent(Optional.empty(),
+                    Optional.of(new UUID(0, seatNumber)),
+                    new PropertyMap());
+            headItem.set(DataComponentTypes.PROFILE, profile);
+        }
         return headItem;
     }
 }
