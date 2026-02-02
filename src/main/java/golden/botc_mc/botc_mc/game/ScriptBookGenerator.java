@@ -266,8 +266,8 @@ public class ScriptBookGenerator {
             Map<String, Text> items = new LinkedHashMap<>();
             for (botcCharacter character : characters) {
                 MutableText item = Text.empty();
-                MutableText nameLine = (MutableText) character.toFormattedText(true, false, true, false);
-                nameLine.styled(style -> style.withBold(true).withUnderline(true));
+                MutableText nameLine = (MutableText) character.toFormattedText(true, true, true, false);
+                nameLine.styled(style -> style.withUnderline(true));
                 nameLine.append(generateJinxStars(character));
                 Text abilityLine = character.ability() != null ? Text.of(character.ability()) : Text.translatable("character.botc-mc.no_ability");
 
@@ -286,8 +286,8 @@ public class ScriptBookGenerator {
         if (script.meta().bootlegger() == null || script.meta().bootlegger().isEmpty()) {
             return;
         }
-        Text header = Text.translatable("book.botc-mc.bootlegger")
-                .styled(style -> style.withColor(Team.LORIC.getColour(true)).withBold(true).withUnderline(true));
+        MutableText header = (MutableText) new botcCharacter("bootlegger").toFormattedText(true, true, true, true);
+        header.styled(style -> style.withUnderline(true));
         List<Text> pageContent = new ArrayList<>();
         for (String rule : script.meta().bootlegger()) {
             pageContent.add(Text.of(rule));
@@ -309,12 +309,12 @@ public class ScriptBookGenerator {
             List<Script.Jinx> charJinxes = jinxes.get(primary);
             for (Script.Jinx jinx : charJinxes) {
                 botcCharacter secondary = new botcCharacter(jinx.id());
-                MutableText primaryText = (MutableText) primary.toFormattedText(true, false, true, true);
+                MutableText primaryText = (MutableText) primary.toFormattedText(true, true, true, true);
                 if (bookmarks.containsKey(primary.id())) {
                     ClickEvent click = new ClickEvent.ChangePage(bookmarks.get(primary.id()));
                     primaryText = primaryText.styled(style -> style.withClickEvent(click));
                 }
-                MutableText secondaryText = (MutableText) secondary.toFormattedText(true, false, true, true);
+                MutableText secondaryText = (MutableText) secondary.toFormattedText(true, true, true, true);
                 if (bookmarks.containsKey(secondary.id())) {
                     ClickEvent click = new ClickEvent.ChangePage(bookmarks.get(secondary.id()));
                     secondaryText = secondaryText.styled(style -> style.withClickEvent(click));
@@ -324,7 +324,6 @@ public class ScriptBookGenerator {
                     .append(" + ")
                     .append(secondaryText)
                     .append("\n");
-                item.styled(style -> style.withBold(true).withUnderline(false));
                 item.append(Text.literal(jinx.reason()).styled(style -> style.withBold(false)));
                 pageContent.put("jinx_" + primary.id() + "_" + secondary.id(), item);
             }

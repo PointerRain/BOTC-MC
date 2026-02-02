@@ -340,7 +340,7 @@ public record Script(Meta meta, List<botcCharacter> characters) {
          */
         public MutableText jinxStar() {
             MutableText jinxText = Text.empty();
-            jinxText.append(new botcCharacter(this.id()).toFormattedText(false));
+            jinxText.append(new botcCharacter(this.id()).toFormattedText(false, false, true, false));
             jinxText.append(Text.of("\n"));
             jinxText.append(Text.literal(this.reason()).setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)));
             HoverEvent hover = new HoverEvent.ShowText(jinxText);

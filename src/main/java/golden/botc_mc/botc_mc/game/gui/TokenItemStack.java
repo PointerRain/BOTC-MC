@@ -59,8 +59,8 @@ public record TokenItemStack(ItemStack tokenItem) {
             }
         }
 
-        MutableText nameText = (MutableText) character.toFormattedText(false, false, true, false);
-        nameText.styled(style -> style.withBold(true).withItalic(false));
+        MutableText nameText = (MutableText) character.toFormattedText(false, true, true, false);
+        nameText.styled(style -> style.withItalic(false));
         tokenItem.set(DataComponentTypes.CUSTOM_NAME, nameText);
         if (character == botcCharacter.EMPTY) {
             return tokenItem;
