@@ -3,7 +3,6 @@ package golden.botc_mc.botc_mc.game;
 import golden.botc_mc.botc_mc.botc;
 import net.minecraft.component.type.WrittenBookContentComponent;
 import net.minecraft.text.ClickEvent;
-import net.minecraft.text.HoverEvent;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.RawFilteredPair;
 import net.minecraft.text.Text;
@@ -331,7 +330,7 @@ public class ScriptBookGenerator {
         writeSection(header, pageContent);
     }
 
-    private void addNightOrderPages(String night, List<? extends Script.NightAction> nightOrder) {
+    private void addNightOrderPages(String night, List<? extends NightAction> nightOrder) {
         if (nightOrder.isEmpty()) {
             return;
         }
@@ -340,14 +339,13 @@ public class ScriptBookGenerator {
 
         List<Text> pageContent = new ArrayList<>();
         for (int i = 0; i < nightOrder.size(); i++) {
-            Script.NightAction nightAction = nightOrder.get(i);
-            HoverEvent hover = new HoverEvent.ShowText(Text.of(nightAction.reminder));
+            NightAction nightAction = nightOrder.get(i);
             MutableText item = Text.empty();
             if (i < 9) {
                 item.append(" ");
             }
             item.append(Text.of((i + 1) + ": "));
-            MutableText text = nightAction.toFormattedText().styled(style -> style.withHoverEvent(hover));
+            MutableText text = nightAction.toFormattedText(true, false, true, true);
             if (bookmarks.containsKey(nightAction.id)) {
                 ClickEvent click = new ClickEvent.ChangePage(bookmarks.get(nightAction.id));
                 text = text.styled(style -> style.withClickEvent(click));

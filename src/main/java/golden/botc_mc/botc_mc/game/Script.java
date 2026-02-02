@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 /**
  * Represents a script in the BOTC game, containing meta information and a list of characters.
@@ -349,106 +348,6 @@ public record Script(Meta meta, List<botcCharacter> characters) {
                                     .withColor(Team.FABLED.getColour(false))
                                     .withBold(false).withUnderline(false)
                                     .withHoverEvent(hover));
-        }
-    }
-
-    /**
-     * Represents a night action in the game.
-     * Contains information about the action's ID, name, reminder text, and colour provider.
-     */
-    public static class NightAction {
-        public static final NightAction DUSK = new NightAction("dusk", "Dusk", "Start the Night Phase.",
-                b -> Formatting.GRAY);
-        public static final NightAction DAWN = new NightAction("dawn", "Dawn", "The night ends.",
-                b -> Formatting.GRAY);
-        public static final NightAction MINIONINFO = new NightAction("minioninfo",
-                "Minion Info",
-                "If there are 7 or more players, wake all Minions: Show the THIS IS THE DEMON token. Point to the " +
-                        "Demon. Show the THESE ARE YOUR MINIONS token. Point to the other Minions.",
-                Team.MINION::getColour);
-        public static final NightAction DEMONINFO = new NightAction("demoninfo",
-                "Demon Info",
-                "If there are 7 or more players, wake the Demon: Show the THESE ARE YOUR MINIONS token. Point to all " +
-                        "Minions. Show the THESE CHARACTERS ARE NOT IN PLAY token. Show 3 not-in-play good botcCharacter " +
-                        "tokens.",
-                Team.DEMON::getColour);
-
-        final String id;
-        final String name;
-        final String reminder;
-        final Function<? super Boolean, Formatting> colourProvider;
-
-        public NightAction(String id, String name, String reminder, Function<? super Boolean, Formatting> colourProvider) {
-            this.id = id;
-            this.name = name;
-            this.reminder = reminder;
-            this.colourProvider = colourProvider;
-        }
-
-        // Construct NightAction from botcCharacter and reminder
-        public NightAction(botcCharacter botcCharacter, String reminder) {
-            this(botcCharacter.id(),
-                    botcCharacter.name(),
-                    reminder,
-                    botcCharacter.team() != null ? botcCharacter.team()::getColour : b -> Formatting.BLACK);
-        }
-
-        // Static factory methods for creating NightActions
-
-        // Creates a NightAction for the first night for a given botcCharacter
-        public static NightAction firstNightAction(botcCharacter botcCharacter) {
-            return new NightAction(botcCharacter, botcCharacter.firstNightReminder());
-        }
-
-        // Creates a NightAction for the first night for a given botcCharacter ID in a script
-        public static NightAction firstNightAction(Script script, String characterId) {
-            switch (characterId) {
-                case "dusk":
-                    return DUSK;
-                case "dawn":
-                    return DAWN;
-                case "minioninfo":
-                    return MINIONINFO;
-                case "demoninfo":
-                    return DEMONINFO;
-            }
-            botcCharacter botcCharacter = script.characters().stream()
-                    .filter(c -> c.id().equals(characterId))
-                    .findFirst().orElseThrow();
-            return new NightAction(botcCharacter, botcCharacter.firstNightReminder());
-        }
-
-        // Creates a NightAction for nights other than the first for a given botcCharacter
-        public static NightAction otherNightAction(botcCharacter botcCharacter) {
-            return new NightAction(botcCharacter, botcCharacter.otherNightReminder());
-        }
-
-        // Creates a NightAction for nights other than the first for a given botcCharacter ID in a script
-        public static NightAction otherNightAction(Script script, String characterId) {
-            switch (characterId) {
-                case "dusk":
-                    return DUSK;
-                case "dawn":
-                    return DAWN;
-            }
-            botcCharacter botcCharacter = script.characters().stream()
-                    .filter(c -> c.id().equals(characterId))
-                    .findFirst().orElseThrow();
-            return new NightAction(botcCharacter, botcCharacter.otherNightReminder());
-        }
-
-        /**
-         * Get the formatted text representation of the night action's name with appropriate colour.
-         * @return The formatted text of the night action's name.
-         */
-        public MutableText toFormattedText() {
-            MutableText text = (MutableText) Text.of(name);
-            return text.formatted(colourProvider.apply(false));
-        }
-
-        @Override
-        public String toString() {
-            return "NightAction[id='" + id + "', name='" + name + "', reminder='" + reminder + "']";
         }
     }
 }
