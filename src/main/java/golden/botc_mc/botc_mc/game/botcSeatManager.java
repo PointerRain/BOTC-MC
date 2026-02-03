@@ -40,7 +40,7 @@ public class botcSeatManager {
 
     /**
      * Sets the number of player seats.
-     * @param count Number of player seats to set (between 5 and 20).
+     * @param count Number of player seats to set.
      * @throws IllegalArgumentException if count is out of range.
      */
     public void setPlayerCount(int count) throws IllegalArgumentException {
