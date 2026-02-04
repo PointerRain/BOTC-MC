@@ -61,6 +61,7 @@ public class StorytellerLayer extends Layer {
         int n = gui.seatManager.getNPCs().size();
         GuiElementInterface.ClickCallback addNPCCallback = (i, c, a, g) -> gui.addNPC();
         this.setSlot(9 * (n / perRow) + 8 - (n % perRow),
-                     SeatMenuLayer.buildButton(Text.translatable("gui.botc-mc.add_npc"), addNPCCallback));
+                     ButtonBuilder.buildButton(
+                             Text.translatable("gui.botc-mc.add_npc"), ButtonIcon.ADD, addNPCCallback));
     }
 }
