@@ -172,13 +172,13 @@ public record Script(Meta meta, List<botcCharacter> characters) {
         ArrayList<NightAction> order = new ArrayList<>();
         if (meta.firstNight != null && !meta.firstNight.isEmpty()) {
             // Use predefined first night order from meta
-            meta.firstNight.forEach(s -> order.add(NightAction.firstNightAction(this, s)));
+            meta.firstNight.forEach(s -> order.add(NightAction.nightActionFromScript(this, s)));
         } else {
             // Sort characters by firstNight value
             characters.stream()
-                    .filter(c -> c.firstNight() > 0 && c.firstNightReminder() != null && !c.firstNightReminder().isEmpty())
+                    .filter(c -> c.firstNight() > 0)
                     .sorted(Comparator.comparingInt(botcCharacter::firstNight))
-                    .map(NightAction::firstNightAction)
+                    .map(NightAction::characterNightAction)
                     .forEach(order::add);
             if (!isTeensy) {
                 order.addFirst(NightAction.DEMONINFO);
@@ -207,13 +207,13 @@ public record Script(Meta meta, List<botcCharacter> characters) {
         List<NightAction> order = new ArrayList<>();
         if (meta.otherNight != null && !meta.otherNight.isEmpty()) {
             // Use predefined other night order from meta
-            meta.otherNight.forEach(s -> order.add(NightAction.otherNightAction(this, s)));
+            meta.otherNight.forEach(s -> order.add(NightAction.nightActionFromScript(this, s)));
         } else {
             // Sort characters by otherNight value
             characters.stream()
-                    .filter(c -> c.otherNight() > 0 && c.otherNightReminder() != null && !c.otherNightReminder().isEmpty())
+                    .filter(c -> c.otherNight() > 0)
                     .sorted(Comparator.comparingInt(botcCharacter::otherNight))
-                    .map(NightAction::otherNightAction)
+                    .map(NightAction::characterNightAction)
                     .forEach(order::add);
             order.addFirst(NightAction.DUSK);
             order.add(NightAction.DAWN);

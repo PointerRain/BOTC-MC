@@ -150,8 +150,8 @@ public class ScriptBookGenerator {
         addCharacterDetailPages();
         addBootleggerPages();
         addJinxesPages();
-        addNightOrderPages("first", script.firstNightOrder());
-        addNightOrderPages("other", script.otherNightOrder());
+        addNightOrderPages(NightType.FIRST, script.firstNightOrder());
+        addNightOrderPages(NightType.OTHER, script.otherNightOrder());
         addPlayerCountPage();
         return new WrittenBookContentComponent(
                 RawFilteredPair.of(script.meta().name()),
@@ -330,11 +330,11 @@ public class ScriptBookGenerator {
         writeSection(header, pageContent);
     }
 
-    private void addNightOrderPages(String night, List<? extends NightAction> nightOrder) {
+    private void addNightOrderPages(NightType night, List<? extends NightAction> nightOrder) {
         if (nightOrder.isEmpty()) {
             return;
         }
-        Text header = Text.translatable("book.botc-mc.night_order." + night)
+        Text header = Text.translatable("book.botc-mc.night_order." + night.toString())
                 .styled(style -> style.withBold(true).withUnderline(true));
 
         List<Text> pageContent = new ArrayList<>();
@@ -345,7 +345,7 @@ public class ScriptBookGenerator {
                 item.append(" ");
             }
             item.append(Text.of((i + 1) + ": "));
-            MutableText text = nightAction.toFormattedText(true, false, true, true);
+            MutableText text = nightAction.toFormattedText(true, false, true, true, night);
             if (bookmarks.containsKey(nightAction.id)) {
                 ClickEvent click = new ClickEvent.ChangePage(bookmarks.get(nightAction.id));
                 text = text.styled(style -> style.withClickEvent(click));

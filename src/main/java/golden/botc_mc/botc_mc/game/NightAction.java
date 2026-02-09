@@ -11,34 +11,52 @@ import net.minecraft.util.Formatting;
  * Contains information about the action's ID, name, reminder text, and colour provider.
  */
 public class NightAction {
-    public static final NightAction DUSK = new NightAction("dusk", "Dusk", "Start the Night Phase.");
-    public static final NightAction DAWN = new NightAction("dawn", "Dawn", "The night ends.");
-    public static final NightAction MINIONINFO = new NightAction("minioninfo",
-            "Minion Info",
-            "If there are 7 or more players, wake all Minions: Show the THIS IS THE DEMON token. Point to the " +
-                    "Demon. Show the THESE ARE YOUR MINIONS token. Point to the other Minions.");
-    public static final NightAction DEMONINFO = new NightAction("demoninfo",
-            "Demon Info",
-            "If there are 7 or more players, wake the Demon: Show the THESE ARE YOUR MINIONS token. Point to all " +
-                    "Minions. Show the THESE CHARACTERS ARE NOT IN PLAY token. Show 3 not-in-play good botcCharacter " +
-                    "tokens.");
+    public static final NightAction DUSK = new NightAction("dusk");
+    public static final NightAction DAWN = new NightAction("dawn");
+    public static final NightAction MINIONINFO = new NightAction("minioninfo");
+    public static final NightAction DEMONINFO = new NightAction("demoninfo");
 
     final String id;
-    final String name;
-    final String reminder;
 
-    public NightAction(String id, String name, String reminder) {
+    public NightAction(String id) {
         this.id = id;
-        this.name = name;
-        this.reminder = reminder;
+    }
+
+    public Text getName() {
+        return Text.translatable("character.botc-mc." + this.id + ".name");
+    }
+
+    public Text getNightReminder(NightType type) {
+        return Text.translatable("character.botc-mc." + this.id + "." + type.toString());
+    }
+
+    private Formatting getColour(boolean dark) {
+        return switch (this.id) {
+            case "minioninfo" -> Team.MINION.getColour(dark);
+            case "demoninfo" -> Team.DEMON.getColour(dark);
+            default -> dark ? Formatting.DARK_GRAY : Formatting.GRAY;
+        };
     }
 
     private static class CharacterNightAction extends NightAction {
         botcCharacter character;
 
-        public CharacterNightAction(botcCharacter character, String reminder) {
-            super(character.id(), character.name(), reminder);
+        public CharacterNightAction(botcCharacter character) {
+            super(character.id());
             this.character = character;
+        }
+
+        @Override
+        public Text getName() {
+            return character.toText();
+        }
+
+        @Override
+        public Text getNightReminder(NightType type) {
+            return switch (type) {
+                case FIRST -> character.firstNightReminderText();
+                case OTHER -> character.otherNightReminderText();
+            };
         }
 
         public Formatting getColour(boolean dark) {
@@ -49,12 +67,12 @@ public class NightAction {
     // Static factory methods for creating NightActions
 
     // Creates a NightAction for the first night for a given botcCharacter
-    public static NightAction firstNightAction(botcCharacter botcCharacter) {
-        return new CharacterNightAction(botcCharacter, botcCharacter.firstNightReminder());
+    public static NightAction characterNightAction(botcCharacter botcCharacter) {
+        return new CharacterNightAction(botcCharacter);
     }
 
     // Creates a NightAction for the first night for a given Character ID in a script, or special cases
-    public static NightAction firstNightAction(Script script, String characterId) {
+    public static NightAction nightActionFromScript(Script script, String characterId) {
         switch (characterId) {
             case "dusk":
                 return DUSK;
@@ -68,42 +86,15 @@ public class NightAction {
         botcCharacter botcCharacter = script.characters().stream()
                 .filter(c -> c.id().equals(characterId))
                 .findFirst().orElseThrow();
-        return new CharacterNightAction(botcCharacter, botcCharacter.firstNightReminder());
-    }
-
-    // Creates a NightAction for nights other than the first for a given botcCharacter
-    public static NightAction otherNightAction(botcCharacter botcCharacter) {
-        return new CharacterNightAction(botcCharacter, botcCharacter.otherNightReminder());
-    }
-
-    // Creates a NightAction for nights other than the first for a given botcCharacter ID in a script, or special cases
-    public static NightAction otherNightAction(Script script, String characterId) {
-        switch (characterId) {
-            case "dusk":
-                return DUSK;
-            case "dawn":
-                return DAWN;
-        }
-        botcCharacter botcCharacter = script.characters().stream()
-                .filter(c -> c.id().equals(characterId))
-                .findFirst().orElseThrow();
-        return new CharacterNightAction(botcCharacter, botcCharacter.otherNightReminder());
-    }
-
-    private Formatting getColour(boolean dark) {
-        return switch (this.id) {
-            case "minioninfo" -> Team.MINION.getColour(dark);
-            case "demoninfo" -> Team.DEMON.getColour(dark);
-            default -> dark ? Formatting.DARK_GRAY : Formatting.GRAY;
-        };
+        return new CharacterNightAction(botcCharacter);
     }
 
     /**
      * Get the formatted text representation of the night action's name with appropriate colour.
      * @return The formatted text of the night action's name.
      */
-    public MutableText toFormattedText(boolean dark, boolean bold, boolean withIcon, boolean withHoverText) {
-        MutableText text = (MutableText) Text.of(name);
+    public MutableText toFormattedText(boolean dark, boolean bold, boolean withIcon, boolean withHoverText, NightType night) {
+        MutableText text = (MutableText) this.getName();
 
         if (bold) {
             text = text.formatted(Formatting.BOLD);
@@ -120,8 +111,10 @@ public class NightAction {
             }
         }
         text = text.formatted(this instanceof CharacterNightAction cna ? cna.getColour(dark) : getColour(dark));
-        if (withHoverText && this.reminder != null && !this.reminder.isEmpty()) {
-            MutableText reminderText = Text.literal(this.reminder).setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
+
+        if (withHoverText) {
+            MutableText reminderText = (MutableText) this.getNightReminder(night);
+            reminderText.setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY));
             text.styled(style -> style.withHoverEvent(new HoverEvent.ShowText(reminderText)));
         }
         return text;
@@ -129,6 +122,6 @@ public class NightAction {
 
     @Override
     public String toString() {
-        return "NightAction[id='" + id + "', name='" + name + "', reminder='" + reminder + "']";
+        return "NightAction[id='" + id + "']";
     }
 }
