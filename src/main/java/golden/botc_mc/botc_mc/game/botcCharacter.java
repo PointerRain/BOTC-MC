@@ -263,5 +263,9 @@ public record botcCharacter(String id,
 
     public record ReminderToken(botcCharacter character, String reminder, boolean global) {
         public static final ReminderToken CUSTOM = new ReminderToken(botcCharacter.EMPTY, "Custom", false);
+
+        public Text toText() {
+            return Text.translatable(this.reminder().replace('\n', ' '));
+        }
     }
 }

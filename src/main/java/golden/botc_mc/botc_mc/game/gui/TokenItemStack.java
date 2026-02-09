@@ -118,7 +118,7 @@ public record TokenItemStack(ItemStack tokenItem) {
             }
         }
 
-        MutableText reminderText = (MutableText) Text.of(token.reminder().replace('\n', ' '));
+        MutableText reminderText = (MutableText) token.toText();
         reminderText.styled(style -> style.withItalic(false));
         tokenItem.set(DataComponentTypes.CUSTOM_NAME, reminderText);
 
