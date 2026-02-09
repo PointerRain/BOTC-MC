@@ -66,7 +66,7 @@ public record TokenItemStack(ItemStack tokenItem) {
             return tokenItem;
         }
         List<Text> loreLines = new ArrayList<>();
-        for (String line : character.ability().split("\\.")) {
+        for (String line : character.abilityText().getString().split("\\.")) {
             MutableText loreLine = (MutableText) Text.of(line.trim() + ".");
             loreLine.styled(style -> style.withItalic(false).withColor(Formatting.GRAY));
             loreLines.add(loreLine);

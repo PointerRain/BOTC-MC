@@ -268,7 +268,7 @@ public class ScriptBookGenerator {
                 MutableText nameLine = (MutableText) character.toFormattedText(true, true, true, false);
                 nameLine.styled(style -> style.withUnderline(true));
                 nameLine.append(generateJinxStars(character));
-                Text abilityLine = character.ability() != null ? Text.of(character.ability()) : Text.translatable("character.botc-mc.no_ability");
+                Text abilityLine = character.abilityText();
 
                 item.append(nameLine);
                 item.append("\n");

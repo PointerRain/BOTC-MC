@@ -14,6 +14,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Represents a botcCharacter in the BOTC game, with various attributes and behaviours.
@@ -172,7 +173,23 @@ public record botcCharacter(String id,
      * @return The character's name as MutableText.
      */
     public MutableText toText() {
-        return (MutableText) Text.of(this.name);
+        return Text.translatable(Objects.requireNonNullElseGet(this.name, () -> "character.botc-mc." + this.id + ".name"));
+    }
+
+    public Text abilityText() {
+        return Text.translatable(Objects.requireNonNullElseGet(this.name, () -> "character.botc-mc." + this.id + ".ability"));
+    }
+
+    public Text flavorText() {
+        return Text.translatable(Objects.requireNonNullElseGet(this.name, () -> "character.botc-mc." + this.id + ".flavor"));
+    }
+
+    public Text firstNightReminderText() {
+        return Text.translatable(Objects.requireNonNullElseGet(this.firstNightReminder, () -> "character.botc-mc." + this.id + ".first"));
+    }
+
+    public Text otherNightReminderText() {
+        return Text.translatable(Objects.requireNonNullElseGet(this.otherNightReminder, () -> "character.botc-mc." + this.id + ".other"));
     }
 
     /**
@@ -192,17 +209,18 @@ public record botcCharacter(String id,
             char iconChar = IconCharHelper.getIconChar(this);
             if (iconChar != ' ') {
                 MutableText iconText = (MutableText) Text.of(String.valueOf(iconChar));
+                iconText.styled(style -> style.withBold(false));
                 text = Text.empty().append(iconText).append(" ").append(text);
             }
         }
         if (this.team != null) {
             text = text.formatted(this.team.getColour(dark));
         }
-        if (withHoverAbility && this.ability != null && !this.ability.isEmpty()) {
+        if (withHoverAbility) {
             MutableText abilityText = Text.empty();
             abilityText.append(this.toFormattedText(false, true, true, false));
             abilityText.append("\n");
-            abilityText.append(Text.literal(this.ability).setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)));
+            abilityText.append(this.abilityText().copy().setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)));
             text.styled(style -> style.withHoverEvent(new HoverEvent.ShowText(abilityText)));
         }
         return text;
