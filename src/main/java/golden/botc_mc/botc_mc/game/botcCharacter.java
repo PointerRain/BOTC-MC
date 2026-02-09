@@ -210,7 +210,7 @@ public record botcCharacter(String id,
             if (iconChar != ' ') {
                 MutableText iconText = (MutableText) Text.of(String.valueOf(iconChar));
                 iconText.styled(style -> style.withBold(false));
-                text = Text.empty().append(iconText).append(" ").append(text);
+                text = Text.empty().append(iconText).append("\u00a0").append(text);
             }
         }
         if (this.team != null) {
