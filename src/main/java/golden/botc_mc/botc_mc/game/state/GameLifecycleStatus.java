@@ -12,10 +12,5 @@ public enum GameLifecycleStatus {
     /** The main gameplay loop is active (day/night rotations). */
     RUNNING,
     /** Game is winding down and will close shortly. */
-    STOPPING;
-
-    public boolean isActive() {
-        return this == STARTING || this == RUNNING;
-    }
+    STOPPING
 }
-

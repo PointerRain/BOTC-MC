@@ -116,19 +116,23 @@ A simple process to make and review changes using Git and GitHub.
 git checkout main
 git pull --rebase
 ```
+
 2) Create a feature branch (name it after the change)
 ```powershell
 git checkout -b feature/short-description
 ```
+
 3) Make your changes in IntelliJ, then stage and commit
 ```powershell
 git add .
 git commit -m "feat: short description of the change"
 ```
+
 4) Push your branch to GitHub
 ```powershell
 git push -u origin feature/short-description
 ```
+
 5) Open a Pull Request (PR)
 - Go to your repository on GitHub. You’ll see a prompt to compare & create a PR.
 - Add a clear description, link any issues, and submit the PR for review.
@@ -143,6 +147,7 @@ git rebase main
 git add .
 git rebase --continue
 ```
+
 7) After approval, merge the PR on GitHub. Delete the feature branch when done.
 
 IDE tips for Git

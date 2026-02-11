@@ -1,19 +1,31 @@
 package golden.botc_mc.botc_mc.game;
 
+import golden.botc_mc.botc_mc.game.seat.Seat;
 import net.minecraft.server.network.ServerPlayerEntity;
 
-public final class botcPlayer {
-    private final ServerPlayerEntity player;
+/**
+ * A lightweight wrapper around a Minecraft player for BOTC-specific metadata expansion.
+ * @param player the server-side player entity participating in the game
+ */
+public record botcPlayer(ServerPlayerEntity player, Seat seat) {
 
-    public botcPlayer(ServerPlayerEntity player) {
-        this.player = player;
+    /** Default no-arg record constructor retained for potential serialization frameworks. */
+    public botcPlayer() { this(null, null); }
+
+    /**
+     * Gets the Seat assigned to this botcPlayer.
+     * @return the Seat assigned to this botcPlayer
+     */
+    public Seat getSeat() {
+        return seat;
     }
 
-    // added no-arg constructor to satisfy usages in botcActive; it will set player to null
-    public botcPlayer() { this.player = null; }
-
-    public ServerPlayerEntity getPlayer() {
-        return this.player;
+    /**
+     * Creates a new botcPlayer with the specified Seat.
+     * @param seat the Seat to assign to the new botcPlayer
+     * @return a new botcPlayer instance with the specified Seat
+     */
+    public botcPlayer setSeat(Seat seat) {
+        return new botcPlayer(this.player, seat);
     }
 }
-

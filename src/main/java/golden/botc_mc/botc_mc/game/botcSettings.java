@@ -1,7 +1,8 @@
 package golden.botc_mc.botc_mc.game;
 
-import golden.botc_mc.botc_mc.game.map.botcMapConfig;
-import net.minecraft.block.Blocks;
+import golden.botc_mc.botc_mc.botc;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockPos;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,24 +12,44 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
 
+import golden.botc_mc.botc_mc.game.voice.VoiceRegionService;
+
 /**
  * Simple file-backed settings for the BOTC game. This provides a single place to edit
  * common values (time limits, per-phase durations, player limits) without rebuilding the mod.
- *
- * The settings are stored at run/config/botc.properties relative to the project root.
+ * <p>
+ * The settings are stored at run/config/botc/config/botc.properties relative to the project root.
  */
 public final class botcSettings {
-    private static final Path CONFIG_PATH = Paths.get("run", "config", "botc.properties");
+    private static final Path CONFIG_PATH = VoiceRegionService.botcConfigRoot().resolve(Paths.get("config", "botc.properties"));
 
+    /**
+     * Construct default mutable settings. Use {@link #load()} to read persisted values from disk.
+     */
+    public botcSettings() {}
+
+    /** Max time limit for lobby or overall session (seconds). */
     public int timeLimitSecs = 300;
+    /** Target player count. */
     public int players = 8;
+    /** Day discussion duration seconds. */
     public int dayDiscussionSecs = 120;
+    /** Nomination phase duration seconds. */
     public int nominationSecs = 45;
+    /** Execution phase duration seconds. */
     public int executionSecs = 20;
+    /** Night phase duration seconds. */
     public int nightSecs = 60;
+    /** Map identifier string used to resolve resources. */
+    public String mapId = "botc-mc:test";
+    /** Fallback spawn position if map lacks defined spawn. */
+    public BlockPos fallbackSpawn = new BlockPos(0, 65, 0);
 
-    private botcSettings() {}
-
+    /**
+     * Load settings from disk or create defaults if the file is missing.
+     *
+     * @return loaded settings (from disk) or a new instance with defaults if the file is missing or cannot be read
+     */
     public static botcSettings load() {
         botcSettings s = new botcSettings();
 
@@ -45,6 +66,8 @@ public final class botcSettings {
                 s.nominationSecs = parseInt(p.getProperty("nominationSecs"), s.nominationSecs);
                 s.executionSecs = parseInt(p.getProperty("executionSecs"), s.executionSecs);
                 s.nightSecs = parseInt(p.getProperty("nightSecs"), s.nightSecs);
+                s.mapId = p.getProperty("mapId", s.mapId);
+                s.fallbackSpawn = parseBlockPos(p.getProperty("fallbackSpawn"), s.fallbackSpawn);
             } else {
                 // ensure parent directory exists and write defaults
                 if (CONFIG_PATH.getParent() != null) Files.createDirectories(CONFIG_PATH.getParent());
@@ -58,6 +81,11 @@ public final class botcSettings {
         return s;
     }
 
+    /**
+     * Persist current settings to disk.
+     *
+     * @throws IOException if writing the properties file fails
+     */
     public void save() throws IOException {
         Properties p = new Properties();
         p.setProperty("timeLimitSecs", Integer.toString(this.timeLimitSecs));
@@ -66,6 +94,8 @@ public final class botcSettings {
         p.setProperty("nominationSecs", Integer.toString(this.nominationSecs));
         p.setProperty("executionSecs", Integer.toString(this.executionSecs));
         p.setProperty("nightSecs", Integer.toString(this.nightSecs));
+        p.setProperty("mapId", this.mapId);
+        p.setProperty("fallbackSpawn", formatBlockPos(this.fallbackSpawn));
 
         if (CONFIG_PATH.getParent() != null) Files.createDirectories(CONFIG_PATH.getParent());
         try (OutputStream out = Files.newOutputStream(CONFIG_PATH)) {
@@ -81,14 +111,43 @@ public final class botcSettings {
     /**
      * Merge these settings with an existing botcConfig coming from the datapack/game open context.
      * Values from the settings file override the provided config's time- and player-related settings.
+     *
+     * @param base the datapack-provided config; may be null when invoked in contexts without a base
+     * @return a merged botcConfig instance combining configured overrides and datapack defaults
      */
     public botcConfig applyTo(botcConfig base) {
-        botcMapConfig mapCfg = (base != null && base.mapConfig() != null) ? base.mapConfig() : new botcMapConfig(Blocks.STONE.getDefaultState());
+        // Settings override datapack-provided map selection
+        Identifier selectedMap = Identifier.of(this.mapId);
         int players = this.players > 0 ? this.players : (base == null ? 8 : base.players());
         int timeLimit = this.timeLimitSecs > 0 ? this.timeLimitSecs : (base == null ? 300 : base.timeLimitSecs());
-
         botcPhaseDurations durations = new botcPhaseDurations(this.dayDiscussionSecs, this.nominationSecs, this.executionSecs, this.nightSecs);
+        Script script = Script.MISSING;
+        String scriptId = "trouble_brewing";
+        if (base != null)  {
+            script = base.script() != Script.MISSING ? base.script() : Script.fromId(base.scriptId());
+            scriptId = base.scriptId();
+        }
+        botc.LOGGER.info("Resolved script: {}", script);
 
-        return botcConfig.of(mapCfg, players, timeLimit, durations);
+        return botcConfig.of(selectedMap, players, timeLimit, durations, scriptId, script);
+    }
+
+    private static BlockPos parseBlockPos(String value, BlockPos fallback) {
+        if (value == null || value.isEmpty()) {
+            return fallback;
+        }
+        String[] parts = value.split(",");
+        if (parts.length != 3) {
+            return fallback;
+        }
+        try {
+            return new BlockPos(Integer.parseInt(parts[0].trim()), Integer.parseInt(parts[1].trim()), Integer.parseInt(parts[2].trim()));
+        } catch (NumberFormatException ex) {
+            return fallback;
+        }
+    }
+
+    private static String formatBlockPos(BlockPos pos) {
+        return pos.getX() + "," + pos.getY() + "," + pos.getZ();
     }
 }

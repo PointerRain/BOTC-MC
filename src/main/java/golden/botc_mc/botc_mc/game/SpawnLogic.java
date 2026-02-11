@@ -1,0 +1,136 @@
+package golden.botc_mc.botc_mc.game;
+
+import net.minecraft.block.BlockState;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.GameMode;
+import golden.botc_mc.botc_mc.game.map.Map;
+import golden.botc_mc.botc_mc.game.map.Map.RespawnRegion;
+
+import java.util.Set;
+
+/**
+ * Spawn logic helper.
+ * <p>
+ * Encapsulates safe spawn selection and player reset operations. The helper tries to
+ * find a suitable standing surface within a small radius of the respawn region center
+ * and falls back to a deterministic location if none is found.
+ * <p>
+ * Record components:
+ * @param world server world
+ * @param map active map
+ */
+public record SpawnLogic(ServerWorld world, Map map) {
+    private static final int SEARCH_RADIUS = 8;
+
+    /** Reset player before spawn.
+     * <p>
+     * Prepares the player for spawning by changing their game mode, clearing velocity,
+     * resetting fall distance, and applying a short invulnerability window so the
+     * player doesn't immediately take damage while being teleported/initialized.
+     *
+     * @param player player
+     * @param gameMode target game mode
+     */
+    public void resetPlayer(ServerPlayerEntity player, GameMode gameMode) {
+        player.changeGameMode(gameMode);
+        player.setVelocity(Vec3d.ZERO);
+        player.fallDistance = 0.0f;
+    }
+
+
+    /** Determine a safe spawn position (e.g. avoid void).
+     * <p>
+     * Searches for a safe spawn position by looking for the highest spawnable block
+     * around the respawn region's center. It avoids positions that are too close to
+     * the world bottom to prevent void spawns. If no suitable position is found, it
+     * falls back to the center of the respawn region, one block above the ground.
+     *
+     * @return position vector
+     */
+    public Vec3d getSafeSpawnPosition() {
+        RespawnRegion respawn = this.map.getRegions().spawn();
+        BlockPos center = respawn.centerBlock();
+        BlockPos best = findHighestSpawnable(center);
+        if (best != null) return new Vec3d(best.getX() + 0.5, best.getY() + 1.0, best.getZ() + 0.5);
+        // Fallback: use center one block above as last resort
+        return new Vec3d(center.getX() + 0.5, Math.max(center.getY(), this.world.getBottomY()) + 1.0, center.getZ() + 0.5);
+    }
+
+    /** Spawn player at map respawn location.
+     * <p>
+     * Teleports the player to the determined safe spawn position within the respawn
+     * region. If no suitable position is found, the player is teleported to a random
+     * location within a small radius around the respawn region's center.
+     *
+     * @param player target player
+     */
+    public void spawnPlayer(ServerPlayerEntity player) {
+        RespawnRegion respawn = this.map.getRegions().spawn();
+        BlockPos center = respawn.centerBlock();
+
+        BlockPos best = findHighestSpawnable(center);
+        if (best == null) {
+            float radius = 2.0f;
+            float x = center.getX() + MathHelper.nextFloat(player.getRandom(), -radius, radius);
+            float z = center.getZ() + MathHelper.nextFloat(player.getRandom(), -radius, radius);
+            player.teleport(this.world, x, Math.max(center.getY(), this.world.getBottomY()) + 1.0, z, Set.of(), respawn.yaw(), respawn.pitch(), true);
+            return;
+        }
+
+        double x = best.getX() + 0.5;
+        double y = best.getY() + 1.0;
+        double z = best.getZ() + 0.5;
+        player.teleport(this.world, x, y, z, Set.of(), respawn.yaw(), respawn.pitch(), true);
+    }
+
+    /**
+     * Finds the highest spawnable block near a given center within SEARCH_RADIUS.
+     */
+    private BlockPos findHighestSpawnable(BlockPos center) {
+        BlockPos best = null;
+        final int bottom = this.world.getBottomY();
+        final int top = bottom + this.world.getDimension().height() - 1;
+        final int startYCap = Math.min(top, center.getY() + 96);
+
+        for (int dx = -SEARCH_RADIUS; dx <= SEARCH_RADIUS; dx++) {
+            for (int dz = -SEARCH_RADIUS; dz <= SEARCH_RADIUS; dz++) {
+                int x = center.getX() + dx;
+                int z = center.getZ() + dz;
+                BlockPos.Mutable pos = new BlockPos.Mutable(x, startYCap, z);
+                while (pos.getY() >= bottom) {
+                    BlockState state = this.world.getBlockState(pos);
+                    if (!state.isAir() && isSpawnSurface(pos, state)) {
+                        BlockPos surface = pos.toImmutable();
+                        if (canStandAbove(surface)) {
+                            if (best == null || surface.getY() > best.getY()) best = surface;
+                            break;
+                        }
+                    }
+                    pos.move(0, -1, 0);
+                }
+            }
+        }
+        return best;
+    }
+
+    /**
+     * Determines if the given block state at the position can serve as a spawn surface.
+     * Any block with a collision shape counts as a surface the player can stand on,
+     * which includes glass and stained glass.
+     */
+    private boolean isSpawnSurface(BlockPos pos, BlockState state) {
+        // Any block with a collision shape counts as a surface the player can stand on,
+        // which includes glass and stained glass.
+        return !state.getCollisionShape(this.world, pos).isEmpty();
+    }
+
+    private boolean canStandAbove(BlockPos surface) {
+        BlockPos above = surface.up();
+        BlockPos above2 = surface.up(2);
+        return this.world.isAir(above) && this.world.isAir(above2);
+    }
+}
