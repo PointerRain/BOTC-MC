@@ -18,22 +18,35 @@ public enum ButtonIcon {
     REVIVE,
     REMOVE_VOTE,
     RETURN_VOTE,
-    NOMINATE;
+    NOMINATE,
+    PROMOTE,
+    DEMOTE,
+    TELEPORT;
 
     ItemStack toItemStack() {
         return switch (this) {
             case ADD -> new ItemStack(Items.GREEN_DYE); // Placeholder
             case DELETE -> new ItemStack(Items.RED_DYE); // Placeholder
+
             case LEFT -> new ItemStack(Items.ARROW); // Placeholder
             case RIGHT -> new ItemStack(Items.ARROW); // Placeholder
+            case UP, PROMOTE -> new ItemStack(Items.FEATHER); // Placeholder
+            case DOWN, DEMOTE -> new ItemStack(Items.FEATHER); // Placeholder
+
             case CLOSE -> new ItemStack(Items.BARRIER); // Placeholder
             case CONFIRM -> new ItemStack(Items.LIME_DYE); // Placeholder
+
             case SHUFFLE -> new ItemStack(Items.PAPER); // Placeholder
-            case UP -> new ItemStack(Items.FEATHER); // Placeholder
-            case DOWN -> new ItemStack(Items.FEATHER); // Placeholder
             case EDIT -> new ItemStack(Items.WRITABLE_BOOK); // Placeholder
+
             case KILL -> new ItemStack(Items.WITHER_SKELETON_SKULL); // Placeholder
             case REVIVE -> new ItemStack(Items.SKELETON_SKULL); // Placeholder
+
+            case REMOVE_VOTE -> new ItemStack(Items.GRAY_DYE); // Placeholder
+            case RETURN_VOTE -> new ItemStack(Items.YELLOW_DYE); // Placeholder
+
+            case TELEPORT -> new ItemStack(Items.ENDER_PEARL);
+
             default -> new ItemStack(Items.PAPER); // Fallback
         };
     }

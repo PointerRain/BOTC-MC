@@ -69,6 +69,12 @@ public class SeatMenuLayer extends Layer {
                         StorytellerSeat newSeat = (StorytellerSeat) gui.seatManager.assignPlayerToStorytellerSeat(player);
                         gui.reopen(newSeat);
             }));
+            elements.add(ButtonBuilder.buildButton(
+                    Text.translatable("spectatorMenu.teleport"), ButtonIcon.TELEPORT, (i, c, a, g) -> {
+                        ServerPlayerEntity player = seat.getPlayerEntity();
+                        gui.getPlayer().teleport(player.getX(), player.getY(), player.getZ(), true);
+                        gui.close();
+            }));
         }
 
         for (GuiElement element : elements) {
