@@ -90,8 +90,9 @@ public abstract class Seat {
      * If the character is NPC or NEUTRAL, the seat's alignment will be set to that.
      * Otherwise, the seat's alignment remains unchanged.
      * @param character The Character to assign to this seat.
+     * @throws IllegalArgumentException if the character is an NPC character (non-NPC characters and EMPTY are allowed).
      */
-    public void setCharacter(botcCharacter character) {
+    public void setCharacter(botcCharacter character) throws IllegalArgumentException {
         if (character == botcCharacter.EMPTY) {
             this.character = botcCharacter.EMPTY;
             return;
@@ -177,7 +178,7 @@ public abstract class Seat {
 
     public Text getCharacterText() {
         MutableText text = (MutableText) (character != null ? character.toFormattedText(false, false, true, false) : Text.of("Empty"));
-        text.styled(style -> style.withFormatting(getColour(false)).withBold(true).withItalic(false));
+        text.styled(style -> style.withFormatting(getColour(false)).withItalic(false));
         return text;
     }
 
