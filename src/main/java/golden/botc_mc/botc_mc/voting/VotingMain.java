@@ -9,6 +9,14 @@ import org.apache.logging.log4j.core.jmx.Server;
 
 import java.util.List;
 
+/**
+* To Do:
+* Get the current players playing the game half it and then if yes votes go over that trigger the the execution system. simple if statement
+* do all the smart systems for the roles that affect the voting system.
+* After all special roles that affect the voting system and we have the number of votes trigger the execution system
+* Program the execution system which sets the nominated player to dead with 1 vote left.
+*/
+
 public class VotingMain {
     /**
      * Getting a list of players and giving them the voting items
