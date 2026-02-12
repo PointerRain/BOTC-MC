@@ -129,8 +129,6 @@ public class botc implements ModInitializer {
                     manager.getResource(id).ifPresent(script -> scripts.put(String.valueOf(id), Script.fromResource(script)));
                 }
                 LOGGER.info("Loaded {} scripts", scripts.size());
-                LOGGER.debug(scripts.get("botc-mc:scripts/trouble_brewing.json"));
-                LOGGER.debug(scripts.get("botc-mc:scripts/separation_church_state.json").getJinxes());
             }
         });
 
