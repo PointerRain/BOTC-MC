@@ -20,6 +20,7 @@ public class IconCharHelper {
     }
 
     public static char getIconChar(botcCharacter character) {
+        if (character == botcCharacter.EMPTY) {return ' '; }
         String token = character.token();
         if (token == null || token.isEmpty()) {
             botc.LOGGER.warn("Character {} has no token defined.", character.id());
