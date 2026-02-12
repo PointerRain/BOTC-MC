@@ -177,11 +177,11 @@ public record botcCharacter(String id,
     }
 
     public Text abilityText() {
-        return Text.translatable(Objects.requireNonNullElseGet(this.name, () -> "character.botc-mc." + this.id + ".ability"));
+        return Text.translatable(Objects.requireNonNullElseGet(this.ability, () -> "character.botc-mc." + this.id + ".ability"));
     }
 
     public Text flavorText() {
-        return Text.translatable(Objects.requireNonNullElseGet(this.name, () -> "character.botc-mc." + this.id + ".flavor"));
+        return Text.translatable(Objects.requireNonNullElseGet(this.flavor, () -> "character.botc-mc." + this.id + ".flavor"));
     }
 
     public Text firstNightReminderText() {
