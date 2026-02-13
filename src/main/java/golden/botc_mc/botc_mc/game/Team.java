@@ -111,6 +111,15 @@ public enum Team {
     }
 
     /**
+     * Checks if the team is classified as an NPC based on its default alignment.
+     * NPC characters cannot be assigned to players.
+     * @return True if the team is an NPC team, false otherwise.
+     */
+    public boolean isNPC() {
+        return this.getDefaultAlignment() == Alignment.NPC;
+    }
+
+    /**
      * Alignment enum for the team.
      */
     public enum Alignment {

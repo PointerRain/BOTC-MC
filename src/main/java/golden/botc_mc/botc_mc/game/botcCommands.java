@@ -6,6 +6,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.exceptions.InvalidAlignmentException;
 import golden.botc_mc.botc_mc.game.exceptions.InvalidSeatException;
+import golden.botc_mc.botc_mc.game.gui.GrimoireGUI;
 import golden.botc_mc.botc_mc.game.map.Map;
 import golden.botc_mc.botc_mc.game.seat.PlayerSeat;
 import golden.botc_mc.botc_mc.game.seat.Seat;
@@ -428,7 +429,7 @@ public final class botcCommands {
                                                     return 0;
                                                 }
                                                 String reminder = StringArgumentType.getString(ctx, "reminder");
-                                                seat.addReminder(reminder);
+                                                seat.addReminderToken(reminder);
                                                 ctx.getSource().sendFeedback(() -> Text.literal("Added reminder for " +
                                                         "player " + player.getName().getString() + ": " + reminder),
                                                         true);
@@ -459,7 +460,7 @@ public final class botcCommands {
                                                     return 0;
                                                 }
                                                 int reminderIndex = IntegerArgumentType.getInteger(ctx, "reminder") - 1;
-                                                String reminder = seat.removeReminder(reminderIndex);
+                                                botcCharacter.ReminderToken reminder = seat.removeReminder(reminderIndex);
                                                 ctx.getSource().sendFeedback(() -> Text.literal("Removed reminder for" +
                                                         " player " + player.getName().getString() + ": " + reminder),
                                                         true);
@@ -469,37 +470,91 @@ public final class botcCommands {
                     )
             ));
 
-            root.then(literal("reminder").then(
-                    literal("remove").then(
-                            CommandManager.argument("player", EntityArgumentType.player()).then(
-                                    CommandManager.argument("reminder", StringArgumentType.greedyString())
-                                            .executes(ctx -> {
-                                                ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "player");
-                                                botcActive activeGame = botc.getActiveGameFromPlayer(player);
-                                                if (activeGame == null || player == null) {
-                                                    ctx.getSource().sendError(Text.literal("Player is not in an " +
-                                                            "active BOTC game."));
-                                                    return 0;
-                                                }
-                                                PlayerSeat seat =
-                                                        activeGame.getSeatManager().getPlayerSeatFromPlayer(player);
-                                                if (seat == null) {
-                                                    ctx.getSource().sendError(Text.literal("Player has no seat " +
-                                                            "assigned."));
-                                                    return 0;
-                                                }
-                                                String reminderText = StringArgumentType.getString(ctx, "reminder");
-                                                if (seat.hasReminder(reminderText)) {
-                                                    seat.removeReminder(reminderText);
-                                                    ctx.getSource().sendFeedback(() -> Text.literal("Removed reminder" +
-                                                            " for player " + player.getName().getString() + ": " + reminderText), true);
-                                                    return 1;
-                                                } else {
-                                                    ctx.getSource().sendError(Text.literal("Reminder not found for " +
-                                                            "player " + player.getName().getString() + ": " + reminderText));
-                                                    return 0;
-                                                }
-                                            })))));
+//            root.then(literal("reminder").then(
+//                    literal("remove").then(
+//                            CommandManager.argument("player", EntityArgumentType.player()).then(
+//                                    CommandManager.argument("reminder", StringArgumentType.greedyString())
+//                                            .executes(ctx -> {
+//                                                ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "player");
+//                                                botcActive activeGame = botc.getActiveGameFromPlayer(player);
+//                                                if (activeGame == null || player == null) {
+//                                                    ctx.getSource().sendError(Text.literal("Player is not in an " +
+//                                                            "active BOTC game."));
+//                                                    return 0;
+//                                                }
+//                                                PlayerSeat seat =
+//                                                        activeGame.getSeatManager().getPlayerSeatFromPlayer(player);
+//                                                if (seat == null) {
+//                                                    ctx.getSource().sendError(Text.literal("Player has no seat " +
+//                                                            "assigned."));
+//                                                    return 0;
+//                                                }
+//                                                String reminderText = StringArgumentType.getString(ctx, "reminder");
+//                                                if (seat.hasReminder(reminderText)) {
+//                                                    seat.removeReminder(reminderText);
+//                                                    ctx.getSource().sendFeedback(() -> Text.literal("Removed reminder" +
+//                                                            " for player " + player.getName().getString() + ": " + reminderText), true);
+//                                                    return 1;
+//                                                } else {
+//                                                    ctx.getSource().sendError(Text.literal("Reminder not found for " +
+//                                                            "player " + player.getName().getString() + ": " + reminderText));
+//                                                    return 0;
+//                                                }
+//                                            })))));
+            root.then(literal("npc")
+                    .then(literal("add")
+                            .then(CommandManager.argument("npc", StringArgumentType.word())
+                                    .executes(ctx -> {
+                                        ServerPlayerEntity player = ctx.getSource().getPlayer();
+                                        if (player == null) {
+                                            ctx.getSource().sendError(Text.literal("This command may only be used by players."));
+                                            return 0;
+                                        }
+                                        botcActive activeGame = botc.getActiveGameFromPlayer(player);
+                                        if (activeGame == null) {
+                                            ctx.getSource().sendError(Text.literal("You are not in an active BOTC game."));
+                                            return 0;
+                                        }
+                                        String npcId = StringArgumentType.getString(ctx, "npc");
+                                        botcCharacter npc = activeGame.getScript().getCharacter(npcId);
+                                        if (npc == null) {
+                                            ctx.getSource().sendError(Text.literal("There is no character with this id on this script"));
+                                            return 0;
+                                        }
+                                        activeGame.getSeatManager().addNPC(npc);
+                                        ctx.getSource().sendFeedback(() -> Text.literal("Added NPC character " + npc.name() + "."), true);
+                                        return 1;
+                                    }))));
+
+            root.then(literal("npc")
+                    .then(literal("remove")
+                            .then(CommandManager.argument("npc", StringArgumentType.word())
+                                    .executes(ctx -> {
+                                        ServerPlayerEntity player = ctx.getSource().getPlayer();
+                                        if (player == null) {
+                                            ctx.getSource().sendError(Text.literal("This command may only be used by players."));
+                                            return 0;
+                                        }
+                                        botcActive activeGame = botc.getActiveGameFromPlayer(player);
+                                        if (activeGame == null) {
+                                            ctx.getSource().sendError(Text.literal("You are not in an active BOTC game."));
+                                            return 0;
+                                        }
+                                        String npcId = StringArgumentType.getString(ctx, "npc");
+                                        botcCharacter npc = activeGame.getScript().getCharacter(npcId);
+                                        if (npc == null) {
+                                            ctx.getSource().sendError(Text.literal("There is no character with this id on this script"));
+                                            return 0;
+                                        }
+                                        boolean removed = activeGame.getSeatManager().removeNPC(npc);
+                                        if (removed) {
+                                            ctx.getSource().sendFeedback(() -> Text.literal("Removed NPC character " + npc.name() + "."), true);
+                                            return 1;
+                                        } else {
+                                            ctx.getSource().sendError(Text.literal("NPC character " + npc.name() + " not found."));
+                                            return 0;
+                                        }
+                                    }))));
 
 
             // /botc map set <mapId>
@@ -517,6 +572,22 @@ public final class botcCommands {
                             )
                     )
             );
+
+            root.then(literal("gui").executes(ctx -> {
+                ServerPlayerEntity player = ctx.getSource().getPlayer();
+                if (player == null) {
+                    ctx.getSource().sendError(Text.literal("This command may only be used by players."));
+                    return 0;
+                }
+                botcActive activeGame = botc.getActiveGameFromPlayer(player);
+                if (activeGame == null) {
+                    ctx.getSource().sendError(Text.literal("You are not in an active BOTC game."));
+                    return 0;
+                }
+                GrimoireGUI gui = new GrimoireGUI(player, activeGame.getSeatManager(), activeGame.getScript());
+                gui.open();
+                return 1;
+            }));
 
             root.then(literal("script").then(CommandManager.argument("script", IdentifierArgumentType.identifier())
                             .executes(ctx -> {

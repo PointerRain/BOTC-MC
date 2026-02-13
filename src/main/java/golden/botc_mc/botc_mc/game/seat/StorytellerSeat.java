@@ -1,9 +1,24 @@
 package golden.botc_mc.botc_mc.game.seat;
 
+import golden.botc_mc.botc_mc.game.Team;
 import golden.botc_mc.botc_mc.game.botcCharacter;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
 public class StorytellerSeat extends Seat {
 
+    @Override
+    protected Formatting getColour(boolean dark) {
+        return Team.Alignment.NEUTRAL.getColour(dark);
+    }
+
+    public Text getCharacterText() {
+        MutableText text = (MutableText) ((character == null || character == botcCharacter.EMPTY) ?
+                Text.of("Storyteller") : character.toFormattedText(false));
+        text.styled(style -> style.withFormatting(getColour(false)).withBold(true).withItalic(false));
+        return text;
+    }
 
     @Override
     public String toString() {

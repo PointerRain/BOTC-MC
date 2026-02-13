@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -35,6 +36,8 @@ public record Script(Meta meta, List<botcCharacter> characters) {
      * Represents a missing script, indicated by a null value.
      */
     public static final Script MISSING = null;
+
+    // TODO: Remap baseCharacters when loading script to have updated loric and fabled characters.
 
     public Script(String name, String author, String logo, boolean hideTitle, String background, String almanac,
                   String flavor, List<String> bootlegger, List<String> firstNight, List<String> otherNight,
@@ -261,16 +264,22 @@ public record Script(Meta meta, List<botcCharacter> characters) {
     /**
      * Get all characters belonging to a specific team.
      * @param team The team to filter characters by.
+     * @param seeAll Whether to include all characters or only characters on the script.
      * @return A list of characters belonging to the specified team.
      */
-    public List<botcCharacter> getCharactersByTeam(Team team) {
-        List<botcCharacter> teamBotcCharacters = new ArrayList<>();
-        for (botcCharacter botcCharacter : characters) {
-            if (botcCharacter.team().equals(team)) {
-                teamBotcCharacters.add(botcCharacter);
+    public List<botcCharacter> getCharactersByTeam(Team team, boolean seeAll) {
+        LinkedHashSet<botcCharacter> teamCharacters = new LinkedHashSet<>();
+        characters.stream()
+                .filter(c -> c.team().equals(team))
+                .forEach(teamCharacters::add);
+        if (seeAll) {
+            for (botcCharacter botcCharacter : botcCharacter.baseCharacters) {
+                if (botcCharacter.team().equals(team)) {
+                    teamCharacters.add(botcCharacter);
+                }
             }
         }
-        return teamBotcCharacters;
+        return teamCharacters.stream().toList();
     }
 
     @Override

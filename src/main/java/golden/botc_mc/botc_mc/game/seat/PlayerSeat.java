@@ -3,6 +3,7 @@ package golden.botc_mc.botc_mc.game.seat;
 import golden.botc_mc.botc_mc.game.botcCharacter;
 import golden.botc_mc.botc_mc.game.Team;
 import golden.botc_mc.botc_mc.game.exceptions.InvalidAlignmentException;
+import net.minecraft.util.Formatting;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,23 +11,62 @@ import java.util.List;
 public class PlayerSeat extends Seat {
 
     Team.Alignment alignment = Team.Alignment.NEUTRAL;
+    int ghostVotes = 0;
 
-    final List<String> reminders = new ArrayList<>();
+    final List<botcCharacter.ReminderToken> reminders = new ArrayList<>();
 
     @Override
-    public void setCharacter(botcCharacter botcCharacter) throws IllegalArgumentException {
-        super.setCharacter(botcCharacter);
-        this.alignment = switch (botcCharacter.team().getDefaultAlignment()) {
-            case NEUTRAL, NPC -> botcCharacter.team().getDefaultAlignment();
+    public void setCharacter(botcCharacter character) throws IllegalArgumentException {
+        super.setCharacter(character);
+        if (character.team() == null) {
+            this.alignment = Team.Alignment.NEUTRAL;
+            return;
+        }
+        this.alignment = switch (character.team().getDefaultAlignment()) {
+            case NEUTRAL, NPC -> character.team().getDefaultAlignment();
             case GOOD, EVIL -> switch (this.alignment) {
                 case GOOD, EVIL -> this.alignment;
-                case NEUTRAL, NPC -> botcCharacter.team().getDefaultAlignment();
+                case NEUTRAL, NPC -> character.team().getDefaultAlignment();
             };
         };
     }
 
     public Team.Alignment getAlignment() {
         return this.alignment;
+    }
+
+    @Override
+    public boolean kill() {
+        boolean result = super.kill();
+        if (result) {
+            restoreGhostVote();
+        }
+        return result;
+    }
+
+    /**
+     * Checks if the player seat has a ghost vote available.
+     * @return True if there is at least one ghost vote, false otherwise.
+     */
+    public boolean canGhostVote() {
+        return this.ghostVotes > 0;
+    }
+
+    /**
+     * Restores the ghost vote to 1 for the player seat.
+     * If the player already has a ghost vote, this will set it to 1 regardless.
+     */
+    public void restoreGhostVote() {
+        this.ghostVotes = 1;
+    }
+
+    /**
+     * Removes a ghost vote from the player seat if available.
+     */
+    public void removeGhostVote() {
+        if (this.ghostVotes > 0) {
+            this.ghostVotes--;
+        }
     }
 
     /**
@@ -85,19 +125,15 @@ public class PlayerSeat extends Seat {
         this.alignment = Team.Alignment.NEUTRAL;
     }
 
-    public void addReminder(String reminder) {
-        this.reminders.add(reminder);
+    public void addReminderToken(String reminder) {
+        this.reminders.add(new botcCharacter.ReminderToken(botcCharacter.EMPTY, reminder, false));
     }
 
-    public boolean hasReminder(String reminder) {
-        return this.reminders.contains(reminder);
+    public void addReminderToken(botcCharacter.ReminderToken token) {
+        this.reminders.add(token);
     }
 
-    public void removeReminder(String reminder) {
-        this.reminders.remove(reminder);
-    }
-
-    public String removeReminder(int index) {
+    public botcCharacter.ReminderToken removeReminder(int index) {
         if (index >= 0 && index < this.reminders.size()) {
             return this.reminders.remove(index);
         }
@@ -108,8 +144,22 @@ public class PlayerSeat extends Seat {
         this.reminders.clear();
     }
 
-    public List<String> getReminders() {
+    public List<botcCharacter.ReminderToken> getReminders() {
         return this.reminders;
+    }
+
+    @Override
+    protected Formatting getColour(boolean dark) {
+        // Return white if no character assigned
+        if (character == botcCharacter.EMPTY) {
+            return Formatting.WHITE;
+        }
+        // Return team colour if alignment matches default alignment
+        if (this.character.team() != null && alignment == this.character.team().getDefaultAlignment()) {
+            return this.character.team().getColour(dark);
+        }
+        // Otherwise, return alignment colour
+        return this.alignment.getColour(dark);
     }
 
     @Override
