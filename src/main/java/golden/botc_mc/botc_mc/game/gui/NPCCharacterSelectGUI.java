@@ -65,6 +65,6 @@ public class NPCCharacterSelectGUI extends AbstractSelectionGUI<botcCharacter> {
 
     @Override
     protected ItemStack getItemStack(botcCharacter item) {
-        return TokenItemStack.of(item);
+        return TokenItemStack.of(item, script);
     }
 }

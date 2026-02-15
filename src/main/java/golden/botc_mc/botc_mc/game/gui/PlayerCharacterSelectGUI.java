@@ -42,16 +42,21 @@ public class PlayerCharacterSelectGUI extends AbstractSelectionGUI<botcCharacter
 
         this.script = script;
         this.seeTravellers = seeTravellers;
+    }
+
+    @Override
+    public void beforeOpen() {
+        super.beforeOpen();
 
         if (seeTravellers) {
             this.setSlot(9 * this.getHeight() - 5, ButtonBuilder.buildButton(
                     Text.translatable("gui.botc-mc.selection.character.non_travellers"),
-                    (i, c, a, g) -> new PlayerCharacterSelectGUI(player, script, onSelectCharacter, onCancel,
+                    (i, c, a, g) -> new PlayerCharacterSelectGUI(player, script, onSelectItem, onCancel,
                                                      false, 0).open()));
         } else {
             this.setSlot(9 * this.getHeight() - 5, ButtonBuilder.buildButton(
                     Text.translatable("gui.botc-mc.selection.character.travellers"),
-                    (i, c, a, g) -> new PlayerCharacterSelectGUI(player, script, onSelectCharacter, onCancel,
+                    (i, c, a, g) -> new PlayerCharacterSelectGUI(player, script, onSelectItem, onCancel,
                                                      true, 0).open()));
         }
     }
@@ -78,6 +83,6 @@ public class PlayerCharacterSelectGUI extends AbstractSelectionGUI<botcCharacter
 
     @Override
     protected ItemStack getItemStack(botcCharacter item) {
-        return TokenItemStack.of(item);
+        return TokenItemStack.of(item, this.script);
     }
 }

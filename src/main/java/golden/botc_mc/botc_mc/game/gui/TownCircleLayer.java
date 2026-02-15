@@ -26,7 +26,7 @@ public class TownCircleLayer extends Layer {
             PlayerSeat seat = gui.seatManager.getSeatFromNumber(n+1);
 
             ItemStack headItem = PlayerHeadItemStack.of(seat, n + 1);
-            ItemStack tokenItem = TokenItemStack.of(seat);
+            ItemStack tokenItem = TokenItemStack.of(seat, gui.script);
             List<GuiElement> reminderItems = gui.getReminderItems(seat, seat.getReminders(), maxReminders);
 
             GuiElementInterface.ClickCallback headCallback = (i, c, a, g) -> {

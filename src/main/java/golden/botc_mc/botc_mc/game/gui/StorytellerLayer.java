@@ -21,7 +21,7 @@ public class StorytellerLayer extends Layer {
         for (int n = 0; n < gui.seatManager.getStorytellers().size(); n++) {
             StorytellerSeat seat = gui.seatManager.getStorytellers().get(n);
             ItemStack headItem = PlayerHeadItemStack.of(seat);
-            ItemStack tokenItem = TokenItemStack.of(seat);
+            ItemStack tokenItem = TokenItemStack.of(seat, gui.script);
 
             GuiElementInterface.ClickCallback headCallback = (i, c, a, g) -> {
                 if (c == ClickType.MOUSE_LEFT_SHIFT) {
@@ -49,7 +49,7 @@ public class StorytellerLayer extends Layer {
         }
         for (int n = 0; n < gui.seatManager.getNPCs().size(); n++) {
             botcCharacter npc = gui.seatManager.getNPCs().get(n);
-            ItemStack tokenItem = TokenItemStack.of(npc);
+            ItemStack tokenItem = TokenItemStack.of(npc, gui.script);
             GuiElementInterface.ClickCallback tokenCallback = (i, c, a, g) -> {
                 if (c == ClickType.MOUSE_RIGHT_SHIFT) {
                     gui.seatManager.removeNPC(npc);

@@ -21,6 +21,7 @@ public abstract class AbstractSelectionGUI<T> extends SimpleGui {
     protected final List<T> items;
     protected final Function<T, ?> onSelectItem;
     protected final Runnable onCancel;
+    protected final int page;
 
     /**
      * Constructor for AbstractSelectionGUI.
@@ -40,7 +41,12 @@ public abstract class AbstractSelectionGUI<T> extends SimpleGui {
         this.items = items;
         this.onSelectItem = onSelectItem;
         this.onCancel = onCancel;
+        this.page = page;
 
+    }
+
+    @Override
+    public void beforeOpen() {
         int pages = getPageCount();
 
         // Add all items for this page
@@ -70,6 +76,8 @@ public abstract class AbstractSelectionGUI<T> extends SimpleGui {
         };
         this.setSlot(9 * this.getHeight() - 2, ButtonBuilder.buildButton(
                 Text.translatable("gui.cancel"), ButtonIcon.CLOSE, cancelCallback));
+
+        super.beforeOpen();
     }
 
     /**
