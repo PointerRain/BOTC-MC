@@ -113,6 +113,7 @@
   "commands.botc-mc.token.success": "Gave you token %s",
   "commands.botc-mc.token.failure":  "Couldn't give you token %s as your inventory is full",
 
+  "character.botc-mc.empty.name": "Empty",
   "character.botc-mc.acrobat.ability": "Each night*, choose a player: if they are or become drunk or poisoned tonight, you die.",
   "character.botc-mc.acrobat.flavor": "Welcome, one and all, to the greatest show on earth.",
   "character.botc-mc.acrobat.name": "Acrobat",

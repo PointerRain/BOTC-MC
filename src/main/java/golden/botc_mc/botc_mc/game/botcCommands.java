@@ -195,10 +195,15 @@ public final class botcCommands {
                                     CommandManager.argument("player", EntityArgumentType.player())
                                             .executes(ctx -> {
                                                 ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "player");
-                                                Seat seat = botc.getSeatFromPlayer(player);
+                                                botcActive activeGame = botc.getActiveGameFromPlayer(player);
+                                                if (activeGame == null || player == null) {
+                                                    ctx.getSource().sendError(Text.translatable("commands.botc-mc.no_game.target", player.getName()));
+                                                    return 0;
+                                                }
+                                                Seat seat = activeGame.getSeatManager().getSeatFromPlayer(player);
                                                 if (seat == null) {
-                                                    ctx.getSource().sendFeedback(() -> Text.translatable("commands.botc-mc.character.get.failure", player.getName()), false);
-                                                    return 1;
+                                                    ctx.getSource().sendError(Text.translatable("commands.botc-mc.no_seat.target", player.getName()));
+                                                    return 0;
                                                 }
                                                 ctx.getSource().sendFeedback(() -> Text.translatable("commands.botc-mc.character.get.success", player.getName(), seat.getCharacter()), false);
                                                 return 1;
