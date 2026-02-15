@@ -11,17 +11,15 @@ import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Represents a script in the BOTC game, containing meta information and a list of characters.
@@ -95,11 +93,12 @@ public record Script(Meta meta, List<botcCharacter> characters) {
                 botc.LOGGER.error("Script with ID '{}' not found.", scriptId);
             }
         }
-        if (scriptData == null || botcCharacter.baseCharacters == null) {
+        if (scriptData == null || CharacterLoader.baseCharacters == null) {
+            botc.LOGGER.error("Script data or base characters not loaded yet, returning script data as is.");
             return scriptData;
         }
         for (botcCharacter character : scriptData.characters) {
-            botcCharacter fullCharacter = botcCharacter.fromPartialCharacter(character);
+            botcCharacter fullCharacter = CharacterLoader.fromPartialCharacter(character);
             // Replace botcCharacter in the script's botcCharacter list
             int index = scriptData.characters.indexOf(character);
             scriptData.characters.set(index, fullCharacter);
@@ -164,31 +163,26 @@ public record Script(Meta meta, List<botcCharacter> characters) {
     }
 
     /**
+     * Helper method to convert a list of character IDs from a list of strings into a list of NightActions,
+     * filtering out any invalid entries.
+     * @param nightList The list of character IDs for the night order.
+     * @return The list of NightActions corresponding to the character IDs, in the order they appear in the list.
+     */
+    private List<NightAction> nightOrderFromSuperlist(List<String> nightList) {
+        return nightList.stream()
+                .map(s -> NightAction.nightActionFromScript(this, s))
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    /**
      * Get the order of actions for the first night.
      * @param isTeensy Whether the game is in teensy mode.
      * @return The list of NightActions in the order they act on the first night.
      */
     public List<NightAction> firstNightOrder(boolean isTeensy) {
-        ArrayList<NightAction> order = new ArrayList<>();
-        if (meta.firstNight != null && !meta.firstNight.isEmpty()) {
-            // Use predefined first night order from meta
-            meta.firstNight.forEach(s -> order.add(NightAction.nightActionFromScript(this, s)));
-        } else {
-            // Sort characters by firstNight value
-            characters.stream()
-                    .filter(c -> c.firstNight() > 0)
-                    .sorted(Comparator.comparingInt(botcCharacter::firstNight))
-                    .map(NightAction::characterNightAction)
-                    .forEach(order::add);
-            if (!isTeensy) {
-                order.addFirst(NightAction.DEMONINFO);
-                order.addFirst(NightAction.MINIONINFO);
-            }
-            order.addFirst(NightAction.DUSK);
-            order.add(NightAction.DAWN);
-        }
-
-        return order;
+        return nightOrderFromSuperlist(meta.firstNight() != null && !meta.firstNight().isEmpty() ? meta.firstNight()
+                : CharacterLoader.firstNightOrder);
     }
 
     /**
@@ -204,22 +198,8 @@ public record Script(Meta meta, List<botcCharacter> characters) {
      * @return The list of NightActions in the order they act on nights other than the first.
      */
     public List<NightAction> otherNightOrder() {
-        List<NightAction> order = new ArrayList<>();
-        if (meta.otherNight != null && !meta.otherNight.isEmpty()) {
-            // Use predefined other night order from meta
-            meta.otherNight.forEach(s -> order.add(NightAction.nightActionFromScript(this, s)));
-        } else {
-            // Sort characters by otherNight value
-            characters.stream()
-                    .filter(c -> c.otherNight() > 0)
-                    .sorted(Comparator.comparingInt(botcCharacter::otherNight))
-                    .map(NightAction::characterNightAction)
-                    .forEach(order::add);
-            order.addFirst(NightAction.DUSK);
-            order.add(NightAction.DAWN);
-        }
-
-        return order;
+        return nightOrderFromSuperlist(meta.otherNight() != null && !meta.otherNight().isEmpty() ? meta.otherNight()
+                : CharacterLoader.otherNightOrder);
     }
 
     /**
@@ -272,7 +252,7 @@ public record Script(Meta meta, List<botcCharacter> characters) {
                 .filter(c -> c.team().equals(team))
                 .forEach(teamCharacters::add);
         if (seeAll) {
-            for (botcCharacter botcCharacter : botcCharacter.baseCharacters) {
+            for (botcCharacter botcCharacter : CharacterLoader.baseCharacters) {
                 if (botcCharacter.team().equals(team)) {
                     teamCharacters.add(botcCharacter);
                 }
@@ -281,14 +261,14 @@ public record Script(Meta meta, List<botcCharacter> characters) {
         return teamCharacters.stream().toList();
     }
 
-    @Override
-    public @NotNull String toString() {
-        return "Script[name='" + meta.name + "', author='" + meta.author + "', logo='" + meta.logo +
-                "', hideTitle=" + meta.hideTitle + ", background='" + meta.background + "', almanac='" + meta.almanac +
-                "', bootlegger=" + meta.bootlegger + ", firstNight=" + meta.firstNight +
-                ", otherNight=" + meta.otherNight + ", color=" + Arrays.toString(meta.colour) +
-                ", characters=[" + characters.size() + " characters]]";
-    }
+//    @Override
+//    public @NotNull String toString() {
+//        return "Script[name='" + meta.name + "', author='" + meta.author + "', logo='" + meta.logo +
+//                "', hideTitle=" + meta.hideTitle + ", background='" + meta.background + "', almanac='" + meta.almanac +
+//                "', bootlegger=" + meta.bootlegger + ", firstNight=" + meta.firstNight +
+//                ", otherNight=" + meta.otherNight + ", color=" + Arrays.toString(meta.colour) +
+//                ", characters=[" + characters.size() + " characters]]";
+//    }
 
     /**
      * Meta information that appears as the first element in array script files.

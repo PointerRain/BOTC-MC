@@ -45,8 +45,8 @@ public class ScriptDeserializer implements JsonDeserializer<Script> {
                 almanac = getString(metaObj, "almanac");
                 flavor = getString(metaObj, "flavor");
                 bootlegger = getStringList(metaObj, "bootlegger");
-                firstNight = getStringList(metaObj, "first_night");
-                otherNight = getStringList(metaObj, "other_night");
+                firstNight = getStringList(metaObj, "firstNight");
+                otherNight = getStringList(metaObj, "otherNight");
 
                 if (metaObj.has("colour") && metaObj.get("colour").isJsonArray()) {
                     JsonArray colourArray = metaObj.get("colour").getAsJsonArray();

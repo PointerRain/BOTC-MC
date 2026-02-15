@@ -1,13 +1,14 @@
 package golden.botc_mc.botc_mc;
 
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
+import golden.botc_mc.botc_mc.game.CharacterLoader;
+import golden.botc_mc.botc_mc.game.NightType;
 import golden.botc_mc.botc_mc.game.botcCharacter;
 import golden.botc_mc.botc_mc.game.Script;
 import golden.botc_mc.botc_mc.game.botcActive;
 import golden.botc_mc.botc_mc.game.botcCommands;
 import golden.botc_mc.botc_mc.game.botcConfig;
 import golden.botc_mc.botc_mc.game.botcWaiting;
-import golden.botc_mc.botc_mc.game.seat.Seat;
 import golden.botc_mc.botc_mc.game.voice.VoiceRegionManager;
 import golden.botc_mc.botc_mc.game.voice.VoiceRegionService;
 import golden.botc_mc.botc_mc.game.voice.VoiceRegionTask;
@@ -112,10 +113,20 @@ public class botc implements ModInitializer {
 
             @Override
             public void reload(ResourceManager manager) {
+
+                Resource firstNight = manager.getResource(Identifier.of(
+                        "botc-mc:character_data/first_night.json")).orElse(null);
+                CharacterLoader.registerNightOrder(NightType.FIRST, firstNight);
+
+                Resource otherNight = manager.getResource(Identifier.of(
+                        "botc-mc:character_data/other_night.json")).orElse(null);
+                CharacterLoader.registerNightOrder(NightType.OTHER, otherNight);
+
                 Resource baseCharacters = manager.getResource(Identifier.of("botc-mc:character_data/base_characters" +
                         ".json")).orElse(null);
+//                baseCharacters = null;
+                CharacterLoader.registerBaseCharacters(baseCharacters);
                 if (baseCharacters != null) {
-                    botcCharacter.registerBaseCharacters(baseCharacters);
                     // Log some botcCharacter data to verify loading
                     LOGGER.debug(new botcCharacter("washerwoman"));
                     LOGGER.debug(new botcCharacter("pithag"));
@@ -237,19 +248,6 @@ public class botc implements ModInitializer {
      */
     public static List<botcActive> getActiveGames() {
         return activeGames;
-    }
-
-    /**
-     * Get the Seat object for the given ServerPlayerEntity
-     * @param player The player to get the botcPlayer object for
-     * @return The Seat object, or null if the player is not in an active game
-     */
-    public static Seat getSeatFromPlayer(ServerPlayerEntity player) {
-        botcActive activeGame = getActiveGameFromPlayer(player);
-        if (activeGame != null) {
-            return activeGame.getSeatManager().getSeatFromPlayer(player);
-        }
-        return null;
     }
 
     /**
