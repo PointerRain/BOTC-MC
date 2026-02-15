@@ -16,7 +16,7 @@ public class NightAction {
     public static final NightAction MINIONINFO = new NightAction("minioninfo");
     public static final NightAction DEMONINFO = new NightAction("demoninfo");
 
-    final String id;
+    public final String id;
 
     public NightAction(String id) {
         this.id = id;
@@ -85,7 +85,10 @@ public class NightAction {
         }
         botcCharacter botcCharacter = script.characters().stream()
                 .filter(c -> c.id().equals(characterId))
-                .findFirst().orElseThrow();
+                .findFirst().orElse(null);
+        if (botcCharacter == null) {
+            return null;
+        }
         return new CharacterNightAction(botcCharacter);
     }
 
