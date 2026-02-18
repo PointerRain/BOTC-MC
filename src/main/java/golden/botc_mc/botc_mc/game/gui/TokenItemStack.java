@@ -2,7 +2,6 @@ package golden.botc_mc.botc_mc.game.gui;
 
 import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.CharacterLoader;
-import golden.botc_mc.botc_mc.game.NightAction;
 import golden.botc_mc.botc_mc.game.Script;
 import golden.botc_mc.botc_mc.game.Team;
 import golden.botc_mc.botc_mc.game.botcCharacter;
@@ -10,8 +9,10 @@ import golden.botc_mc.botc_mc.game.seat.Seat;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.CustomModelDataComponent;
 import net.minecraft.component.type.LoreComponent;
+import net.minecraft.component.type.NbtComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
@@ -26,97 +27,62 @@ import java.util.Objects;
  */
 public record TokenItemStack(ItemStack tokenItem) {
 
-    private static CustomModelDataComponent customModelData(boolean actsFirstNight, boolean actsOtherNights,
-                                                            boolean setup, int reminders, String team,
-                                                            List<Integer> colours) {
-        List<Float> floats = List.of((float) reminders);
-        List<Boolean> booleans = List.of(actsFirstNight, actsOtherNights, setup);
-        List<String> strings = List.of(team);
-
-        return new CustomModelDataComponent(
-            floats, booleans, strings, colours
-        );
+    private static NbtComponent createCustomData(boolean actsFirstNight, boolean actsOtherNights,
+                                                 boolean setup, int reminders, String team) {
+        NbtCompound tag = new NbtCompound();
+        tag.putBoolean("firstNight", actsFirstNight);
+        tag.putBoolean("otherNights", actsOtherNights);
+        tag.putBoolean("setup", setup);
+        tag.putString("reminders", String.valueOf(reminders));
+        tag.putString("team", team);
+        return NbtComponent.of(tag);
     }
 
-    private static CustomModelDataComponent customModelData(botcCharacter character, Script script,
-                                                            List<Integer> colours) {
-        boolean actsFirstNight = false;
-        boolean actsOtherNights = false;
-        for (NightAction nightAction : script.firstNightOrder(false)) {
-            if (Objects.equals(nightAction.id, character.id())) {
-                actsFirstNight = true;
-                break;
-            }
-        }
-        for (NightAction nightAction : script.otherNightOrder()) {
-            if (Objects.equals(nightAction.id, character.id())) {
-                actsOtherNights = true;
-                break;
-            }
-        }
-
-        int reminders = 0;
-        if (character.reminders() != null) {
-            reminders += character.reminders().size();
-        }
-        if (character.remindersGlobal() != null) {
-            reminders += character.remindersGlobal().size();
-        }
-
-        return customModelData(actsFirstNight, actsOtherNights, character.setup(), reminders,
-                character.team() != null ? character.team().toString() : "none",
-                colours);
+    private static CustomModelDataComponent createCustomModelData(List<Integer> colours) {
+        return new CustomModelDataComponent(List.of(), List.of(), List.of(), colours);
     }
 
-    private static CustomModelDataComponent customModelData(botcCharacter character, List<Integer> colours) {
-        boolean actsFirstNight = false;
-        boolean actsOtherNights = false;
-        for (String nightAction : CharacterLoader.firstNightOrder) {
-            if (Objects.equals(nightAction, character.id())) {
-                actsFirstNight = true;
-                break;
-            }
-        }
-        for (String nightAction : CharacterLoader.otherNightOrder) {
-            if (Objects.equals(nightAction, character.id())) {
-                actsOtherNights = true;
-                break;
-            }
-        }
+    private static NbtComponent createCustomData(botcCharacter character, Script script) {
+        boolean actsFirstNight = script.firstNightOrder(false).stream()
+            .anyMatch(action -> Objects.equals(action.id, character.id()));
+        boolean actsOtherNights = script.otherNightOrder().stream()
+            .anyMatch(action -> Objects.equals(action.id, character.id()));
 
-        int reminders = 0;
-        if (character.reminders() != null) {
-            reminders += character.reminders().size();
-        }
-        if (character.remindersGlobal() != null) {
-            reminders += character.remindersGlobal().size();
-        }
+        int reminders = (character.reminders() != null ? character.reminders().size() : 0) +
+                        (character.remindersGlobal() != null ? character.remindersGlobal().size() : 0);
 
-        return customModelData(actsFirstNight, actsOtherNights, character.setup(), reminders,
-                character.team() != null ? character.team().toString() : "none",
-                colours);
+        return createCustomData(actsFirstNight, actsOtherNights, character.setup(), reminders,
+                character.team() != null ? character.team().toString() : "none");
     }
 
+    private static NbtComponent createCustomData(botcCharacter character) {
+        boolean actsFirstNight = CharacterLoader.firstNightOrder.stream()
+            .anyMatch(action -> Objects.equals(action, character.id()));
+        boolean actsOtherNights = CharacterLoader.otherNightOrder.stream()
+            .anyMatch(action -> Objects.equals(action, character.id()));
 
-    private static ItemStack unformattedToken(botcCharacter character) {
+        int reminders = (character.reminders() != null ? character.reminders().size() : 0) +
+                        (character.remindersGlobal() != null ? character.remindersGlobal().size() : 0);
+
+        return createCustomData(actsFirstNight, actsOtherNights, character.setup(), reminders,
+                character.team() != null ? character.team().toString() : "none");
+    }
+
+    private static ItemStack createUnformattedToken(botcCharacter character) {
         ItemStack tokenItem = new ItemStack(
-                character.team() == null ? Items.FLOW_POTTERY_SHERD :
-                switch (character.team()) {
-                    case Team.TOWNSFOLK -> Items.HEART_POTTERY_SHERD;
-                    case Team.OUTSIDER -> Items.ANGLER_POTTERY_SHERD;
-                    case Team.MINION -> Items.BREWER_POTTERY_SHERD;
-                    case Team.DEMON -> Items.SKULL_POTTERY_SHERD;
-                    case Team.TRAVELLER -> Items.PRIZE_POTTERY_SHERD;
-                    case Team.FABLED -> Items.BURN_POTTERY_SHERD;
-                    case Team.LORIC -> Items.PLENTY_POTTERY_SHERD;
-                }
+            character.team() == null ? Items.FLOW_POTTERY_SHERD : switch (character.team()) {
+                case Team.TOWNSFOLK -> Items.HEART_POTTERY_SHERD;
+                case Team.OUTSIDER -> Items.ANGLER_POTTERY_SHERD;
+                case Team.MINION -> Items.BREWER_POTTERY_SHERD;
+                case Team.DEMON -> Items.SKULL_POTTERY_SHERD;
+                case Team.TRAVELLER -> Items.PRIZE_POTTERY_SHERD;
+                case Team.FABLED -> Items.BURN_POTTERY_SHERD;
+                case Team.LORIC -> Items.PLENTY_POTTERY_SHERD;
+            }
         );
 
-        if (character.token() != null) {
-            tokenItem.set(DataComponentTypes.ITEM_MODEL, Identifier.of(botc.ID, "tokens/" + character.token()));
-        } else {
-            tokenItem.set(DataComponentTypes.ITEM_MODEL, Identifier.of(botc.ID, "tokens/empty"));
-        }
+        String tokenPath = character.token() != null ? "tokens/" + character.token() : "tokens/empty";
+        tokenItem.set(DataComponentTypes.ITEM_MODEL, Identifier.of(botc.ID, tokenPath));
 
         MutableText nameText = (MutableText) character.toFormattedText(false, true, true, false);
         nameText.styled(style -> style.withItalic(false));
@@ -136,30 +102,32 @@ public record TokenItemStack(ItemStack tokenItem) {
 
     /**
      * Create a token ItemStack for the given character.
-     * The token's appearance and lore are based on the character's team and ability.
-     * {@code of(Seat)} is preferred when creating tokens for seats, as it sets the name and alignment appropriately.
+     * The token's appearance and lore are based on the character's team and ability.<br>
+     * {@link #of(Seat, Script)} is preferred when creating tokens for seats, as it sets the name and alignment appropriately.<br>
+     * {@link #of(botcCharacter, Script)} is preferred when creating tokens for characters in a specific script, as it includes script-specific data.
      * @param character The character for whom to create the token.
      * @return An ItemStack representing the character's token.
      */
-    public static ItemStack ofx(botcCharacter character) {
-        ItemStack tokenItem = unformattedToken(character);
+    public static ItemStack of(botcCharacter character) {
+        ItemStack tokenItem = createUnformattedToken(character);
 
         List<Integer> colours = List.of();
         if (character.team() != null && character.team().getColour(false) != null) {
-            Integer colourValue = character.team().getColour(false).getColorValue();
-            if (colourValue != null) {
-                colours = List.of(colourValue);
+        Integer colourValue = character.team().getColour(false).getColorValue();
+        if (colourValue != null) {
+            colours = List.of(colourValue);
             }
         }
 
-        tokenItem.set(DataComponentTypes.CUSTOM_MODEL_DATA, customModelData(character, colours));
+        tokenItem.set(DataComponentTypes.CUSTOM_MODEL_DATA, createCustomModelData(colours));
+        tokenItem.set(DataComponentTypes.CUSTOM_DATA, createCustomData(character));
 
         return tokenItem;
     }
 
     public static ItemStack of(botcCharacter character, Script script) {
         botc.LOGGER.info("This script4 is: {}", script);
-        ItemStack tokenItem = unformattedToken(character);
+        ItemStack tokenItem = createUnformattedToken(character);
 
         List<Integer> colours = List.of();
         if (character.team() != null && character.team().getColour(false) != null) {
@@ -169,7 +137,8 @@ public record TokenItemStack(ItemStack tokenItem) {
             }
         }
 
-        tokenItem.set(DataComponentTypes.CUSTOM_MODEL_DATA, customModelData(character, script, colours));
+        tokenItem.set(DataComponentTypes.CUSTOM_MODEL_DATA, createCustomModelData(colours));
+        tokenItem.set(DataComponentTypes.CUSTOM_DATA, createCustomData(character, script));
 
         return tokenItem;
     }
@@ -182,8 +151,7 @@ public record TokenItemStack(ItemStack tokenItem) {
      */
     public static ItemStack of(Seat seat, Script script) {
         botcCharacter character = seat.getCharacter();
-        ItemStack tokenItem = unformattedToken(character);
-
+        ItemStack tokenItem = createUnformattedToken(character);
         tokenItem.set(DataComponentTypes.CUSTOM_NAME, seat.getCharacterText());
 
         List<Integer> colours = List.of();
@@ -192,7 +160,8 @@ public record TokenItemStack(ItemStack tokenItem) {
             colours = List.of(colourValue);
         }
 
-        tokenItem.set(DataComponentTypes.CUSTOM_MODEL_DATA, customModelData(character, script, colours));
+        tokenItem.set(DataComponentTypes.CUSTOM_MODEL_DATA, createCustomModelData(colours));
+        tokenItem.set(DataComponentTypes.CUSTOM_DATA, createCustomData(character, script));
 
         return tokenItem;
     }
@@ -212,10 +181,8 @@ public record TokenItemStack(ItemStack tokenItem) {
             tokenItem.set(DataComponentTypes.ITEM_MODEL, Identifier.of(botc.ID, "reminders/" + token.character().token()));
             Integer colourValue = token.character().team().getColour(false).getColorValue();
             if (colourValue != null) {
-                CustomModelDataComponent customModelDataComponent = new CustomModelDataComponent(
-                    List.of(), List.of(), List.of(), List.of(colourValue)
-                );
-                tokenItem.set(DataComponentTypes.CUSTOM_MODEL_DATA, customModelDataComponent);
+                tokenItem.set(DataComponentTypes.CUSTOM_MODEL_DATA, new CustomModelDataComponent(
+                    List.of(), List.of(), List.of(), List.of(colourValue)));
             }
         }
 

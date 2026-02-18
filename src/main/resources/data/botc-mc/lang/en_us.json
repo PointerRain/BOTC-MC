@@ -81,6 +81,7 @@
   "commands.botc-mc.seat.clear.success":  "Cleared seat %s",
   "commands.botc-mc.seat.clear.failure": "Couldn't clear seat %s as it is out of range",
   "commands.botc-mc.seat.sit.success":  "Sat in seat %s",
+  "commands.botc-mc.seat.sit.failure": "Couldn't sit in seat %s",
   "commands.botc-mc.seat.sit.failure.out_of_range": "Couldn't sit in seat %s as it is out of range",
   "commands.botc-mc.seat.sit.failure.already_sitting": "Couldn't sit in seat %s",
   "commands.botc-mc.seat.sit.failure.occupied": "Couldn't sit in seat %s as it is occupied",

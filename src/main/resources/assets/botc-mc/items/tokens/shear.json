@@ -1,15 +1,104 @@
 {
   "model": {
-    "type": "minecraft:model",
-    "model": "botc-mc:item/tokens/shear",
-    "tints": [
+    "type": "minecraft:composite",
+    "models": [
       {
-        "type": "minecraft:constant",
-        "value": 16777215
+        "type": "minecraft:model",
+        "model": "botc-mc:item/tokens/shear",
+        "tints": [
+          {
+            "type": "minecraft:constant",
+            "value": 16777215
+          },
+          {
+            "type": "minecraft:custom_model_data",
+            "default": 16777215
+          }
+        ]
       },
       {
-        "type": "minecraft:custom_model_data",
-        "default": 16777215
+        "type": "minecraft:condition",
+        "property": "minecraft:component",
+        "predicate": "minecraft:custom_data",
+        "value": {
+          "firstNight": true
+        },
+        "on_true": {
+          "type": "minecraft:model",
+          "model": "botc-mc:item/leaf/leaf_left"
+        },
+        "on_false": {
+          "type": "minecraft:empty"
+        }
+      },
+      {
+        "type": "minecraft:condition",
+        "property": "minecraft:component",
+        "predicate": "minecraft:custom_data",
+        "value": {
+          "otherNights": true
+        },
+        "on_true": {
+          "type": "minecraft:model",
+          "model": "botc-mc:item/leaf/leaf_right"
+        },
+        "on_false": {
+          "type": "minecraft:empty"
+        }
+      },
+      {
+        "type": "minecraft:condition",
+        "property": "minecraft:component",
+        "predicate": "minecraft:custom_data",
+        "value": {
+          "setup": true
+        },
+        "on_true": {
+          "type": "minecraft:model",
+          "model": "botc-mc:item/leaf/leaf_setup"
+        },
+        "on_false": {
+          "type": "minecraft:empty"
+        }
+      },
+      {
+        "type": "minecraft:condition",
+        "property": "minecraft:component",
+        "predicate": "minecraft:custom_data",
+        "value": {
+          "reminders": "0"
+        },
+        "on_true": {
+          "type": "minecraft:empty"
+        },
+        "on_false": {
+          "type": "minecraft:condition",
+          "property": "minecraft:component",
+          "predicate": "minecraft:custom_data",
+          "value": {
+            "reminders": "1"
+          },
+          "on_true": {
+            "type": "minecraft:model",
+            "model": "botc-mc:item/leaf/leaf_top_1"
+          },
+          "on_false": {
+            "type": "minecraft:condition",
+            "property": "minecraft:component",
+            "predicate": "minecraft:custom_data",
+            "value": {
+              "reminders": "2"
+            },
+            "on_true": {
+              "type": "minecraft:model",
+              "model": "botc-mc:item/leaf/leaf_top_2"
+            },
+            "on_false": {
+              "type": "minecraft:model",
+              "model": "botc-mc:item/leaf/leaf_top_3"
+            }
+          }
+        }
       }
     ]
   }
