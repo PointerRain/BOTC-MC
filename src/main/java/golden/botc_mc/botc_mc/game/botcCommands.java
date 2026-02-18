@@ -7,6 +7,7 @@ import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.exceptions.InvalidAlignmentException;
 import golden.botc_mc.botc_mc.game.exceptions.InvalidSeatException;
 import golden.botc_mc.botc_mc.game.gui.GrimoireGUI;
+import golden.botc_mc.botc_mc.game.gui.TokenItemStack;
 import golden.botc_mc.botc_mc.game.map.Map;
 import golden.botc_mc.botc_mc.game.seat.PlayerSeat;
 import golden.botc_mc.botc_mc.game.seat.Seat;
@@ -599,6 +600,28 @@ public final class botcCommands {
                                 }
 
                             })));
+
+            root.then(literal("token").then(CommandManager.argument("character", StringArgumentType.word())
+                .executes(ctx -> {
+                    ServerCommandSource src = ctx.getSource();
+                    if (!(src.getEntity() instanceof ServerPlayerEntity player)) {
+                        src.sendFeedback(() -> Text.translatable("commands.botc-mc.non-player"), false);
+                        return 0;
+                    }
+
+                    String id = StringArgumentType.getString(ctx, "character");
+                    botcCharacter character = CharacterLoader.findCharacterById(id);
+
+                    ItemStack token = TokenItemStack.of(character);
+                    if (player.getInventory().insertStack(token)) {
+                        player.sendMessage(Text.translatable("commands.botc-mc.token.success", character.name()), false);
+                        return 1;
+                    } else {
+                        src.sendError(Text.translatable("commands.botc-mc.token.failure", character.name()));
+                        return 0;
+                    }
+
+                })));
 
             dispatcher.register(root);
         });
