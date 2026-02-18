@@ -3,6 +3,11 @@ package golden.botc_mc.botc_mc.game.gui;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 
+/**
+ * Enum representing different button icons for GUI elements.
+ * Each enum constant corresponds to a specific action or purpose in the GUI.
+ * The toItemStack method provides a way to convert the enum constant to a corresponding ItemStack for display in the GUI.
+ */
 public enum ButtonIcon {
     ADD,
     DELETE,
@@ -21,7 +26,9 @@ public enum ButtonIcon {
     NOMINATE,
     PROMOTE,
     DEMOTE,
-    TELEPORT;
+    TELEPORT,
+    MORE,
+    LESS;
 
     ItemStack toItemStack() {
         return switch (this) {
@@ -30,8 +37,8 @@ public enum ButtonIcon {
 
             case LEFT -> new ItemStack(Items.ARROW); // Placeholder
             case RIGHT -> new ItemStack(Items.ARROW); // Placeholder
-            case UP, PROMOTE -> new ItemStack(Items.FEATHER); // Placeholder
-            case DOWN, DEMOTE -> new ItemStack(Items.FEATHER); // Placeholder
+            case UP, PROMOTE -> new ItemStack(Items.GLOWSTONE_DUST); // Placeholder
+            case DOWN, DEMOTE -> new ItemStack(Items.GUNPOWDER); // Placeholder
 
             case CLOSE -> new ItemStack(Items.BARRIER); // Placeholder
             case CONFIRM -> new ItemStack(Items.LIME_DYE); // Placeholder
@@ -47,21 +54,10 @@ public enum ButtonIcon {
 
             case TELEPORT -> new ItemStack(Items.ENDER_PEARL);
 
+            case MORE -> new ItemStack(Items.PAPER);
+            case LESS -> new ItemStack(Items.PAPER);
+
             default -> new ItemStack(Items.PAPER); // Fallback
         };
     }
 }
-
-// Button icons
-// Add       +
-// Delete    bin
-// Left      <    spectator scroll left /highlighted
-// Right     >    spectator scroll right /highlighted
-// Close     X    invite reject /highlighted
-// Confirm   ✓    invite accept /highlighted
-// Shuffle   ><
-// Up        ^    statistics sort up /highlighted
-// Down      v    statistics sort down /highlighted
-// Edit      ✎
-// Kill      skull
-// Revive    skull

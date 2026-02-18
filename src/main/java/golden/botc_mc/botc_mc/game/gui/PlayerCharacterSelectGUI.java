@@ -51,11 +51,13 @@ public class PlayerCharacterSelectGUI extends AbstractSelectionGUI<botcCharacter
         if (seeTravellers) {
             this.setSlot(9 * this.getHeight() - 5, ButtonBuilder.buildButton(
                     Text.translatable("gui.botc-mc.selection.character.non_travellers"),
+                    ButtonIcon.MORE,
                     (i, c, a, g) -> new PlayerCharacterSelectGUI(player, script, onSelectItem, onCancel,
                                                      false, 0).open()));
         } else {
             this.setSlot(9 * this.getHeight() - 5, ButtonBuilder.buildButton(
                     Text.translatable("gui.botc-mc.selection.character.travellers"),
+                    ButtonIcon.LESS,
                     (i, c, a, g) -> new PlayerCharacterSelectGUI(player, script, onSelectItem, onCancel,
                                                      true, 0).open()));
         }

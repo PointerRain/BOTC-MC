@@ -54,10 +54,12 @@ public class ReminderSelectGUI extends AbstractSelectionGUI<botcCharacter.Remind
         if (!seeAll) {
             this.setSlot(9 * this.getHeight() - 5, ButtonBuilder.buildButton(
                     Text.translatable("gui.botc-mc.selection.reminder.see_all"),
+                    ButtonIcon.MORE,
                     (i, c, a, g) -> new ReminderSelectGUI(player, script, seatManager, onSelectItem, onCancel, true, 0).open()));
         } else {
             this.setSlot(9 * this.getHeight() - 5, ButtonBuilder.buildButton(
                     Text.translatable("gui.botc-mc.selection.reminder.in_play"),
+                    ButtonIcon.LESS,
                     (i, c, a, g) -> new ReminderSelectGUI(player, script, seatManager, onSelectItem, onCancel, false, 0).open()));
         }
     }
