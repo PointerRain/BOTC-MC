@@ -221,7 +221,8 @@ public class GrimoireGUI extends LayeredGui {
             moreItem.set(DataComponentTypes.CUSTOM_NAME, moreText);
             List<Text> allRemindersText = new ArrayList<>();
             for (int i = maxReminders; i < reminders.size(); i++) {
-                MutableText reminderText = (MutableText) Text.of("- " + reminders.get(i).reminder());
+                MutableText reminderText = (MutableText) Text.of("- ");
+                reminderText.append(Text.translatable(reminders.get(i).reminder()));
                 reminderText.styled(style -> style.withColor(Formatting.WHITE).withItalic(false));
                 allRemindersText.add(reminderText);
             }

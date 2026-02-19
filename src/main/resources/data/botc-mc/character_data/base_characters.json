@@ -4,8 +4,8 @@
         "edition": "tb",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.townsfolk",
-            "reminder.botc-mc.wrong"
+            "reminder.botc.townsfolk",
+            "reminder.botc.wrong"
         ],
         "setup": false,
         "firstNight": 50,
@@ -16,8 +16,8 @@
         "edition": "tb",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.outsider",
-            "reminder.botc-mc.wrong"
+            "reminder.botc.outsider",
+            "reminder.botc.wrong"
         ],
         "setup": false,
         "firstNight": 51,
@@ -28,8 +28,8 @@
         "edition": "tb",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.minion",
-            "reminder.botc-mc.wrong"
+            "reminder.botc.minion",
+            "reminder.botc.wrong"
         ],
         "setup": false,
         "firstNight": 52,
@@ -57,7 +57,7 @@
         "edition": "tb",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.redherring"
+            "reminder.botc.redherring"
         ],
         "setup": false,
         "firstNight": 55,
@@ -69,7 +69,7 @@
         "edition": "tb",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.diedtoday"
+            "reminder.botc.diedtoday"
         ],
         "setup": false,
         "otherNight": 76,
@@ -80,7 +80,7 @@
         "edition": "tb",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.safe"
+            "reminder.botc.safe"
         ],
         "setup": false,
         "otherNight": 22,
@@ -99,7 +99,7 @@
         "edition": "tb",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.noability"
+            "reminder.botc.noability"
         ],
         "setup": false,
         "token": "heartbreak"
@@ -109,7 +109,7 @@
         "edition": "tb",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.noability"
+            "reminder.botc.noability"
         ],
         "setup": false,
         "token": "archer"
@@ -133,7 +133,7 @@
         "edition": "tb",
         "team": "outsider",
         "reminders": [
-            "reminder.botc-mc.master"
+            "reminder.botc.master"
         ],
         "setup": false,
         "firstNight": 56,
@@ -151,7 +151,7 @@
         "edition": "tb",
         "team": "outsider",
         "remindersGlobal": [
-            "reminder.botc-mc.isthedrunk"
+            "reminder.botc.isthedrunk"
         ],
         "setup": true,
         "special": [
@@ -195,7 +195,7 @@
         "edition": "tb",
         "team": "minion",
         "reminders": [
-            "reminder.botc-mc.poisoned"
+            "reminder.botc.poisoned"
         ],
         "setup": false,
         "firstNight": 31,
@@ -237,7 +237,7 @@
         "edition": "tb",
         "team": "minion",
         "reminders": [
-            "reminder.botc-mc.isthedemon"
+            "reminder.botc.isthedemon"
         ],
         "setup": false,
         "otherNight": 31,
@@ -265,7 +265,7 @@
         "edition": "tb",
         "team": "demon",
         "reminders": [
-            "reminder.botc-mc.dead"
+            "reminder.botc.dead"
         ],
         "setup": false,
         "otherNight": 38,
@@ -276,7 +276,7 @@
         "edition": "tb",
         "team": "traveller",
         "reminders": [
-            "reminder.botc-mc.3votes"
+            "reminder.botc.3votes"
         ],
         "setup": false,
         "special": [
@@ -295,7 +295,7 @@
         "edition": "tb",
         "team": "traveller",
         "reminders": [
-            "reminder.botc-mc.negativevote"
+            "reminder.botc.negativevote"
         ],
         "setup": false,
         "special": [
@@ -335,8 +335,8 @@
         "edition": "bmr",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.grandchild",
-            "reminder.botc-mc.dead"
+            "reminder.botc.grandchild",
+            "reminder.botc.dead"
         ],
         "setup": false,
         "firstNight": 57,
@@ -348,7 +348,7 @@
         "edition": "bmr",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.drunk"
+            "reminder.botc.drunk"
         ],
         "setup": false,
         "firstNight": 24,
@@ -369,7 +369,7 @@
         "edition": "bmr",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.chosen"
+            "reminder.botc.chosen"
         ],
         "setup": false,
         "otherNight": 34,
@@ -380,9 +380,9 @@
         "edition": "bmr",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.safe",
-            "reminder.botc-mc.safe",
-            "reminder.botc-mc.drunk"
+            "reminder.botc.safe",
+            "reminder.botc.safe",
+            "reminder.botc.drunk"
         ],
         "setup": false,
         "otherNight": 17,
@@ -393,7 +393,7 @@
         "edition": "bmr",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.dead"
+            "reminder.botc.dead"
         ],
         "setup": false,
         "otherNight": 19,
@@ -404,7 +404,7 @@
         "edition": "bmr",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.dead"
+            "reminder.botc.dead"
         ],
         "setup": false,
         "otherNight": 56,
@@ -415,10 +415,10 @@
         "edition": "bmr",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.drunk3",
-            "reminder.botc-mc.drunk2",
-            "reminder.botc-mc.drunk1",
-            "reminder.botc-mc.noability"
+            "reminder.botc.drunk3",
+            "reminder.botc.drunk2",
+            "reminder.botc.drunk1",
+            "reminder.botc.noability"
         ],
         "setup": false,
         "firstNight": 33,
@@ -430,8 +430,8 @@
         "edition": "bmr",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.alive",
-            "reminder.botc-mc.noability"
+            "reminder.botc.alive",
+            "reminder.botc.noability"
         ],
         "setup": false,
         "otherNight": 63,
@@ -442,7 +442,7 @@
         "edition": "bmr",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.everyoneisdrunk"
+            "reminder.botc.everyoneisdrunk"
         ],
         "setup": false,
         "token": "play"
@@ -452,8 +452,8 @@
         "edition": "bmr",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.cannotdie",
-            "reminder.botc-mc.cannotdie"
+            "reminder.botc.cannotdie",
+            "reminder.botc.cannotdie"
         ],
         "setup": false,
         "token": "dream"
@@ -470,7 +470,7 @@
         "edition": "bmr",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.noability"
+            "reminder.botc.noability"
         ],
         "setup": false,
         "token": "miner"
@@ -480,7 +480,7 @@
         "edition": "bmr",
         "team": "outsider",
         "reminders": [
-            "reminder.botc-mc.dead"
+            "reminder.botc.dead"
         ],
         "setup": false,
         "otherNight": 69,
@@ -491,7 +491,7 @@
         "edition": "bmr",
         "team": "outsider",
         "reminders": [
-            "reminder.botc-mc.dead"
+            "reminder.botc.dead"
         ],
         "setup": false,
         "otherNight": 70,
@@ -502,7 +502,7 @@
         "edition": "bmr",
         "team": "outsider",
         "reminders": [
-            "reminder.botc-mc.drunk"
+            "reminder.botc.drunk"
         ],
         "setup": false,
         "token": "scoop"
@@ -512,9 +512,9 @@
         "edition": "bmr",
         "team": "outsider",
         "reminders": [
-            "reminder.botc-mc.chosen",
-            "reminder.botc-mc.chosen",
-            "reminder.botc-mc.chosen"
+            "reminder.botc.chosen",
+            "reminder.botc.chosen",
+            "reminder.botc.chosen"
         ],
         "setup": false,
         "firstNight": 20,
@@ -526,8 +526,8 @@
         "edition": "bmr",
         "team": "minion",
         "reminders": [
-            "reminder.botc-mc.diedtoday",
-            "reminder.botc-mc.dead"
+            "reminder.botc.diedtoday",
+            "reminder.botc.dead"
         ],
         "setup": true,
         "firstNight": 36,
@@ -539,7 +539,7 @@
         "edition": "bmr",
         "team": "minion",
         "reminders": [
-            "reminder.botc-mc.survivesexecution"
+            "reminder.botc.survivesexecution"
         ],
         "setup": false,
         "firstNight": 38,
@@ -551,8 +551,8 @@
         "edition": "bmr",
         "team": "minion",
         "reminders": [
-            "reminder.botc-mc.dead",
-            "reminder.botc-mc.noability"
+            "reminder.botc.dead",
+            "reminder.botc.noability"
         ],
         "setup": false,
         "otherNight": 54,
@@ -576,8 +576,8 @@
         "edition": "bmr",
         "team": "demon",
         "reminders": [
-            "reminder.botc-mc.diedtoday",
-            "reminder.botc-mc.dead"
+            "reminder.botc.diedtoday",
+            "reminder.botc.dead"
         ],
         "setup": false,
         "otherNight": 39,
@@ -588,9 +588,9 @@
         "edition": "bmr",
         "team": "demon",
         "reminders": [
-            "reminder.botc-mc.poisoned",
-            "reminder.botc-mc.poisoned",
-            "reminder.botc-mc.dead"
+            "reminder.botc.poisoned",
+            "reminder.botc.poisoned",
+            "reminder.botc.dead"
         ],
         "setup": false,
         "firstNight": 45,
@@ -602,9 +602,9 @@
         "edition": "bmr",
         "team": "demon",
         "reminders": [
-            "reminder.botc-mc.dead",
-            "reminder.botc-mc.dead",
-            "reminder.botc-mc.alive"
+            "reminder.botc.dead",
+            "reminder.botc.dead",
+            "reminder.botc.alive"
         ],
         "setup": false,
         "otherNight": 41,
@@ -615,10 +615,10 @@
         "edition": "bmr",
         "team": "demon",
         "reminders": [
-            "reminder.botc-mc.dead",
-            "reminder.botc-mc.dead",
-            "reminder.botc-mc.dead",
-            "reminder.botc-mc.3attacks"
+            "reminder.botc.dead",
+            "reminder.botc.dead",
+            "reminder.botc.dead",
+            "reminder.botc.3attacks"
         ],
         "setup": false,
         "otherNight": 42,
@@ -629,7 +629,7 @@
         "edition": "bmr",
         "team": "traveller",
         "reminders": [
-            "reminder.botc-mc.istheapprentice"
+            "reminder.botc.istheapprentice"
         ],
         "setup": false,
         "special": [
@@ -654,7 +654,7 @@
         "edition": "bmr",
         "team": "traveller",
         "reminders": [
-            "reminder.botc-mc.noability"
+            "reminder.botc.noability"
         ],
         "setup": false,
         "token": "scrape"
@@ -664,8 +664,8 @@
         "edition": "bmr",
         "team": "traveller",
         "reminders": [
-            "reminder.botc-mc.nominategood",
-            "reminder.botc-mc.nominateevil"
+            "reminder.botc.nominategood",
+            "reminder.botc.nominateevil"
         ],
         "setup": false,
         "token": "gate"
@@ -699,7 +699,7 @@
         "edition": "snv",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.poisoned"
+            "reminder.botc.poisoned"
         ],
         "setup": false,
         "firstNight": 35,
@@ -711,11 +711,11 @@
         "edition": "snv",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.abnormal",
-            "reminder.botc-mc.abnormal",
-            "reminder.botc-mc.abnormal",
-            "reminder.botc-mc.abnormal",
-            "reminder.botc-mc.abnormal"
+            "reminder.botc.abnormal",
+            "reminder.botc.abnormal",
+            "reminder.botc.abnormal",
+            "reminder.botc.abnormal",
+            "reminder.botc.abnormal"
         ],
         "setup": false,
         "firstNight": 75,
@@ -745,8 +745,8 @@
         "edition": "snv",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.demonvoted",
-            "reminder.botc-mc.demonnotvoted"
+            "reminder.botc.demonvoted",
+            "reminder.botc.demonnotvoted"
         ],
         "setup": false,
         "otherNight": 78,
@@ -757,8 +757,8 @@
         "edition": "snv",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.minionsnotnominated",
-            "reminder.botc-mc.minionnominated"
+            "reminder.botc.minionsnotnominated",
+            "reminder.botc.minionnominated"
         ],
         "setup": false,
         "otherNight": 79,
@@ -784,7 +784,7 @@
         "edition": "snv",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.noability"
+            "reminder.botc.noability"
         ],
         "setup": false,
         "firstNight": 60,
@@ -796,10 +796,10 @@
         "edition": "snv",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.drunk"
+            "reminder.botc.drunk"
         ],
         "remindersGlobal": [
-            "reminder.botc-mc.isthephilosopher"
+            "reminder.botc.isthephilosopher"
         ],
         "setup": false,
         "special": [
@@ -817,7 +817,7 @@
         "edition": "snv",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.noability"
+            "reminder.botc.noability"
         ],
         "setup": false,
         "token": "brewer"
@@ -827,11 +827,11 @@
         "edition": "snv",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.correct",
-            "reminder.botc-mc.correct",
-            "reminder.botc-mc.correct",
-            "reminder.botc-mc.correct",
-            "reminder.botc-mc.correct"
+            "reminder.botc.correct",
+            "reminder.botc.correct",
+            "reminder.botc.correct",
+            "reminder.botc.correct",
+            "reminder.botc.correct"
         ],
         "setup": false,
         "otherNight": 82,
@@ -857,7 +857,7 @@
         "edition": "snv",
         "team": "outsider",
         "reminders": [
-            "reminder.botc-mc.drunk"
+            "reminder.botc.drunk"
         ],
         "setup": false,
         "otherNight": 59,
@@ -868,7 +868,7 @@
         "edition": "snv",
         "team": "outsider",
         "reminders": [
-            "reminder.botc-mc.haircutstonight"
+            "reminder.botc.haircutstonight"
         ],
         "setup": false,
         "otherNight": 58,
@@ -886,7 +886,7 @@
         "edition": "snv",
         "team": "minion",
         "reminders": [
-            "reminder.botc-mc.twin"
+            "reminder.botc.twin"
         ],
         "setup": false,
         "firstNight": 39,
@@ -897,7 +897,7 @@
         "edition": "snv",
         "team": "minion",
         "reminders": [
-            "reminder.botc-mc.cursed"
+            "reminder.botc.cursed"
         ],
         "setup": false,
         "firstNight": 40,
@@ -909,7 +909,7 @@
         "edition": "snv",
         "team": "minion",
         "reminders": [
-            "reminder.botc-mc.mad"
+            "reminder.botc.mad"
         ],
         "setup": false,
         "firstNight": 41,
@@ -961,8 +961,8 @@
         "edition": "snv",
         "team": "demon",
         "reminders": [
-            "reminder.botc-mc.dead",
-            "reminder.botc-mc.once"
+            "reminder.botc.dead",
+            "reminder.botc.once"
         ],
         "setup": true,
         "otherNight": 43,
@@ -973,13 +973,13 @@
         "edition": "snv",
         "team": "demon",
         "reminders": [
-            "reminder.botc-mc.dead",
-            "reminder.botc-mc.hasability",
-            "reminder.botc-mc.hasability",
-            "reminder.botc-mc.hasability",
-            "reminder.botc-mc.poisoned",
-            "reminder.botc-mc.poisoned",
-            "reminder.botc-mc.poisoned"
+            "reminder.botc.dead",
+            "reminder.botc.hasability",
+            "reminder.botc.hasability",
+            "reminder.botc.hasability",
+            "reminder.botc.poisoned",
+            "reminder.botc.poisoned",
+            "reminder.botc.poisoned"
         ],
         "setup": true,
         "otherNight": 47,
@@ -990,9 +990,9 @@
         "edition": "snv",
         "team": "demon",
         "reminders": [
-            "reminder.botc-mc.dead",
-            "reminder.botc-mc.poisoned",
-            "reminder.botc-mc.poisoned"
+            "reminder.botc.dead",
+            "reminder.botc.poisoned",
+            "reminder.botc.poisoned"
         ],
         "setup": false,
         "otherNight": 44,
@@ -1003,7 +1003,7 @@
         "edition": "snv",
         "team": "demon",
         "reminders": [
-            "reminder.botc-mc.dead"
+            "reminder.botc.dead"
         ],
         "setup": false,
         "otherNight": 45,
@@ -1020,8 +1020,8 @@
         "edition": "snv",
         "team": "traveller",
         "reminders": [
-            "reminder.botc-mc.soberhealthy",
-            "reminder.botc-mc.actstwice",
+            "reminder.botc.soberhealthy",
+            "reminder.botc.actstwice",
             "?",
             "?"
         ],
@@ -1035,8 +1035,8 @@
         "edition": "snv",
         "team": "traveller",
         "reminders": [
-            "reminder.botc-mc.dead",
-            "reminder.botc-mc.dead"
+            "reminder.botc.dead",
+            "reminder.botc.dead"
         ],
         "setup": false,
         "otherNight": 7,
@@ -1054,8 +1054,8 @@
         "edition": "snv",
         "team": "traveller",
         "reminders": [
-            "reminder.botc-mc.noability",
-            "reminder.botc-mc.hasability"
+            "reminder.botc.noability",
+            "reminder.botc.hasability"
         ],
         "setup": false,
         "otherNight": 8,
@@ -1073,9 +1073,9 @@
         "edition": "carousel",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.know",
-            "reminder.botc-mc.know",
-            "reminder.botc-mc.know"
+            "reminder.botc.know",
+            "reminder.botc.know",
+            "reminder.botc.know"
         ],
         "setup": false,
         "firstNight": 63,
@@ -1086,7 +1086,7 @@
         "edition": "carousel",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.know"
+            "reminder.botc.know"
         ],
         "setup": true,
         "firstNight": 67,
@@ -1108,8 +1108,8 @@
         "edition": "carousel",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.mad",
-            "reminder.botc-mc.hasability"
+            "reminder.botc.mad",
+            "reminder.botc.hasability"
         ],
         "setup": false,
         "firstNight": 46,
@@ -1129,9 +1129,9 @@
         "edition": "carousel",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.noability",
-            "reminder.botc-mc.noability",
-            "reminder.botc-mc.noability"
+            "reminder.botc.noability",
+            "reminder.botc.noability",
+            "reminder.botc.noability"
         ],
         "setup": false,
         "firstNight": 27,
@@ -1152,7 +1152,7 @@
         "edition": "carousel",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.know"
+            "reminder.botc.know"
         ],
         "setup": true,
         "firstNight": 64,
@@ -1173,8 +1173,8 @@
         "edition": "carousel",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.fauxpaw",
-            "reminder.botc-mc.dead"
+            "reminder.botc.fauxpaw",
+            "reminder.botc.dead"
         ],
         "setup": false,
         "otherNight": 35,
@@ -1199,7 +1199,7 @@
         "edition": "carousel",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.noability"
+            "reminder.botc.noability"
         ],
         "setup": false,
         "firstNight": 68,
@@ -1211,7 +1211,7 @@
         "edition": "carousel",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.noability"
+            "reminder.botc.noability"
         ],
         "setup": false,
         "firstNight": 26,
@@ -1223,7 +1223,7 @@
         "edition": "carousel",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.noability"
+            "reminder.botc.noability"
         ],
         "setup": false,
         "token": "angler"
@@ -1233,7 +1233,7 @@
         "edition": "carousel",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.noability"
+            "reminder.botc.noability"
         ],
         "setup": true,
         "firstNight": 47,
@@ -1245,7 +1245,7 @@
         "edition": "carousel",
         "team": "townsfolk",
         "remindersGlobal": [
-            "reminder.botc-mc.isthealchemist"
+            "reminder.botc.isthealchemist"
         ],
         "setup": false,
         "special": [
@@ -1346,7 +1346,7 @@
         "edition": "carousel",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.evilwakes"
+            "reminder.botc.evilwakes"
         ],
         "setup": false,
         "firstNight": 15,
@@ -1371,8 +1371,8 @@
         "edition": "carousel",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.poisoned",
-            "reminder.botc-mc.lunch"
+            "reminder.botc.poisoned",
+            "reminder.botc.lunch"
         ],
         "setup": false,
         "jinxes": [
@@ -1408,8 +1408,8 @@
         "edition": "carousel",
         "team": "townsfolk",
         "reminders": [
-            "reminder.botc-mc.dead",
-            "reminder.botc-mc.chosen"
+            "reminder.botc.dead",
+            "reminder.botc.chosen"
         ],
         "setup": false,
         "otherNight": 20,
@@ -1420,8 +1420,8 @@
         "edition": "carousel",
         "team": "outsider",
         "reminders": [
-            "reminder.botc-mc.drunk",
-            "reminder.botc-mc.guessused"
+            "reminder.botc.drunk",
+            "reminder.botc.guessused"
         ],
         "setup": false,
         "token": "explorer"
@@ -1464,7 +1464,7 @@
         "edition": "carousel",
         "team": "outsider",
         "reminders": [
-            "reminder.botc-mc.guessused"
+            "reminder.botc.guessused"
         ],
         "setup": false,
         "firstNight": 48,
@@ -1476,7 +1476,7 @@
         "edition": "carousel",
         "team": "outsider",
         "reminders": [
-            "reminder.botc-mc.maynotnominate"
+            "reminder.botc.maynotnominate"
         ],
         "setup": false,
         "token": "shelter"
@@ -1493,8 +1493,8 @@
         "edition": "carousel",
         "team": "minion",
         "reminders": [
-            "reminder.botc-mc.poisoned",
-            "reminder.botc-mc.know"
+            "reminder.botc.poisoned",
+            "reminder.botc.know"
         ],
         "setup": false,
         "special": [
@@ -1522,7 +1522,7 @@
         "edition": "carousel",
         "team": "minion",
         "reminders": [
-            "reminder.botc-mc.fear"
+            "reminder.botc.fear"
         ],
         "setup": false,
         "firstNight": 42,
@@ -1541,7 +1541,7 @@
         "edition": "carousel",
         "team": "minion",
         "reminders": [
-            "reminder.botc-mc.claimed"
+            "reminder.botc.claimed"
         ],
         "setup": false,
         "token": "danger"
@@ -1551,8 +1551,8 @@
         "edition": "carousel",
         "team": "minion",
         "reminders": [
-            "reminder.botc-mc.turnsevil",
-            "reminder.botc-mc.noability"
+            "reminder.botc.turnsevil",
+            "reminder.botc.noability"
         ],
         "setup": false,
         "firstNight": 44,
@@ -1564,7 +1564,7 @@
         "edition": "carousel",
         "team": "minion",
         "remindersGlobal": [
-            "reminder.botc-mc.isthemarionette"
+            "reminder.botc.isthemarionette"
         ],
         "setup": true,
         "special": [
@@ -1621,8 +1621,8 @@
         "edition": "carousel",
         "team": "demon",
         "remindersGlobal": [
-            "reminder.botc-mc.isthedemon",
-            "reminder.botc-mc.dead"
+            "reminder.botc.isthedemon",
+            "reminder.botc.dead"
         ],
         "setup": true,
         "special": [
@@ -1672,8 +1672,8 @@
         "edition": "carousel",
         "team": "demon",
         "reminders": [
-            "reminder.botc-mc.dead",
-            "reminder.botc-mc.poisoned"
+            "reminder.botc.dead",
+            "reminder.botc.poisoned"
         ],
         "setup": false,
         "firstNight": 29,
@@ -1718,8 +1718,8 @@
         "edition": "carousel",
         "team": "demon",
         "reminders": [
-            "reminder.botc-mc.dead",
-            "reminder.botc-mc.abouttodie"
+            "reminder.botc.dead",
+            "reminder.botc.abouttodie"
         ],
         "setup": true,
         "special": [
@@ -1766,12 +1766,12 @@
         "edition": "carousel",
         "team": "demon",
         "reminders": [
-            "reminder.botc-mc.day1",
-            "reminder.botc-mc.day2",
-            "reminder.botc-mc.day3",
-            "reminder.botc-mc.day4",
-            "reminder.botc-mc.day5",
-            "reminder.botc-mc.goodplayerexecuted"
+            "reminder.botc.day1",
+            "reminder.botc.day2",
+            "reminder.botc.day3",
+            "reminder.botc.day4",
+            "reminder.botc.day5",
+            "reminder.botc.goodplayerexecuted"
         ],
         "setup": false,
         "firstNight": 77,
@@ -1837,9 +1837,9 @@
         "edition": "carousel",
         "team": "demon",
         "reminders": [
-            "reminder.botc-mc.day1",
-            "reminder.botc-mc.day2",
-            "reminder.botc-mc.day3"
+            "reminder.botc.day1",
+            "reminder.botc.day2",
+            "reminder.botc.day3"
         ],
         "setup": false,
         "jinxes": [
@@ -1906,8 +1906,8 @@
         "edition": "carousel",
         "team": "minion",
         "reminders": [
-            "reminder.botc-mc.abouttodie",
-            "reminder.botc-mc.drunk"
+            "reminder.botc.abouttodie",
+            "reminder.botc.drunk"
         ],
         "setup": false,
         "special": [
@@ -1963,8 +1963,8 @@
         "team": "townsfolk",
         "edition": "carousel",
         "reminders": [
-            "reminder.botc-mc.know",
-            "reminder.botc-mc.know"
+            "reminder.botc.know",
+            "reminder.botc.know"
         ],
         "setup": false,
         "firstNight": 62,
@@ -1975,7 +1975,7 @@
         "team": "townsfolk",
         "edition": "carousel",
         "reminders": [
-            "reminder.botc-mc.know"
+            "reminder.botc.know"
         ],
         "setup": false,
         "firstNight": 61,
@@ -1995,8 +1995,8 @@
         "team": "minion",
         "edition": "carousel",
         "reminders": [
-            "reminder.botc-mc.mad",
-            "reminder.botc-mc.2nd"
+            "reminder.botc.mad",
+            "reminder.botc.2nd"
         ],
         "setup": false,
         "firstNight": 43,
@@ -2008,7 +2008,7 @@
         "team": "outsider",
         "edition": "carousel",
         "reminders": [
-            "reminder.botc-mc.storytellerability"
+            "reminder.botc.storytellerability"
         ],
         "setup": false,
         "otherNight": 60,
@@ -2065,7 +2065,7 @@
         "team": "demon",
         "edition": "carousel",
         "reminders": [
-            "reminder.botc-mc.dead"
+            "reminder.botc.dead"
         ],
         "setup": false,
         "otherNight": 48,
@@ -2076,7 +2076,7 @@
         "team": "outsider",
         "edition": "carousel",
         "reminders": [
-            "reminder.botc-mc.teapartytonight"
+            "reminder.botc.teapartytonight"
         ],
         "setup": false,
         "otherNight": 57,
@@ -2087,7 +2087,7 @@
         "team": "demon",
         "edition": "carousel",
         "reminders": [
-            "reminder.botc-mc.dead"
+            "reminder.botc.dead"
         ],
         "setup": true,
         "firstNight": 7,
@@ -2121,7 +2121,7 @@
         "team": "townsfolk",
         "edition": "carousel",
         "reminders": [
-            "reminder.botc-mc.drunk"
+            "reminder.botc.drunk"
         ],
         "setup": true,
         "special": [
@@ -2139,9 +2139,9 @@
         "team": "demon",
         "edition": "carousel",
         "reminders": [
-            "reminder.botc-mc.dead",
-            "reminder.botc-mc.dead",
-            "reminder.botc-mc.dead"
+            "reminder.botc.dead",
+            "reminder.botc.dead",
+            "reminder.botc.dead"
         ],
         "setup": false,
         "firstNight": 16,
@@ -2159,9 +2159,9 @@
         "team": "minion",
         "edition": "carousel",
         "reminders": [
-            "reminder.botc-mc.night1",
-            "reminder.botc-mc.night2",
-            "reminder.botc-mc.night3"
+            "reminder.botc.night1",
+            "reminder.botc.night2",
+            "reminder.botc.night3"
         ],
         "setup": true,
         "firstNight": 21,
@@ -2219,7 +2219,7 @@
         "team": "townsfolk",
         "edition": "carousel",
         "reminders": [
-            "reminder.botc-mc.hasability"
+            "reminder.botc.hasability"
         ],
         "setup": false,
         "otherNight": 62,
@@ -2230,7 +2230,7 @@
         "team": "outsider",
         "edition": "carousel",
         "reminders": [
-            "reminder.botc-mc.friend"
+            "reminder.botc.friend"
         ],
         "setup": false,
         "firstNight": 71,
@@ -2261,7 +2261,7 @@
         "team": "demon",
         "edition": "carousel",
         "reminders": [
-            "reminder.botc-mc.dead"
+            "reminder.botc.dead"
         ],
         "setup": true,
         "firstNight": 6,
@@ -2311,7 +2311,7 @@
         "edition": "carousel",
         "team": "traveller",
         "reminders": [
-            "reminder.botc-mc.amigo"
+            "reminder.botc.amigo"
         ],
         "setup": false,
         "token": "triangle"
@@ -2321,9 +2321,9 @@
         "edition": "carousel",
         "team": "minion",
         "reminders": [
-            "reminder.botc-mc.night1",
-            "reminder.botc-mc.night2",
-            "reminder.botc-mc.night3",
+            "reminder.botc.night1",
+            "reminder.botc.night2",
+            "reminder.botc.night3",
             "X"
         ],
         "setup": true,
@@ -2367,9 +2367,9 @@
         "id": "angel",
         "firstNight": 1,
         "reminders": [
-            "reminder.botc-mc.protected",
-            "reminder.botc-mc.protected",
-            "reminder.botc-mc.somethingbad"
+            "reminder.botc.protected",
+            "reminder.botc.protected",
+            "reminder.botc.somethingbad"
         ],
         "setup": false,
         "team": "fabled",
@@ -2387,7 +2387,7 @@
     {
         "id": "hellslibrarian",
         "reminders": [
-            "reminder.botc-mc.somethingbad"
+            "reminder.botc.somethingbad"
         ],
         "setup": false,
         "team": "fabled",
@@ -2397,9 +2397,9 @@
     {
         "id": "revolutionary",
         "reminders": [
-            "reminder.botc-mc.registerfalsely",
-            "reminder.botc-mc.aligned",
-            "reminder.botc-mc.aligned"
+            "reminder.botc.registerfalsely",
+            "reminder.botc.aligned",
+            "reminder.botc.aligned"
         ],
         "setup": false,
         "team": "fabled",
@@ -2425,7 +2425,7 @@
         "firstNight": 3,
         "otherNight": 2,
         "reminders": [
-            "reminder.botc-mc.finalnightnoattack"
+            "reminder.botc.finalnightnoattack"
         ],
         "setup": false,
         "team": "fabled",
@@ -2435,7 +2435,7 @@
     {
         "id": "fibbin",
         "reminders": [
-            "reminder.botc-mc.noability"
+            "reminder.botc.noability"
         ],
         "setup": false,
         "team": "fabled",
@@ -2446,9 +2446,9 @@
         "id": "duchess",
         "otherNight": 1,
         "reminders": [
-            "reminder.botc-mc.visitor",
-            "reminder.botc-mc.visitor",
-            "reminder.botc-mc.falseinfo"
+            "reminder.botc.visitor",
+            "reminder.botc.visitor",
+            "reminder.botc.falseinfo"
         ],
         "setup": false,
         "team": "fabled",
@@ -2465,7 +2465,7 @@
     {
         "id": "spiritofivory",
         "reminders": [
-            "reminder.botc-mc.nomoreevil"
+            "reminder.botc.nomoreevil"
         ],
         "setup": false,
         "team": "fabled",
@@ -2483,7 +2483,7 @@
         "id": "stormcatcher",
         "firstNight": 4,
         "reminders": [
-            "reminder.botc-mc.stormcaught"
+            "reminder.botc.stormcaught"
         ],
         "setup": false,
         "team": "loric",
@@ -2530,7 +2530,7 @@
         "team": "townsfolk",
         "edition": "carousel",
         "reminders": [
-            "reminder.botc-mc.doesntkill"
+            "reminder.botc.doesntkill"
         ],
         "setup": false,
         "otherNight": 36,
@@ -2555,7 +2555,7 @@
     {
         "id": "deusexfiasco",
         "reminders": [
-            "reminder.botc-mc.whoopsie"
+            "reminder.botc.whoopsie"
         ],
         "setup": true,
         "team": "fabled",
@@ -2607,9 +2607,9 @@
     {
         "id": "zenomancer",
         "reminders": [
-            "reminder.botc-mc.goal",
-            "reminder.botc-mc.goal",
-            "reminder.botc-mc.goal"
+            "reminder.botc.goal",
+            "reminder.botc.goal",
+            "reminder.botc.goal"
         ],
         "setup": false,
         "team": "loric",

@@ -95,23 +95,23 @@ public record botcCharacter(String id,
      * @return The character's name as MutableText.
      */
     public MutableText toText() {
-        return Text.translatable(Objects.requireNonNullElseGet(this.name, () -> "character.botc-mc." + this.id + ".name"));
+        return Text.translatable(Objects.requireNonNullElseGet(this.name, () -> "character.botc." + this.id + ".name"));
     }
 
     public Text abilityText() {
-        return Text.translatable(Objects.requireNonNullElseGet(this.ability, () -> "character.botc-mc." + this.id + ".ability"));
+        return Text.translatable(Objects.requireNonNullElseGet(this.ability, () -> "character.botc." + this.id + ".ability"));
     }
 
     public Text flavorText() {
-        return Text.translatable(Objects.requireNonNullElseGet(this.flavor, () -> "character.botc-mc." + this.id + ".flavor"));
+        return Text.translatable(Objects.requireNonNullElseGet(this.flavor, () -> "character.botc." + this.id + ".flavor"));
     }
 
     public Text firstNightReminderText() {
-        return Text.translatable(Objects.requireNonNullElseGet(this.firstNightReminder, () -> "character.botc-mc." + this.id + ".first"));
+        return Text.translatable(Objects.requireNonNullElseGet(this.firstNightReminder, () -> "character.botc." + this.id + ".first"));
     }
 
     public Text otherNightReminderText() {
-        return Text.translatable(Objects.requireNonNullElseGet(this.otherNightReminder, () -> "character.botc-mc." + this.id + ".other"));
+        return Text.translatable(Objects.requireNonNullElseGet(this.otherNightReminder, () -> "character.botc." + this.id + ".other"));
     }
 
     /**

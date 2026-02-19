@@ -23,11 +23,11 @@ public class NightAction {
     }
 
     public Text getName() {
-        return Text.translatable("character.botc-mc." + this.id + ".name");
+        return Text.translatable("character.botc." + this.id + ".name");
     }
 
     public Text getNightReminder(NightType type) {
-        return Text.translatable("character.botc-mc." + this.id + "." + type.toString());
+        return Text.translatable("character.botc." + this.id + "." + type.toString());
     }
 
     private Formatting getColour(boolean dark) {
