@@ -9,7 +9,6 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 
 import java.util.List;
-import java.util.function.Function;
 
 /**
  * Abstract GUI for selecting an item from a list with pagination support.
@@ -19,7 +18,6 @@ import java.util.function.Function;
 public abstract class AbstractSelectionGUI<T> extends SimpleGui {
     protected static final int ITEMS_PER_PAGE = 5 * 9;
     protected final List<T> items;
-    protected final Function<T, ?> onSelectItem;
     protected final Runnable onCancel;
     protected final int page;
 
@@ -27,26 +25,24 @@ public abstract class AbstractSelectionGUI<T> extends SimpleGui {
      * Constructor for AbstractSelectionGUI.
      * @param player The player for whom the GUI is being created.
      * @param items The list of items to display for selection.
-     * @param onSelectItem A function to call when an item is selected.
      * @param onCancel A runnable to call when the selection is cancelled.
      * @param page The current page number (0-indexed).
      */
     public AbstractSelectionGUI(ServerPlayerEntity player, List<T> items,
-                                Function<T, ?> onSelectItem,
                                 Runnable onCancel,
-                                int page) {
-        super(getScreenSize(items), player, false);
+                                int page, boolean manipulatePlayerSlots) {
+        super(getScreenSize(items), player, manipulatePlayerSlots);
         this.setTitle(Text.translatable("gui.botc-mc.selection"));
 
         this.items = items;
-        this.onSelectItem = onSelectItem;
         this.onCancel = onCancel;
         this.page = page;
-
     }
 
     @Override
     public void beforeOpen() {
+        super.beforeOpen();
+
         int pages = getPageCount();
 
         // Add all items for this page
@@ -76,8 +72,6 @@ public abstract class AbstractSelectionGUI<T> extends SimpleGui {
         };
         this.setSlot(9 * this.getHeight() - 2, ButtonBuilder.buildButton(
                 Text.translatable("gui.cancel"), ButtonIcon.CLOSE, cancelCallback));
-
-        super.beforeOpen();
     }
 
     /**
@@ -103,6 +97,9 @@ public abstract class AbstractSelectionGUI<T> extends SimpleGui {
      * @return A sublist of items for the specified page.
      */
     protected List<T> getPage(int page) {
+        if (this.items.size() <= ITEMS_PER_PAGE) {
+            return items;
+        }
         int start = page * ITEMS_PER_PAGE;
         int end = Math.min(start + ITEMS_PER_PAGE, this.items.size());
         return this.items.subList(start, end);
@@ -112,10 +109,7 @@ public abstract class AbstractSelectionGUI<T> extends SimpleGui {
      * Callback function when an item is selected.
      * @param item The selected item.
      */
-    protected void itemSelectCallback(T item) {
-        this.onSelectItem.apply(item);
-        this.close();
-    }
+    protected abstract void itemSelectCallback(T item);
 
     /**
      * Create a new instance of the selection GUI for pagination.

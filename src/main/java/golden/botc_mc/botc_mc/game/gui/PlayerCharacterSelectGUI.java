@@ -15,7 +15,7 @@ import java.util.function.Function;
 /**
  * Selection GUI for player characters.
  */
-public class PlayerCharacterSelectGUI extends AbstractSelectionGUI<botcCharacter> {
+public class PlayerCharacterSelectGUI extends AbstractSingleSelectGUI<botcCharacter> {
     private final boolean seeTravellers;
     protected final Script script;
 

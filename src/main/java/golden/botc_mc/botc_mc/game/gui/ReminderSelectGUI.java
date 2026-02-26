@@ -19,7 +19,7 @@ import java.util.function.Function;
 /**
  * Selection GUI for reminder tokens.
  */
-public class ReminderSelectGUI extends AbstractSelectionGUI<botcCharacter.ReminderToken> {
+public class ReminderSelectGUI extends AbstractSingleSelectGUI<botcCharacter.ReminderToken> {
 
     private final Script script;
     private final botcSeatManager seatManager;
