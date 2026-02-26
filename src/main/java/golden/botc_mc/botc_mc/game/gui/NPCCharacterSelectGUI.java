@@ -16,7 +16,7 @@ import java.util.function.Function;
 /**
  * Selection GUI for NPC characters.
  */
-public class NPCCharacterSelectGUI extends AbstractSelectionGUI<botcCharacter> {
+public class NPCCharacterSelectGUI extends AbstractSingleSelectGUI<botcCharacter> {
     protected final Script script;
     protected final botcSeatManager seatManager;
 
