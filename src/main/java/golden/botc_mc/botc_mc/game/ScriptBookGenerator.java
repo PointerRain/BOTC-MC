@@ -359,27 +359,16 @@ public class ScriptBookGenerator {
     private void addPlayerCountPage() {
         Text header = Text.translatable("book.botc-mc.player_count").styled(style -> style.withBold(true).withUnderline(true));
 
-        HashMap<Integer, int[]> counts = new HashMap<>();
-        counts.put(5, new int[]{3, 0, 1, 1});
-        counts.put(6, new int[]{3, 1, 1, 1});
-        counts.put(7, new int[]{5, 0, 1, 1});
-        counts.put(8, new int[]{5, 1, 1, 1});
-        counts.put(9, new int[]{5, 2, 1, 1});
-        counts.put(10, new int[]{7, 0, 2, 1});
-        counts.put(11, new int[]{7, 1, 2, 1});
-        counts.put(12, new int[]{7, 2, 2, 1});
-        counts.put(13, new int[]{9, 0, 3, 1});
-        counts.put(14, new int[]{9, 1, 3, 1});
-        counts.put(15, new int[]{9, 2, 3, 1});
+
 
         List<Text> pageContent = new ArrayList<>();
 
         for (int n = 5; n <= 15; n++) {
-            if (!counts.containsKey(n)) {
+            if (!botcSeatManager.COUNTS.containsKey(n)) {
                 botc.LOGGER.warn("No player count data for {} players", n);
                 continue;
             }
-            int[] roles = counts.get(n);
+            int[] roles = botcSeatManager.COUNTS.get(n);
             MutableText item = Text.empty()
                 .append(n < 10 ? " " : "")
                 .append(Text.of(n + ": "))
