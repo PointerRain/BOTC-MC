@@ -9,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 import static java.lang.Math.floorMod;
@@ -21,6 +22,21 @@ public class botcSeatManager {
     public static final int MIN_PLAYERS = 4;
     public static final int MAX_PLAYERS = 18;
     public static final int MAX_STORYTELLERS = 3;
+
+    public static HashMap<Integer, int[]> COUNTS = new HashMap<>();
+    static {
+        COUNTS.put(5, new int[]{3, 0, 1, 1});
+        COUNTS.put(6, new int[]{3, 1, 1, 1});
+        COUNTS.put(7, new int[]{5, 0, 1, 1});
+        COUNTS.put(8, new int[]{5, 1, 1, 1});
+        COUNTS.put(9, new int[]{5, 2, 1, 1});
+        COUNTS.put(10, new int[]{7, 0, 2, 1});
+        COUNTS.put(11, new int[]{7, 1, 2, 1});
+        COUNTS.put(12, new int[]{7, 2, 2, 1});
+        COUNTS.put(13, new int[]{9, 0, 3, 1});
+        COUNTS.put(14, new int[]{9, 1, 3, 1});
+        COUNTS.put(15, new int[]{9, 2, 3, 1});
+    }
 
     // Constructor for default 8 player seats
     public botcSeatManager() {
