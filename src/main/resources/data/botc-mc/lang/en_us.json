@@ -65,6 +65,12 @@
 
   "gui.botc-mc.unseated_warning": "You do not have a seat assigned!",
 
+  "gui.botc-mc.selection.bag": "Role Counts",
+  "gui.botc-mc.selection.bag.townsfolk": "Townsfolk: %s/%s",
+  "gui.botc-mc.selection.bag.outsiders": "Outsiders: %s/%s",
+  "gui.botc-mc.selection.bag.minions": "Minions: %s/%s",
+  "gui.botc-mc.selection.bag.demons": "Demon: %s/%s",
+
   "commands.botc-mc.non-player": "This command may only be used by players",
   "commands.botc-mc.storyteller": "This command may only be used by the Storyteller",
   "commands.botc-mc.no_game": "You are not in an active BOTC game",

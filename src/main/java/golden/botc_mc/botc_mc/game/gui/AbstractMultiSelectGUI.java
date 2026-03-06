@@ -1,7 +1,6 @@
 package golden.botc_mc.botc_mc.game.gui;
 
 import eu.pb4.sgui.api.elements.GuiElementInterface;
-import golden.botc_mc.botc_mc.botc;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 
@@ -48,10 +47,13 @@ public abstract class AbstractMultiSelectGUI<T> extends AbstractSelectionGUI<T> 
             setSlot(n + 9 * this.getHeight(), getItemStack(item), itemCallback);
         }
 
-        this.setSlot(7 + 9 * this.getHeight() + 9 * 3, ButtonBuilder.buildButton(
-                Text.translatable("gui.ok"),
-                ButtonIcon.CONFIRM,
-                (i,c,a,g) -> {}));
+        if (this.canFinalise()) {
+            GuiElementInterface.ClickCallback finaliseCallback = (i, c, a, g) -> finaliseSelection();
+            this.setSlot(7 + 9 * this.getHeight() + 9 * 3, ButtonBuilder.buildButton(
+                    Text.translatable("gui.ok"),
+                    ButtonIcon.CONFIRM,
+                    finaliseCallback));
+        }
     }
 
     @Override
@@ -69,10 +71,6 @@ public abstract class AbstractMultiSelectGUI<T> extends AbstractSelectionGUI<T> 
         return this.selectedItems.subList(start, end);
     }
 
-    /**
-     * Callback function when an item is selected.
-     * @param item The selected item.
-     */
     @Override
     protected void itemSelectCallback(T item) {
 
@@ -84,6 +82,10 @@ public abstract class AbstractMultiSelectGUI<T> extends AbstractSelectionGUI<T> 
         newGui.open();
     }
 
+    /**
+     * Callback function when an item is deselected.
+     * @param item The selected item.
+     */
     protected void itemDeselectCallback(T item) {
         List<T> newSelectedItems = new ArrayList<>(selectedItems);
         newSelectedItems.remove(item);
@@ -91,5 +93,14 @@ public abstract class AbstractMultiSelectGUI<T> extends AbstractSelectionGUI<T> 
 
         AbstractSelectionGUI<T> newGui = newInstance(this.player, this.page);
         newGui.open();
+    }
+
+    protected boolean canFinalise() {
+        return !selectedItems.isEmpty();
+    }
+
+    protected void finaliseSelection() {
+        this.onFinaliseSelection.apply(this.selectedItems);
+        this.close();
     }
 }
