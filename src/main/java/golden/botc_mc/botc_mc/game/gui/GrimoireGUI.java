@@ -134,7 +134,7 @@ public class GrimoireGUI extends LayeredGui {
         botc.LOGGER.info("Showing popout for seat {} at offset {}.", seatNumber, offset);
         this.playerPopoutView = this.addLayer(new SeatPopoutLayer(this, seat, seatNumber), offset,
                 this.getHeight() - 3);
-        this.playerMenuView = this.addLayer(new SeatMenuLayer(this, seat), 0, this.getHeight() - 1);
+        this.playerMenuView = this.addLayer(new PlayerSeatMenuLayer(this, seat), 0, this.getHeight() - 1);
         this.markDirty();
     }
 
@@ -146,7 +146,7 @@ public class GrimoireGUI extends LayeredGui {
         clearInventorySection();
         botc.LOGGER.info("Showing menu for storyteller seat.");
         this.playerPopoutView = this.addLayer(new SeatPopoutLayer(this, seat), 3, this.getHeight() - 3);
-        this.playerMenuView = this.addLayer(new SeatMenuLayer(this, seat), 0, this.getHeight() - 1);
+        this.playerMenuView = this.addLayer(new StorytellerSeatMenuLayer(this, seat), 0, this.getHeight() - 1);
         this.markDirty();
     }
 
