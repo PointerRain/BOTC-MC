@@ -75,4 +75,8 @@ public class BagSelectionGUI extends AbstractMultiSelectGUI<botcCharacter> {
         if (this.seatManager == null) {return true;}
         return this.selectedItems.size() == seatManager.getSeatCount();
     }
+
+    protected Text getFinaliseReason() {
+        return Text.translatable("gui.botc-mc.selection.bag.reason", selectedItems.size(), seatManager.getSeatCount());
+    }
 }
