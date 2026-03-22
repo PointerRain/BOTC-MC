@@ -576,6 +576,27 @@ public final class botcCommands {
                 return 1;
             }));
 
+            root.then(literal("bag").executes(ctx -> {
+                ServerPlayerEntity player = ctx.getSource().getPlayer();
+                if (player == null) {
+                    ctx.getSource().sendError(Text.translatable("commands.botc-mc.non-player"));
+                    return 0;
+                }
+                botcActive activeGame = botc.getActiveGameFromPlayer(player);
+                if (activeGame == null) {
+                    ctx.getSource().sendError(Text.translatable("commands.botc-mc.no_game"));
+                    return 0;
+                }
+                BagSelectionGUI gui = new BagSelectionGUI(player, activeGame.getScript(), activeGame.getSeatManager(), List.of(),
+                        selectedItems -> {
+                            botc.LOGGER.info("Selected {}", selectedItems);
+                            return null;
+                        },
+                        () -> {}, 0);
+                gui.open();
+                return 1;
+            }));
+
             root.then(literal("script").then(CommandManager.argument("script", IdentifierArgumentType.identifier())
                             .executes(ctx -> {
                                 ServerCommandSource src = ctx.getSource();

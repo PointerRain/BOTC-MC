@@ -1,7 +1,11 @@
 package golden.botc_mc.botc_mc.game.gui;
 
 import eu.pb4.sgui.api.elements.GuiElementInterface;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 
 import java.util.ArrayList;
@@ -53,6 +57,12 @@ public abstract class AbstractMultiSelectGUI<T> extends AbstractSelectionGUI<T> 
                     Text.translatable("gui.ok"),
                     ButtonIcon.CONFIRM,
                     finaliseCallback));
+        } else {
+            ItemStack emptyStack = new ItemStack(Items.GRAY_DYE);
+            emptyStack.set(DataComponentTypes.CUSTOM_NAME,
+                    ((MutableText) this.getFinaliseReason())
+                            .styled(style -> style.withItalic(false)));
+            this.setSlot(7 + 9 * this.getHeight() + 9 * 3, emptyStack);
         }
     }
 
@@ -97,6 +107,10 @@ public abstract class AbstractMultiSelectGUI<T> extends AbstractSelectionGUI<T> 
 
     protected boolean canFinalise() {
         return !selectedItems.isEmpty();
+    }
+
+    protected Text getFinaliseReason() {
+        return Text.translatable("gui.botc-mc.selection.finalise_disabled");
     }
 
     protected void finaliseSelection() {

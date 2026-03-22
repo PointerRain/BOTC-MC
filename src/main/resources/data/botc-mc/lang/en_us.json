@@ -30,6 +30,7 @@
   "gui.botc-mc.see_all": "See All",
 
   "gui.botc-mc.selection": "Select an Item",
+  "gui.botc-mc.selection.finalise_disabled": "Unable to confirm selection",
   "gui.botc-mc.selection.character": "Select Character",
   "gui.botc-mc.selection.character.non_travellers": "See All",
   "gui.botc-mc.selection.character.travellers": "Travellers",
@@ -70,6 +71,7 @@
   "gui.botc-mc.selection.bag.outsiders": "Outsiders: %s/%s",
   "gui.botc-mc.selection.bag.minions": "Minions: %s/%s",
   "gui.botc-mc.selection.bag.demons": "Demon: %s/%s",
+  "gui.botc-mc.selection.bag.reason": "Roles: %s/%s",
 
   "commands.botc-mc.non-player": "This command may only be used by players",
   "commands.botc-mc.storyteller": "This command may only be used by the Storyteller",
