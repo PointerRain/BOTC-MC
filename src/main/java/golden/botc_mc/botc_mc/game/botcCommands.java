@@ -590,6 +590,7 @@ public final class botcCommands {
                 BagSelectionGUI gui = new BagSelectionGUI(player, activeGame.getScript(), activeGame.getSeatManager(), List.of(),
                         selectedItems -> {
                             botc.LOGGER.info("Selected {}", selectedItems);
+                            activeGame.getSeatManager().assignCharacters(selectedItems);
                             return null;
                         },
                         () -> {}, 0);
