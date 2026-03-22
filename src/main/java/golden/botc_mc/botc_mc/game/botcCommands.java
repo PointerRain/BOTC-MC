@@ -6,7 +6,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.exceptions.InvalidAlignmentException;
 import golden.botc_mc.botc_mc.game.exceptions.InvalidSeatException;
-import golden.botc_mc.botc_mc.game.gui.BagSelectionGUI;
+import golden.botc_mc.botc_mc.game.gui.selection.BagSelectionGUI;
 import golden.botc_mc.botc_mc.game.gui.GrimoireGUI;
 import golden.botc_mc.botc_mc.game.gui.TokenItemStack;
 import golden.botc_mc.botc_mc.game.map.Map;

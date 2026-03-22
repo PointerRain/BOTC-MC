@@ -1,4 +1,4 @@
-package golden.botc_mc.botc_mc.game.gui;
+package golden.botc_mc.botc_mc.game.gui.selection;
 
 import net.minecraft.server.network.ServerPlayerEntity;
 
