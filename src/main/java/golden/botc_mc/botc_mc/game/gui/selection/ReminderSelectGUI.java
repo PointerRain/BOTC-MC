@@ -121,7 +121,7 @@ public class ReminderSelectGUI extends AbstractSingleSelectGUI<botcCharacter.Rem
     /**
      * Custom sign GUI for entering a custom reminder token.
      */
-    static class CustomTokenBox extends SignGui {
+    public static class CustomTokenBox extends SignGui {
         private final Function<? super botcCharacter.ReminderToken, ?> onEnterReminder;
 
         /**

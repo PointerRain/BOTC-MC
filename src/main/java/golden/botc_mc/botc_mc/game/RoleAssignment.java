@@ -40,10 +40,6 @@ public class RoleAssignment {
 
         MutableText titleText = Text.literal("You are the ").formatted(character.team().getColour(false), Formatting.BOLD);
         titleText.append(character.toText());
-//        String title = "You are the " + character.;
-//        MutableText titleText = Text.literal(title).formatted(character.team().getColour(false), Formatting.BOLD);
-//        TitleUtil.queueSubtitle(player, Text.of("Subtitle test"));
-//        TitleUtil.showTitle(player, Text.empty());
         TitleUtil.showSubtitle(player, titleText);
     }
 }

@@ -373,6 +373,20 @@ public class botcSeatManager {
         this.playerSeats.add(to - 1, seat);
     }
 
+    public void assignCharacters(List<botcCharacter> characters) {
+        // Assign characters to players in random order.
+        List<botcCharacter> shuffledCharacters = new ArrayList<>(characters);
+        Collections.shuffle(shuffledCharacters);
+        for (int i = 0; i < shuffledCharacters.size(); i++) {
+            PlayerSeat seat = this.playerSeats.get(i);
+            botcCharacter character = shuffledCharacters.get(i);
+            seat.setCharacter(character);
+            if (seat.hasPlayerEntity()) {
+                RoleAssignment.sendCharacter(seat.getPlayerEntity(), character);
+            }
+        }
+    }
+
     @Override
     public String toString() {
         return "botcSeatManager{" +
