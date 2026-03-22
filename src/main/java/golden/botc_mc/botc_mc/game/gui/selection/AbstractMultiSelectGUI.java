@@ -1,6 +1,8 @@
-package golden.botc_mc.botc_mc.game.gui;
+package golden.botc_mc.botc_mc.game.gui.selection;
 
 import eu.pb4.sgui.api.elements.GuiElementInterface;
+import golden.botc_mc.botc_mc.game.gui.ButtonBuilder;
+import golden.botc_mc.botc_mc.game.gui.ButtonIcon;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
