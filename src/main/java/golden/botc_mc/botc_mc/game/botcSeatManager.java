@@ -23,8 +23,9 @@ public class botcSeatManager {
     public static final int MAX_PLAYERS = 18;
     public static final int MAX_STORYTELLERS = 3;
 
-    public static HashMap<Integer, int[]> COUNTS = new HashMap<>();
+    private static final HashMap<Integer, int[]> COUNTS = new HashMap<>();
     static {
+        COUNTS.put(4, new int[]{3, 0, 0, 1});
         COUNTS.put(5, new int[]{3, 0, 1, 1});
         COUNTS.put(6, new int[]{3, 1, 1, 1});
         COUNTS.put(7, new int[]{5, 0, 1, 1});
@@ -393,5 +394,12 @@ public class botcSeatManager {
                 "playerSeats=" + playerSeats +
                 ", storytellerSeats=" + storytellerSeats +
                 '}';
+    }
+
+    public static int[] getRoleCount(int players) {
+        if (players > 15) {
+            return COUNTS.get(15);
+        }
+        return COUNTS.get(players);
     }
 }

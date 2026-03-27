@@ -37,7 +37,7 @@ public class BagSelectionGUI extends AbstractMultiSelectGUI<botcCharacter> {
         if (seatManager != null) {
             ItemStack stack = new ItemStack(Items.PAPER);
             Text name = Text.translatable("gui.botc-mc.selection.bag").styled(style -> style.withItalic(false));
-            int[] defaultCounts = botcSeatManager.COUNTS.get(seatManager.getSeatCount());
+            int[] defaultCounts = botcSeatManager.getRoleCount(seatManager.getSeatCount());
             int[] counts = {0, 0, 0, 0};
             for (botcCharacter character : selectedItems) {
                 counts[character.team().ordinal()]++;
@@ -77,6 +77,7 @@ public class BagSelectionGUI extends AbstractMultiSelectGUI<botcCharacter> {
         return this.selectedItems.size() == seatManager.getSeatCount();
     }
 
+    @Override
     protected Text getFinaliseReason() {
         return Text.translatable("gui.botc-mc.selection.bag.reason", selectedItems.size(), seatManager.getSeatCount());
     }

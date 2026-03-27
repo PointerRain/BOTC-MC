@@ -9,6 +9,7 @@ import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.Script;
 import golden.botc_mc.botc_mc.game.botcCharacter;
 import golden.botc_mc.botc_mc.game.botcSeatManager;
+import golden.botc_mc.botc_mc.game.gui.selection.BagSelectionGUI;
 import golden.botc_mc.botc_mc.game.gui.selection.NPCCharacterSelectGUI;
 import golden.botc_mc.botc_mc.game.gui.selection.PlayerCharacterSelectGUI;
 import golden.botc_mc.botc_mc.game.gui.selection.ReminderSelectGUI;
@@ -307,6 +308,17 @@ public class GrimoireGUI extends LayeredGui {
      */
     public void editGrimoire() {
         ResizeGrimGUI gui = new ResizeGrimGUI(this.getPlayer(), this.seatManager);
+        gui.open();
+    }
+
+    public void buildBag() {
+        BagSelectionGUI gui = new BagSelectionGUI(this.getPlayer(), this.script, this.seatManager, List.of(),
+            selectedItems -> {
+                botc.LOGGER.info("Selected {}", selectedItems);
+                this.seatManager.assignCharacters(selectedItems);
+                return null;
+            },
+            () -> {}, 0);
         gui.open();
     }
 
