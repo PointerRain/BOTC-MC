@@ -28,7 +28,8 @@ public enum ButtonIcon {
     DEMOTE,
     TELEPORT,
     MORE,
-    LESS;
+    LESS,
+    BAG;
 
     ItemStack toItemStack() {
         return switch (this) {
@@ -56,6 +57,8 @@ public enum ButtonIcon {
 
             case MORE -> new ItemStack(Items.PAPER);
             case LESS -> new ItemStack(Items.PAPER);
+
+            case BAG -> new ItemStack(Items.BUNDLE);
 
             default -> new ItemStack(Items.PAPER); // Fallback
         };
