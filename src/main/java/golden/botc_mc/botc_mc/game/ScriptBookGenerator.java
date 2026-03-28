@@ -364,11 +364,11 @@ public class ScriptBookGenerator {
         List<Text> pageContent = new ArrayList<>();
 
         for (int n = 5; n <= 15; n++) {
-            if (!botcSeatManager.COUNTS.containsKey(n)) {
+            int[] roles = botcSeatManager.getRoleCount(n);
+            if (roles == null) {
                 botc.LOGGER.warn("No player count data for {} players", n);
                 continue;
             }
-            int[] roles = botcSeatManager.COUNTS.get(n);
             MutableText item = Text.empty()
                 .append(n < 10 ? " " : "")
                 .append(Text.of(n + ": "))
