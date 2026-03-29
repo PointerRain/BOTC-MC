@@ -18,7 +18,6 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -28,13 +27,16 @@ import java.util.Objects;
 public record TokenItemStack(ItemStack tokenItem) {
 
     private static NbtComponent createCustomData(boolean actsFirstNight, boolean actsOtherNights,
-                                                 boolean setup, int reminders, String team) {
+                                                 boolean setup, int reminders, String team, String edition) {
         NbtCompound tag = new NbtCompound();
         tag.putBoolean("firstNight", actsFirstNight);
         tag.putBoolean("otherNights", actsOtherNights);
         tag.putBoolean("setup", setup);
         tag.putString("reminders", String.valueOf(reminders));
         tag.putString("team", team);
+        if (edition != null) {
+            tag.putString("edition", edition);
+        }
         return NbtComponent.of(tag);
     }
 
@@ -52,7 +54,7 @@ public record TokenItemStack(ItemStack tokenItem) {
                         (character.remindersGlobal() != null ? character.remindersGlobal().size() : 0);
 
         return createCustomData(actsFirstNight, actsOtherNights, character.setup(), reminders,
-                character.team() != null ? character.team().toString() : "none");
+                character.team() != null ? character.team().toString() : "none", character.edition());
     }
 
     private static NbtComponent createCustomData(botcCharacter character) {
@@ -65,20 +67,21 @@ public record TokenItemStack(ItemStack tokenItem) {
                         (character.remindersGlobal() != null ? character.remindersGlobal().size() : 0);
 
         return createCustomData(actsFirstNight, actsOtherNights, character.setup(), reminders,
-                character.team() != null ? character.team().toString() : "none");
+                character.team() != null ? character.team().toString() : "none", character.edition());
     }
 
     private static ItemStack createUnformattedToken(botcCharacter character) {
         ItemStack tokenItem = new ItemStack(
-            character.team() == null ? Items.FLOW_POTTERY_SHERD : switch (character.team()) {
-                case Team.TOWNSFOLK -> Items.HEART_POTTERY_SHERD;
-                case Team.OUTSIDER -> Items.ANGLER_POTTERY_SHERD;
-                case Team.MINION -> Items.BREWER_POTTERY_SHERD;
-                case Team.DEMON -> Items.SKULL_POTTERY_SHERD;
-                case Team.TRAVELLER -> Items.PRIZE_POTTERY_SHERD;
-                case Team.FABLED -> Items.BURN_POTTERY_SHERD;
-                case Team.LORIC -> Items.PLENTY_POTTERY_SHERD;
-            }
+                switch (character.team()) {
+                    case null -> Items.FLOW_POTTERY_SHERD;
+                    case Team.TOWNSFOLK -> Items.HEART_POTTERY_SHERD;
+                    case Team.OUTSIDER -> Items.ANGLER_POTTERY_SHERD;
+                    case Team.MINION -> Items.BREWER_POTTERY_SHERD;
+                    case Team.DEMON -> Items.SKULL_POTTERY_SHERD;
+                    case Team.TRAVELLER -> Items.PRIZE_POTTERY_SHERD;
+                    case Team.FABLED -> Items.BURN_POTTERY_SHERD;
+                    case Team.LORIC -> Items.PLENTY_POTTERY_SHERD;
+                }
         );
 
         String tokenPath = character.token() != null ? "tokens/" + character.token() : "tokens/empty";
@@ -98,7 +101,7 @@ public record TokenItemStack(ItemStack tokenItem) {
 //        }
         MutableText loreText = (MutableText) character.abilityText();
         loreText.styled(style -> style.withItalic(false).withColor(Formatting.GRAY));
-        List<Text> loreLines = List.of(character.abilityText());
+        List<Text> loreLines = List.of(loreText);
         tokenItem.set(DataComponentTypes.LORE, new LoreComponent(loreLines));
         return tokenItem;
     }
@@ -106,30 +109,14 @@ public record TokenItemStack(ItemStack tokenItem) {
     /**
      * Create a token ItemStack for the given character.
      * The token's appearance and lore are based on the character's team and ability.<br>
-     * {@link #of(Seat, Script)} is preferred when creating tokens for seats, as it sets the name and alignment appropriately.<br>
-     * {@link #of(botcCharacter, Script)} is preferred when creating tokens for characters in a specific script, as it includes script-specific data.
+     * {@link #of(Seat, Script)} is preferred when creating tokens for seats, as it sets the name and alignment
+     * appropriately.<br>
+     * {@link #of(botcCharacter, Script)} is preferred when creating tokens for characters in a specific script, as
+     * it includes script-specific data.
      * @param character The character for whom to create the token.
      * @return An ItemStack representing the character's token.
      */
     public static ItemStack of(botcCharacter character) {
-        ItemStack tokenItem = createUnformattedToken(character);
-
-        List<Integer> colours = List.of();
-        if (character.team() != null && character.team().getColour(false) != null) {
-        Integer colourValue = character.team().getColour(false).getColorValue();
-        if (colourValue != null) {
-            colours = List.of(colourValue);
-            }
-        }
-
-        tokenItem.set(DataComponentTypes.CUSTOM_MODEL_DATA, createCustomModelData(colours));
-        tokenItem.set(DataComponentTypes.CUSTOM_DATA, createCustomData(character));
-
-        return tokenItem;
-    }
-
-    public static ItemStack of(botcCharacter character, Script script) {
-        botc.LOGGER.info("This script4 is: {}", script);
         ItemStack tokenItem = createUnformattedToken(character);
 
         List<Integer> colours = List.of();
@@ -141,6 +128,14 @@ public record TokenItemStack(ItemStack tokenItem) {
         }
 
         tokenItem.set(DataComponentTypes.CUSTOM_MODEL_DATA, createCustomModelData(colours));
+        tokenItem.set(DataComponentTypes.CUSTOM_DATA, createCustomData(character));
+
+        return tokenItem;
+    }
+
+    public static ItemStack of(botcCharacter character, Script script) {
+        ItemStack tokenItem = TokenItemStack.of(character);
+
         tokenItem.set(DataComponentTypes.CUSTOM_DATA, createCustomData(character, script));
 
         return tokenItem;
