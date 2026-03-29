@@ -10,9 +10,9 @@
   "team.botc-mc.alignment.evil": "Evil'un",
   "team.botc-mc.alignment.npc": "Legend",
   "team.botc-mc.alignment.neutral": "Neutral",
-  "character.botc-mc.empty": "Naught",
+  "character.botc.empty.name": "Naught",
+  "character.botc.empty.ability": "No Trade",
   "character.botc-mc.unknown": "Unknown",
-  "character.botc-mc.no_ability": "No Trade",
   "character.botc-mc.storyteller": "Captain",
 
   "book.botc-mc.bootlegger": "Counterfeiter",

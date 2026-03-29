@@ -12,7 +12,7 @@
   "team.botc-mc.alignment.evil": "Evil",
   "team.botc-mc.alignment.npc": "NPC",
   "team.botc-mc.alignment.neutral": "Neutral",
-  "character.botc.empty": "Empty",
+  "character.botc.empty.name": "Empty",
   "character.botc.empty.ability": "No Ability",
   "character.botc-mc.unknown": "Unknown",
   "character.botc-mc.storyteller": "Storyteller",

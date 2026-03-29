@@ -177,7 +177,8 @@ public abstract class Seat {
     }
 
     public Text getCharacterText() {
-        MutableText text = (MutableText) (character != null ? character.toFormattedText(false, false, true, false) : Text.of("Empty"));
+        MutableText text = (MutableText) ((character == null || character == botcCharacter.EMPTY) ?
+                Text.translatable("character.botc.empty.name") : character.toFormattedText(false, false, true, false));
         text.styled(style -> style.withFormatting(getColour(false)).withItalic(false));
         return text;
     }
