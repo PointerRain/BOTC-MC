@@ -1,0 +1,16 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "minecraft:item/written_book",
+    "tints": [
+      {
+        "type": "minecraft:dye",
+        "default": [0.4588, 0.1961, 0.1176]
+      },
+      {
+        "type": "minecraft:custom_model_data",
+        "default": 16777215
+      }
+    ]
+  }
+}

@@ -11,7 +11,7 @@ import java.util.List;
 public class PlayerSeat extends Seat {
 
     Team.Alignment alignment = Team.Alignment.NEUTRAL;
-    int ghostVotes = 0;
+    int ghostVotes = 1;
 
     final List<botcCharacter.ReminderToken> reminders = new ArrayList<>();
 
@@ -149,7 +149,7 @@ public class PlayerSeat extends Seat {
     }
 
     @Override
-    protected Formatting getColour(boolean dark) {
+    public Formatting getColour(boolean dark) {
         // Return white if no character assigned
         if (character == botcCharacter.EMPTY) {
             return Formatting.WHITE;

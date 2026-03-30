@@ -11,18 +11,15 @@ import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.Objects;
 
 /**
  * Represents a script in the BOTC game, containing meta information and a list of characters.
@@ -96,11 +93,12 @@ public record Script(Meta meta, List<botcCharacter> characters) {
                 botc.LOGGER.error("Script with ID '{}' not found.", scriptId);
             }
         }
-        if (scriptData == null || botcCharacter.baseCharacters == null) {
+        if (scriptData == null || CharacterLoader.baseCharacters == null) {
+            botc.LOGGER.error("Script data or base characters not loaded yet, returning script data as is.");
             return scriptData;
         }
         for (botcCharacter character : scriptData.characters) {
-            botcCharacter fullCharacter = botcCharacter.fromPartialCharacter(character);
+            botcCharacter fullCharacter = CharacterLoader.fromPartialCharacter(character);
             // Replace botcCharacter in the script's botcCharacter list
             int index = scriptData.characters.indexOf(character);
             scriptData.characters.set(index, fullCharacter);
@@ -165,31 +163,26 @@ public record Script(Meta meta, List<botcCharacter> characters) {
     }
 
     /**
+     * Helper method to convert a list of character IDs from a list of strings into a list of NightActions,
+     * filtering out any invalid entries.
+     * @param nightList The list of character IDs for the night order.
+     * @return The list of NightActions corresponding to the character IDs, in the order they appear in the list.
+     */
+    private List<NightAction> nightOrderFromSuperlist(List<String> nightList) {
+        return nightList.stream()
+                .map(s -> NightAction.nightActionFromScript(this, s))
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    /**
      * Get the order of actions for the first night.
      * @param isTeensy Whether the game is in teensy mode.
      * @return The list of NightActions in the order they act on the first night.
      */
     public List<NightAction> firstNightOrder(boolean isTeensy) {
-        ArrayList<NightAction> order = new ArrayList<>();
-        if (meta.firstNight != null && !meta.firstNight.isEmpty()) {
-            // Use predefined first night order from meta
-            meta.firstNight.forEach(s -> order.add(NightAction.firstNightAction(this, s)));
-        } else {
-            // Sort characters by firstNight value
-            characters.stream()
-                    .filter(c -> c.firstNight() > 0 && c.firstNightReminder() != null && !c.firstNightReminder().isEmpty())
-                    .sorted(Comparator.comparingInt(botcCharacter::firstNight))
-                    .map(NightAction::firstNightAction)
-                    .forEach(order::add);
-            if (!isTeensy) {
-                order.addFirst(NightAction.DEMONINFO);
-                order.addFirst(NightAction.MINIONINFO);
-            }
-            order.addFirst(NightAction.DUSK);
-            order.add(NightAction.DAWN);
-        }
-
-        return order;
+        return nightOrderFromSuperlist(meta.firstNight() != null && !meta.firstNight().isEmpty() ? meta.firstNight()
+                : CharacterLoader.firstNightOrder);
     }
 
     /**
@@ -205,22 +198,8 @@ public record Script(Meta meta, List<botcCharacter> characters) {
      * @return The list of NightActions in the order they act on nights other than the first.
      */
     public List<NightAction> otherNightOrder() {
-        List<NightAction> order = new ArrayList<>();
-        if (meta.otherNight != null && !meta.otherNight.isEmpty()) {
-            // Use predefined other night order from meta
-            meta.otherNight.forEach(s -> order.add(NightAction.otherNightAction(this, s)));
-        } else {
-            // Sort characters by otherNight value
-            characters.stream()
-                    .filter(c -> c.otherNight() > 0 && c.otherNightReminder() != null && !c.otherNightReminder().isEmpty())
-                    .sorted(Comparator.comparingInt(botcCharacter::otherNight))
-                    .map(NightAction::otherNightAction)
-                    .forEach(order::add);
-            order.addFirst(NightAction.DUSK);
-            order.add(NightAction.DAWN);
-        }
-
-        return order;
+        return nightOrderFromSuperlist(meta.otherNight() != null && !meta.otherNight().isEmpty() ? meta.otherNight()
+                : CharacterLoader.otherNightOrder);
     }
 
     /**
@@ -273,7 +252,7 @@ public record Script(Meta meta, List<botcCharacter> characters) {
                 .filter(c -> c.team().equals(team))
                 .forEach(teamCharacters::add);
         if (seeAll) {
-            for (botcCharacter botcCharacter : botcCharacter.baseCharacters) {
+            for (botcCharacter botcCharacter : CharacterLoader.baseCharacters) {
                 if (botcCharacter.team().equals(team)) {
                     teamCharacters.add(botcCharacter);
                 }
@@ -282,14 +261,14 @@ public record Script(Meta meta, List<botcCharacter> characters) {
         return teamCharacters.stream().toList();
     }
 
-    @Override
-    public @NotNull String toString() {
-        return "Script[name='" + meta.name + "', author='" + meta.author + "', logo='" + meta.logo +
-                "', hideTitle=" + meta.hideTitle + ", background='" + meta.background + "', almanac='" + meta.almanac +
-                "', bootlegger=" + meta.bootlegger + ", firstNight=" + meta.firstNight +
-                ", otherNight=" + meta.otherNight + ", color=" + Arrays.toString(meta.colour) +
-                ", characters=[" + characters.size() + " characters]]";
-    }
+//    @Override
+//    public @NotNull String toString() {
+//        return "Script[name='" + meta.name + "', author='" + meta.author + "', logo='" + meta.logo +
+//                "', hideTitle=" + meta.hideTitle + ", background='" + meta.background + "', almanac='" + meta.almanac +
+//                "', bootlegger=" + meta.bootlegger + ", firstNight=" + meta.firstNight +
+//                ", otherNight=" + meta.otherNight + ", color=" + Arrays.toString(meta.colour) +
+//                ", characters=[" + characters.size() + " characters]]";
+//    }
 
     /**
      * Meta information that appears as the first element in array script files.
@@ -340,115 +319,15 @@ public record Script(Meta meta, List<botcCharacter> characters) {
          */
         public MutableText jinxStar() {
             MutableText jinxText = Text.empty();
-            jinxText.append(new botcCharacter(this.id()).toFormattedText(false));
-            jinxText.append(Text.literal("\n"));
+            jinxText.append(new botcCharacter(this.id()).toFormattedText(false, false, true, false));
+            jinxText.append(Text.of("\n"));
             jinxText.append(Text.literal(this.reason()).setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)));
             HoverEvent hover = new HoverEvent.ShowText(jinxText);
-            return Text.literal("*")
+            return Text.translatable("book.botc-mc.jinx_star")
                             .styled(style -> style
                                     .withColor(Team.FABLED.getColour(false))
                                     .withBold(false).withUnderline(false)
                                     .withHoverEvent(hover));
-        }
-    }
-
-    /**
-     * Represents a night action in the game.
-     * Contains information about the action's ID, name, reminder text, and colour provider.
-     */
-    public static class NightAction {
-        public static final NightAction DUSK = new NightAction("dusk", "Dusk", "Start the Night Phase.",
-                b -> Formatting.GRAY);
-        public static final NightAction DAWN = new NightAction("dawn", "Dawn", "The night ends.",
-                b -> Formatting.GRAY);
-        public static final NightAction MINIONINFO = new NightAction("minioninfo",
-                "Minion Info",
-                "If there are 7 or more players, wake all Minions: Show the THIS IS THE DEMON token. Point to the " +
-                        "Demon. Show the THESE ARE YOUR MINIONS token. Point to the other Minions.",
-                Team.MINION::getColour);
-        public static final NightAction DEMONINFO = new NightAction("demoninfo",
-                "Demon Info",
-                "If there are 7 or more players, wake the Demon: Show the THESE ARE YOUR MINIONS token. Point to all " +
-                        "Minions. Show the THESE CHARACTERS ARE NOT IN PLAY token. Show 3 not-in-play good botcCharacter " +
-                        "tokens.",
-                Team.DEMON::getColour);
-
-        final String id;
-        final String name;
-        final String reminder;
-        final Function<? super Boolean, Formatting> colourProvider;
-
-        public NightAction(String id, String name, String reminder, Function<? super Boolean, Formatting> colourProvider) {
-            this.id = id;
-            this.name = name;
-            this.reminder = reminder;
-            this.colourProvider = colourProvider;
-        }
-
-        // Construct NightAction from botcCharacter and reminder
-        public NightAction(botcCharacter botcCharacter, String reminder) {
-            this(botcCharacter.id(),
-                    botcCharacter.name(),
-                    reminder,
-                    botcCharacter.team() != null ? botcCharacter.team()::getColour : b -> Formatting.BLACK);
-        }
-
-        // Static factory methods for creating NightActions
-
-        // Creates a NightAction for the first night for a given botcCharacter
-        public static NightAction firstNightAction(botcCharacter botcCharacter) {
-            return new NightAction(botcCharacter, botcCharacter.firstNightReminder());
-        }
-
-        // Creates a NightAction for the first night for a given botcCharacter ID in a script
-        public static NightAction firstNightAction(Script script, String characterId) {
-            switch (characterId) {
-                case "dusk":
-                    return DUSK;
-                case "dawn":
-                    return DAWN;
-                case "minioninfo":
-                    return MINIONINFO;
-                case "demoninfo":
-                    return DEMONINFO;
-            }
-            botcCharacter botcCharacter = script.characters().stream()
-                    .filter(c -> c.id().equals(characterId))
-                    .findFirst().orElseThrow();
-            return new NightAction(botcCharacter, botcCharacter.firstNightReminder());
-        }
-
-        // Creates a NightAction for nights other than the first for a given botcCharacter
-        public static NightAction otherNightAction(botcCharacter botcCharacter) {
-            return new NightAction(botcCharacter, botcCharacter.otherNightReminder());
-        }
-
-        // Creates a NightAction for nights other than the first for a given botcCharacter ID in a script
-        public static NightAction otherNightAction(Script script, String characterId) {
-            switch (characterId) {
-                case "dusk":
-                    return DUSK;
-                case "dawn":
-                    return DAWN;
-            }
-            botcCharacter botcCharacter = script.characters().stream()
-                    .filter(c -> c.id().equals(characterId))
-                    .findFirst().orElseThrow();
-            return new NightAction(botcCharacter, botcCharacter.otherNightReminder());
-        }
-
-        /**
-         * Get the formatted text representation of the night action's name with appropriate colour.
-         * @return The formatted text of the night action's name.
-         */
-        public MutableText toFormattedText() {
-            MutableText text = (MutableText) Text.of(name);
-            return text.formatted(colourProvider.apply(false));
-        }
-
-        @Override
-        public String toString() {
-            return "NightAction[id='" + id + "', name='" + name + "', reminder='" + reminder + "']";
         }
     }
 }

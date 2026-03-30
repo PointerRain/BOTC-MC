@@ -40,8 +40,8 @@ public class botcItemManager {
         }
         // Custom name
         MutableText name;
-        if (script.meta().hideTitle()) {
-            name = Text.literal("Script").styled(style -> style.withItalic(false));
+        if (script.meta().hideTitle() || script.meta().name() == null || script.meta().name().isBlank()) {
+            name = Text.translatable("book.botc-mc.no_title").styled(style -> style.withItalic(false));
         } else {
             name = script.toFormattedText().styled(style -> style.withBold(true).withItalic(false));
         }

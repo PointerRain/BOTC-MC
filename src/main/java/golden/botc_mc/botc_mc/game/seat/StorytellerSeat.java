@@ -9,14 +9,14 @@ import net.minecraft.util.Formatting;
 public class StorytellerSeat extends Seat {
 
     @Override
-    protected Formatting getColour(boolean dark) {
+    public Formatting getColour(boolean dark) {
         return Team.Alignment.NEUTRAL.getColour(dark);
     }
 
     public Text getCharacterText() {
         MutableText text = (MutableText) ((character == null || character == botcCharacter.EMPTY) ?
-                Text.of("Storyteller") : character.toFormattedText(false));
-        text.styled(style -> style.withFormatting(getColour(false)).withBold(true).withItalic(false));
+                Text.translatable("character.botc-mc.storyteller") : character.toFormattedText(false, false, true, false));
+        text.styled(style -> style.withFormatting(getColour(false)).withItalic(false));
         return text;
     }
 

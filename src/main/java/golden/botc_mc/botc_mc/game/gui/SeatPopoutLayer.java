@@ -19,7 +19,7 @@ public class SeatPopoutLayer extends Layer {
         super(1, Math.min(9, 2 + seat.getReminders().size()));
 
         ItemStack headItem = PlayerHeadItemStack.of(seat, seatNumber);
-        ItemStack tokenItem = TokenItemStack.of(seat);
+        ItemStack tokenItem = TokenItemStack.of(seat, gui.script);
 
         GuiElementInterface.ClickCallback tokenCallback = (i, c, a, g) -> gui.selectCharacter(seat);
 
@@ -36,7 +36,7 @@ public class SeatPopoutLayer extends Layer {
         super(1, 2);
 
         ItemStack headItem = PlayerHeadItemStack.of(seat);
-        ItemStack tokenItem = TokenItemStack.of(seat);
+        ItemStack tokenItem = TokenItemStack.of(seat, gui.script);
 
         GuiElementInterface.ClickCallback tokenCallback = (i, c, a, g) ->
                 gui.selectCharacter(seat);
