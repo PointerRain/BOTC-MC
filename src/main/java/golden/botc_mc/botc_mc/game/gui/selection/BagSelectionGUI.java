@@ -61,6 +61,11 @@ public class BagSelectionGUI extends AbstractMultiSelectGUI<botcCharacter> {
     }
 
     @Override
+    protected boolean canSelectItem(botcCharacter item) {
+        return !selectedItems.contains(item);
+    }
+
+    @Override
     protected AbstractSelectionGUI<botcCharacter> newInstance(ServerPlayerEntity player, int page) {
         return new BagSelectionGUI(this.player, this.script, this.seatManager, this.selectedItems,
                 this.onFinaliseSelection, this.onCancel, page);

@@ -85,6 +85,9 @@ public abstract class AbstractMultiSelectGUI<T> extends AbstractSelectionGUI<T> 
 
     @Override
     protected void itemSelectCallback(T item) {
+        if (!canSelectItem(item)) {
+            return;
+        }
 
         List<T> newSelectedItems = new ArrayList<>(selectedItems);
         newSelectedItems.add(item);
@@ -92,6 +95,16 @@ public abstract class AbstractMultiSelectGUI<T> extends AbstractSelectionGUI<T> 
 
         AbstractSelectionGUI<T> newGui = newInstance(this.player, this.page);
         newGui.open();
+    }
+
+    /**
+     * Determines whether an item is able to be selected.
+     * If not, it does nothing when clicked.
+     * @param item The item to check.
+     * @return Whether the item is able to be selected.
+     */
+    protected boolean canSelectItem(T item) {
+        return true;
     }
 
     /**
