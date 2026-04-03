@@ -21,7 +21,7 @@ public class StorytellerLayer extends Layer {
         for (int n = 0; n < gui.seatManager.getStorytellers().size(); n++) {
             StorytellerSeat seat = gui.seatManager.getStorytellers().get(n);
             ItemStack headItem = PlayerHeadItemStack.of(seat);
-            ItemStack tokenItem = TokenItemStack.of(seat);
+            ItemStack tokenItem = TokenItemStack.of(seat, gui.script);
 
             GuiElementInterface.ClickCallback headCallback = (i, c, a, g) -> {
                 if (c == ClickType.MOUSE_LEFT_SHIFT) {
@@ -49,7 +49,7 @@ public class StorytellerLayer extends Layer {
         }
         for (int n = 0; n < gui.seatManager.getNPCs().size(); n++) {
             botcCharacter npc = gui.seatManager.getNPCs().get(n);
-            ItemStack tokenItem = TokenItemStack.of(npc);
+            ItemStack tokenItem = TokenItemStack.of(npc, gui.script);
             GuiElementInterface.ClickCallback tokenCallback = (i, c, a, g) -> {
                 if (c == ClickType.MOUSE_RIGHT_SHIFT) {
                     gui.seatManager.removeNPC(npc);
@@ -61,6 +61,7 @@ public class StorytellerLayer extends Layer {
         int n = gui.seatManager.getNPCs().size();
         GuiElementInterface.ClickCallback addNPCCallback = (i, c, a, g) -> gui.addNPC();
         this.setSlot(9 * (n / perRow) + 8 - (n % perRow),
-                     SeatMenuLayer.buildButton(Text.of("Add NPC"), addNPCCallback));
+                     ButtonBuilder.buildButton(
+                             Text.translatable("gui.botc-mc.add_npc"), ButtonIcon.ADD, addNPCCallback));
     }
 }

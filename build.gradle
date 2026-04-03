@@ -33,6 +33,9 @@ dependencies {
 
     // Plasmid
     modImplementation("xyz.nucleoid:plasmid:${project.plasmid_version}")
+
+    // Polymer
+    modImplementation "eu.pb4:polymer-autohost:${project.polymer_version}"
 }
 
 processResources {

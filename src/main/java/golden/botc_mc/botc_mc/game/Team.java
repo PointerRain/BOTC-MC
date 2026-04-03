@@ -59,15 +59,7 @@ public enum Team {
      * @return An unformatted {@code Text} containing the team name.
      */
     public MutableText toText() {
-        return Text.literal(switch (this) {
-            case TOWNSFOLK -> "Townsfolk";
-            case OUTSIDER -> "Outsider";
-            case MINION -> "Minion";
-            case DEMON -> "Demon";
-            case FABLED -> "Fabled";
-            case LORIC -> "Loric";
-            case TRAVELLER -> "Traveller";
-        });
+        return Text.translatable("team.botc-mc." + this);
     }
 
     /**
@@ -130,15 +122,15 @@ public enum Team {
 
         public String toString() {
             return switch (this) {
-                case GOOD -> "Good";
-                case EVIL -> "Evil";
-                case NPC -> "NPC";
-                case NEUTRAL -> "Neutral";
+                case GOOD -> "good";
+                case EVIL -> "evil";
+                case NPC -> "npc";
+                case NEUTRAL -> "neutral";
             };
         }
 
-        public MutableText toText() {
-            return Text.literal(this.toString());
+        public Text toText() {
+            return Text.translatable("team.botc-mc.alignment." + this);
         }
 
         /**

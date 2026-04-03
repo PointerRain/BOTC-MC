@@ -43,7 +43,7 @@ public class GrimoireGUI extends LayeredGui {
      */
     public GrimoireGUI(ServerPlayerEntity player, botcSeatManager seatManager, Script script) {
         super(getScreenSize(seatManager), player, true);
-        this.setTitle(Text.of("Grimoire"));
+        this.setTitle(Text.translatable("gui.botc-mc.grimoire.title"));
 
         this.seatManager = seatManager;
         this.script = script;
@@ -217,11 +217,12 @@ public class GrimoireGUI extends LayeredGui {
         // If there are more reminders, add a "See All" item containing the rest
         if (reminders.size() > maxReminders) {
             ItemStack moreItem = new ItemStack(Items.PAPER);
-            MutableText moreText = (MutableText) Text.of("See All");
+            MutableText moreText = Text.translatable("gui.botc-mc.reminder.see_all");
             moreItem.set(DataComponentTypes.CUSTOM_NAME, moreText);
             List<Text> allRemindersText = new ArrayList<>();
             for (int i = maxReminders; i < reminders.size(); i++) {
-                MutableText reminderText = (MutableText) Text.of("- " + reminders.get(i).reminder());
+                MutableText reminderText = (MutableText) Text.of("- ");
+                reminderText.append(Text.translatable(reminders.get(i).reminder()));
                 reminderText.styled(style -> style.withColor(Formatting.WHITE).withItalic(false));
                 allRemindersText.add(reminderText);
             }

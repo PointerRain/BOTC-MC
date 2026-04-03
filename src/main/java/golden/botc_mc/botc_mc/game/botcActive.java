@@ -228,7 +228,7 @@ public class botcActive {
             // Notify unseated players every 70 ticks
             for (ServerPlayerEntity participant : this.gameSpace.getPlayers().participants()) {
                 if (seatManager.getSeatFromPlayer(participant) == null) {
-                    OverlayMessageS2CPacket packet = new OverlayMessageS2CPacket(Text.of("You do not have a seat assigned!"));
+                    OverlayMessageS2CPacket packet = new OverlayMessageS2CPacket(Text.translatable("gui.botc-mc.unseated_warning"));
                     participant.networkHandler.sendPacket(packet);
                 }
             }

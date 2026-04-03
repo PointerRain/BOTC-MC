@@ -11,8 +11,6 @@ import net.minecraft.screen.ScreenHandlerType;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 
-import static golden.botc_mc.botc_mc.game.gui.SeatMenuLayer.buildButton;
-
 /**
  * GUI for resizing and managing the player seats in the Grimoire.
  */
@@ -23,7 +21,7 @@ public class ResizeGrimGUI extends LayeredGui {
     public ResizeGrimGUI(ServerPlayerEntity player, botcSeatManager seatManager) {
         super(seatManager.getSeatCount() <= 9 ? ScreenHandlerType.GENERIC_9X1 : ScreenHandlerType.GENERIC_9X3,
                 player, true);
-        this.setTitle(Text.of("Edit Grimoire"));
+        this.setTitle(Text.translatable("gui.botc-mc.edit_grim"));
 
         this.seatManager = seatManager;
 
@@ -97,29 +95,36 @@ public class ResizeGrimGUI extends LayeredGui {
             this.setSlot(2, headItem);
             // Add before and add after buttons
             if (gui.seatManager.getSeatCount() < botcSeatManager.MAX_PLAYERS) {
-                this.setSlot(1, buildButton(Text.of("Add Before"), (i, c, a, g) -> {
-                    gui.seatManager.insert(seatNumber > 1 ? seatNumber : gui.seatManager.getSeatCount() + 1);
-                    gui.reopen(seat);
+                this.setSlot(1, ButtonBuilder.buildButton(
+                        Text.translatable("gui.botc-mc.seats.add_before"), ButtonIcon.ADD,
+                        (i, c, a, g) -> {
+                            gui.seatManager.insert(seatNumber > 1 ? seatNumber : gui.seatManager.getSeatCount() + 1);
+                            gui.reopen(seat);
                 }));
-                this.setSlot(3, buildButton(Text.of("Add After"), (i, c, a, g) -> {
-                    gui.seatManager.insert(seatNumber + 1);
-                    gui.reopen(seat);
+                this.setSlot(3, ButtonBuilder.buildButton(
+                        Text.translatable("gui.botc-mc.seats.add_after"), ButtonIcon.ADD,
+                        (i, c, a, g) -> {
+                            gui.seatManager.insert(seatNumber + 1);
+                            gui.reopen(seat);
                 }));
             }
             // Move left and move right buttons
-            this.setSlot(0, buildButton(Text.of("Move Left"), (i, c, a, g) -> {
-                gui.seatManager.moveSeat(seatNumber, seatNumber - 1);
-                gui.reopen(seat);
+            this.setSlot(0, ButtonBuilder.buildButton(
+                    Text.translatable("gui.botc-mc.seats.move_left"), ButtonIcon.LEFT, (i, c, a, g) -> {
+                        gui.seatManager.moveSeat(seatNumber, seatNumber - 1);
+                        gui.reopen(seat);
             }));
-            this.setSlot(4, buildButton(Text.of("Move Right"), (i, c, a, g) -> {
-                gui.seatManager.moveSeat(seatNumber, seatNumber + 1);
-                gui.reopen(seat);
+            this.setSlot(4, ButtonBuilder.buildButton(
+                    Text.translatable("gui.botc-mc.seats.move_right"), ButtonIcon.RIGHT, (i, c, a, g) -> {
+                        gui.seatManager.moveSeat(seatNumber, seatNumber + 1);
+                        gui.reopen(seat);
             }));
             // Remove seat button
             if (gui.seatManager.getSeatCount() > botcSeatManager.MIN_PLAYERS) {
-                this.setSlot(7, buildButton(Text.of("Remove Seat"), (i, c, a, g) -> {
-                    gui.seatManager.remove(seatNumber);
-                    gui.reopen();
+                this.setSlot(7, ButtonBuilder.buildButton(
+                        Text.translatable("gui.botc-mc.seats.remove"), ButtonIcon.DELETE, (i, c, a, g) -> {
+                            gui.seatManager.remove(seatNumber);
+                            gui.reopen();
                 }));
             }
         }
@@ -136,32 +141,36 @@ public class ResizeGrimGUI extends LayeredGui {
             super(1, 9);
 
             // Close button
-            this.setSlot(0, buildButton(Text.of("Close Menu"), (i, c, a, g) -> {
-                if (gui.resizePopoutLayer != null) {
-                    gui.removeLayer(gui.resizePopoutLayer);
-                    gui.resizePopoutLayer = null;
-                } else {
-                    gui.close();
-                }
+            this.setSlot(0, ButtonBuilder.buildButton(
+                    Text.translatable("gui.cancel"), ButtonIcon.CLOSE, (i, c, a, g) -> {
+                        if (gui.resizePopoutLayer != null) {
+                            gui.removeLayer(gui.resizePopoutLayer);
+                            gui.resizePopoutLayer = null;
+                        } else {
+                            gui.close();
+                        }
             }));
             // Remove seat button
             if (gui.seatManager.getSeatCount() > botcSeatManager.MIN_PLAYERS) {
-                this.setSlot(3, buildButton(Text.of("Remove Seat"), (i, c, a, g) -> {
-                    gui.seatManager.setPlayerCount(gui.seatManager.getSeatCount() - 1);
-                    gui.reopen();
+                this.setSlot(3, ButtonBuilder.buildButton(
+                        Text.translatable("gui.botc-mc.seats.remove"), ButtonIcon.DELETE, (i, c, a, g) -> {
+                            gui.seatManager.setPlayerCount(gui.seatManager.getSeatCount() - 1);
+                            gui.reopen();
                 }));
             }
             // Add seat button
             if (gui.seatManager.getSeatCount() < botcSeatManager.MAX_PLAYERS) {
-                this.setSlot(5, buildButton(Text.of("Add Seat"), (i, c, a, g) -> {
-                    gui.seatManager.setPlayerCount(gui.seatManager.getSeatCount() + 1);
-                    gui.reopen();
+                this.setSlot(5, ButtonBuilder.buildButton(
+                        Text.translatable("gui.botc-mc.seats.add"), ButtonIcon.ADD, (i, c, a, g) -> {
+                            gui.seatManager.setPlayerCount(gui.seatManager.getSeatCount() + 1);
+                            gui.reopen();
                 }));
             }
             // Shuffle seats button
-            this.setSlot(8, buildButton(Text.of("Shuffle Seats"), (i, c, a, g) -> {
-                gui.seatManager.shuffle();
-                gui.reopen();
+            this.setSlot(8, ButtonBuilder.buildButton(
+                    Text.translatable("gui.botc-mc.seats.shuffle"), ButtonIcon.SHUFFLE, (i, c, a, g) -> {
+                        gui.seatManager.shuffle();
+                        gui.reopen();
             }));
         }
     }

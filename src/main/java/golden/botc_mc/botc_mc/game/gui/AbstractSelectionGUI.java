@@ -21,6 +21,7 @@ public abstract class AbstractSelectionGUI<T> extends SimpleGui {
     protected final List<T> items;
     protected final Function<T, ?> onSelectItem;
     protected final Runnable onCancel;
+    protected final int page;
 
     /**
      * Constructor for AbstractSelectionGUI.
@@ -35,12 +36,17 @@ public abstract class AbstractSelectionGUI<T> extends SimpleGui {
                                 Runnable onCancel,
                                 int page) {
         super(getScreenSize(items), player, false);
-        this.setTitle(Text.of("Select an Item"));
+        this.setTitle(Text.translatable("gui.botc-mc.selection"));
 
         this.items = items;
         this.onSelectItem = onSelectItem;
         this.onCancel = onCancel;
+        this.page = page;
 
+    }
+
+    @Override
+    public void beforeOpen() {
         int pages = getPageCount();
 
         // Add all items for this page
@@ -52,13 +58,14 @@ public abstract class AbstractSelectionGUI<T> extends SimpleGui {
         // Pagination buttons
         if (page > 0) {
             GuiElementInterface.ClickCallback prevPageCallback = (i, c, a, g) -> newInstance(player, page - 1).open();
-            this.setSlot(9 * this.getHeight() - 9, SeatMenuLayer.buildButton(Text.of("Previous Page"),
-                    prevPageCallback));
+            this.setSlot(9 * this.getHeight() - 9, ButtonBuilder.buildButton(
+                    Text.translatable("book.page_button.previous"), ButtonIcon.LEFT, prevPageCallback));
         }
         if (page < pages - 1) {
             GuiElementInterface.ClickCallback nextPageCallback =
                     (i, c, a, g) -> newInstance(player, page + 1).open();
-            this.setSlot(9 * this.getHeight() - 1, SeatMenuLayer.buildButton(Text.of("Next Page"), nextPageCallback));
+            this.setSlot(9 * this.getHeight() - 1, ButtonBuilder.buildButton(
+                    Text.translatable("book.page_button.next"), ButtonIcon.RIGHT, nextPageCallback));
         }
 
         // Cancel button
@@ -67,8 +74,10 @@ public abstract class AbstractSelectionGUI<T> extends SimpleGui {
                 this.onCancel.run();
             } else this.close();
         };
-        this.setSlot(9 * this.getHeight() - 2, SeatMenuLayer.buildButton(Text.of("Cancel"),
-                cancelCallback));
+        this.setSlot(9 * this.getHeight() - 2, ButtonBuilder.buildButton(
+                Text.translatable("gui.cancel"), ButtonIcon.CLOSE, cancelCallback));
+
+        super.beforeOpen();
     }
 
     /**
