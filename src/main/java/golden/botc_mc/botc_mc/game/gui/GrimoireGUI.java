@@ -317,8 +317,7 @@ public class GrimoireGUI extends LayeredGui {
                 botc.LOGGER.info("Selected {}", selectedItems);
                 this.seatManager.assignCharacters(selectedItems);
                 return null;
-            },
-            () -> {}, 0);
+            }, this::reopen, 0);
         gui.open();
     }
 
