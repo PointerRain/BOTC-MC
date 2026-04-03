@@ -12,6 +12,7 @@ import net.minecraft.item.Items;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -19,15 +20,39 @@ public class BagSelectionGUI extends AbstractMultiSelectGUI<botcCharacter> {
 
     protected final Script script;
     protected final botcSeatManager seatManager;
+    private int requiredRoles;
 
     public BagSelectionGUI(ServerPlayerEntity player,
                            Script script, botcSeatManager seatManager, List<botcCharacter> selectedItems,
                            Function<List<botcCharacter>, ?> onFinaliseSelection, Runnable onCancel,
                            int page) {
-        super(player, script.characters(), selectedItems, onFinaliseSelection, onCancel, page);
+        super(player, getAllCharacters(script), selectedItems, onFinaliseSelection, onCancel, page);
 
         this.script = script;
         this.seatManager = seatManager;
+
+        this.requiredRoles = 0;
+        for (int i = 0; i < seatManager.getSeatCount(); i++) {
+            if (seatManager.getSeatFromNumber(i+1).getCharacter() != botcCharacter.EMPTY && seatManager.getSeatFromNumber(i+1).getCharacter().team() == Team.TRAVELLER) {
+                continue;
+            }
+            requiredRoles++;
+        }
+        if (requiredRoles >= botcSeatManager.ROLES_MAX) {requiredRoles = botcSeatManager.ROLES_MAX;}
+    }
+
+    /**
+     * Gets all characters selectable in the bag selection GUI.
+     * @param script The script to use characters from.
+     * @return A list of all characters in the script that should be in the GUI.
+     */
+    private static List<botcCharacter> getAllCharacters(Script script) {
+        List<botcCharacter> characters = new ArrayList<>();
+        characters.addAll(script.getCharactersByTeam(Team.TOWNSFOLK, false));
+        characters.addAll(script.getCharactersByTeam(Team.OUTSIDER, false));
+        characters.addAll(script.getCharactersByTeam(Team.MINION, false));
+        characters.addAll(script.getCharactersByTeam(Team.DEMON, false));
+        return characters;
     }
 
     @Override
@@ -78,12 +103,11 @@ public class BagSelectionGUI extends AbstractMultiSelectGUI<botcCharacter> {
 
     @Override
     protected boolean canFinalise() {
-        if (this.seatManager == null) {return true;}
-        return this.selectedItems.size() == seatManager.getSeatCount();
+        return this.selectedItems.size() == requiredRoles;
     }
 
     @Override
     protected Text getFinaliseReason() {
-        return Text.translatable("gui.botc-mc.selection.bag.reason", selectedItems.size(), seatManager.getSeatCount());
+        return Text.translatable("gui.botc-mc.selection.bag.reason", selectedItems.size(), requiredRoles);
     }
 }
