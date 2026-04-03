@@ -66,6 +66,7 @@
 
   "gui.botc-mc.unseated_warning": "You do not have a seat assigned!",
 
+  "gui.botc-mc.build_bag": "Build Role Bag",
   "gui.botc-mc.selection.bag": "Role Counts",
   "gui.botc-mc.selection.bag.townsfolk": "Townsfolk: %s/%s",
   "gui.botc-mc.selection.bag.outsiders": "Outsiders: %s/%s",
