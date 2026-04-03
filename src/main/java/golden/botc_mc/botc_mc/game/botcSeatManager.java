@@ -21,6 +21,7 @@ public class botcSeatManager {
 
     public static final int MIN_PLAYERS = 4;
     public static final int MAX_PLAYERS = 18;
+    public static final int ROLES_MAX = 15;
     public static final int MAX_STORYTELLERS = 3;
 
     private static final HashMap<Integer, int[]> COUNTS = new HashMap<>();
@@ -378,9 +379,14 @@ public class botcSeatManager {
         // Assign characters to players in random order.
         List<botcCharacter> shuffledCharacters = new ArrayList<>(characters);
         Collections.shuffle(shuffledCharacters);
-        for (int i = 0; i < shuffledCharacters.size(); i++) {
-            PlayerSeat seat = this.playerSeats.get(i);
-            botcCharacter character = shuffledCharacters.get(i);
+        for (PlayerSeat seat : this.playerSeats) {
+            if (shuffledCharacters.isEmpty()) {
+                break; // No more characters to assign
+            }
+            if (seat.getCharacter() != botcCharacter.EMPTY && seat.getCharacter().team() == Team.TRAVELLER) {
+                continue;
+            }
+            botcCharacter character = shuffledCharacters.removeFirst();
             seat.setCharacter(character);
             if (seat.hasPlayerEntity()) {
                 RoleAssignment.sendCharacter(seat.getPlayerEntity(), character);
