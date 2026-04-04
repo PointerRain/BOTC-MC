@@ -2,6 +2,8 @@ package golden.botc_mc.botc_mc.game;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import golden.botc_mc.botc_mc.voting.VotingMain;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.exceptions.InvalidAlignmentException;
@@ -59,6 +61,39 @@ public final class botcCommands {
                 }
 
                 showSettingsMenu(player);
+                return 1;
+            }));
+
+        root.then(literal("nominate").then( CommandManager.argument("target", EntityArgumentType.player())
+                //Remove @'s from the command target argument
+                .suggests((context, builder) -> {
+                    for (ServerPlayerEntity p : context.getSource().getServer().getPlayerManager().getPlayerList()) {
+                        builder.suggest(p.getName().getString() );
+                    }
+                    return builder.buildFuture();
+                })
+
+                .executes(ctx -> {
+            ServerCommandSource src = ctx.getSource();
+            if (!(src.getEntity() instanceof ServerPlayerEntity player )) {
+                src.sendFeedback(() -> Text.literal("Nomination Failed!"), false);
+                return 0;
+            }
+            ServerPlayerEntity target = EntityArgumentType.getPlayer(ctx , "target");
+            VotingMain.nominate(src.getPlayer() , target);
+            src.sendFeedback(() -> Text.literal("Nomination Successful!"), true);
+            return 1;
+        })));
+
+            root.then(literal("vote_items").executes(ctx -> {
+                ServerCommandSource src = ctx.getSource();
+                VotingMain.distributeVotingItems(src.getServer());
+                return 1;
+            }));
+
+            root.then(literal("vote_start").executes(ctx -> {
+                ServerCommandSource src = ctx.getSource();
+                VotingMain.Votestart(src.getServer());
                 return 1;
             }));
 
