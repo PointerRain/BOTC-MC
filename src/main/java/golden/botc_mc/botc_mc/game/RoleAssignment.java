@@ -12,8 +12,12 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 public class RoleAssignment {
+
+    private static final int CHARACTER_REVEAL_DELAY_TICKS = 80; // 4 seconds at 20 ticks per second
 
     public static void showTotemEffect(ServerPlayerEntity player, ItemStack item) {
         DeathProtectionComponent deathProtectionComponent = new DeathProtectionComponent(List.of());
@@ -36,11 +40,14 @@ public class RoleAssignment {
 
     public static void sendCharacter(ServerPlayerEntity player, botcCharacter character) {
 
-        showTotemEffect(player, TokenItemStack.of(character));
+        MutableText titleText = Text.literal("You are the").formatted(character.team().getColour(false), Formatting.BOLD);
+        TitleUtil.showSubtitle(player, titleText, 10, CHARACTER_REVEAL_DELAY_TICKS-20, 5);
 
-        MutableText titleText = Text.literal("You are the ").formatted(character.team().getColour(false), Formatting.BOLD);
-        titleText.append(character.toText());
-        TitleUtil.showSubtitle(player, titleText);
+        CompletableFuture.delayedExecutor(CHARACTER_REVEAL_DELAY_TICKS * 50L, TimeUnit.MILLISECONDS)
+                .execute(() -> {
+                    showTotemEffect(player, TokenItemStack.of(character));
+                    TitleUtil.showTitle(player, character.toFormattedText(false, true, false, false), 20, 140, 40);
+                });
     }
 }
 
