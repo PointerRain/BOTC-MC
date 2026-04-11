@@ -104,6 +104,7 @@ public abstract class AbstractSelectionGUI<T> extends SimpleGui {
             return items;
         }
         int start = page * ITEMS_PER_PAGE;
+        if (start >= this.items.size()) {start = this.items.size() - ITEMS_PER_PAGE;}
         int end = Math.min(start + ITEMS_PER_PAGE, this.items.size());
         return this.items.subList(start, end);
     }
