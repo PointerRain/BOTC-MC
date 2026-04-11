@@ -27,6 +27,7 @@ public class PlayerHeadItemStack {
 
     /**
      * Create a player head ItemStack for the given player.
+     * Prefer using {@code of(Seat)} or {@code of(Seat, int)} because it includes alive and vote status.
      * @param player The player whose head to create.
      * @return An ItemStack representing the player's head.
      */
@@ -48,7 +49,9 @@ public class PlayerHeadItemStack {
     public static ItemStack of(Seat seat) {
         ItemStack headItem = seat.hasPlayerEntity() ? of(seat.getPlayerEntity()) : new ItemStack(Items.PLAYER_HEAD);
 
-        headItem.set(DataComponentTypes.ITEM_MODEL, Identifier.of(botc.ID, "player_head"));
+        if (botc.USE_SPECIAL_MODELS) {
+            headItem.set(DataComponentTypes.ITEM_MODEL, Identifier.of(botc.ID, "player_head"));
+        }
 
         CustomModelDataComponent customModelDataComponent = new CustomModelDataComponent(
             List.of(),
