@@ -127,14 +127,26 @@ public abstract class AbstractMultiSelectGUI<T> extends AbstractSelectionGUI<T> 
         newGui.open();
     }
 
+    /**
+     * Determines whether the selection can be finalised and closed.
+     * This should be overridden in selection menus.
+     * @return Whether it can be finalised.
+     */
     protected boolean canFinalise() {
         return !selectedItems.isEmpty();
     }
 
+    /**
+     * If the selection cannot be finalised, this provides a reason why which is shown on hovering over the disabled finalise button.
+     * @return A reason why the selection cannot be finalised.
+     */
     protected Text getFinaliseReason() {
         return Text.translatable("gui.botc-mc.selection.finalise_disabled");
     }
 
+    /**
+     * Finalise the selection by applying the selected items to the callback function, and close the gui.
+     */
     protected void finaliseSelection() {
         this.onFinaliseSelection.apply(this.selectedItems);
         this.close();

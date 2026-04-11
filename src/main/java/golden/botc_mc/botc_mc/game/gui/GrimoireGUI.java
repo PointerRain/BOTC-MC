@@ -304,13 +304,16 @@ public class GrimoireGUI extends LayeredGui {
     }
 
     /**
-     * Opens the grimoire resizing GUI to edit the layout of the grimoire.
+     * Opens the grimoire resizing GUI to edit the player count and seat order.
      */
     public void editGrimoire() {
         ResizeGrimGUI gui = new ResizeGrimGUI(this.getPlayer(), this.seatManager);
         gui.open();
     }
 
+    /**
+     * Opens the role selection gui to select and distribute characters.
+     */
     public void buildBag() {
         BagSelectionGUI gui = new BagSelectionGUI(this.getPlayer(), this.script, this.seatManager, List.of(),
             selectedItems -> {

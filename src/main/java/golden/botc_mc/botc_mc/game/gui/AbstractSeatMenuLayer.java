@@ -35,6 +35,10 @@ public abstract class AbstractSeatMenuLayer<T extends Seat> extends Layer {
         }
     }
 
+    /**
+     * Get the items/buttons to be located on the hotbar menu.
+     * @return The items.
+     */
     protected List<GuiElement> getItems() {
         List<GuiElement> elements = new ArrayList<>(9);
         elements.add(ButtonBuilder.buildButton(
@@ -65,5 +69,8 @@ public abstract class AbstractSeatMenuLayer<T extends Seat> extends Layer {
         return elements;
     }
 
+    /**
+     * Reopen the gui.
+     */
     protected abstract void reopen();
 }
