@@ -84,8 +84,10 @@ public record TokenItemStack(ItemStack tokenItem) {
                 }
         );
 
-        String tokenPath = character.token() != null ? "tokens/" + character.token() : "tokens/empty";
-        tokenItem.set(DataComponentTypes.ITEM_MODEL, Identifier.of(botc.ID, tokenPath));
+        if (botc.USE_SPECIAL_MODELS) {
+            String tokenPath = character.token() != null ? "tokens/" + character.token() : "tokens/empty";
+            tokenItem.set(DataComponentTypes.ITEM_MODEL, Identifier.of(botc.ID, tokenPath));
+        }
 
         MutableText nameText = (MutableText) character.toFormattedText(false, true, true, false);
         nameText.styled(style -> style.withItalic(false));

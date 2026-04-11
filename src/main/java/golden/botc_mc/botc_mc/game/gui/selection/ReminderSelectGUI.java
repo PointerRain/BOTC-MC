@@ -1,4 +1,4 @@
-package golden.botc_mc.botc_mc.game.gui;
+package golden.botc_mc.botc_mc.game.gui.selection;
 
 import eu.pb4.sgui.api.elements.GuiElementInterface;
 import eu.pb4.sgui.api.gui.SignGui;
@@ -6,6 +6,9 @@ import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.Script;
 import golden.botc_mc.botc_mc.game.botcCharacter;
 import golden.botc_mc.botc_mc.game.botcSeatManager;
+import golden.botc_mc.botc_mc.game.gui.ButtonBuilder;
+import golden.botc_mc.botc_mc.game.gui.ButtonIcon;
+import golden.botc_mc.botc_mc.game.gui.TokenItemStack;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -19,7 +22,7 @@ import java.util.function.Function;
 /**
  * Selection GUI for reminder tokens.
  */
-public class ReminderSelectGUI extends AbstractSelectionGUI<botcCharacter.ReminderToken> {
+public class ReminderSelectGUI extends AbstractSingleSelectGUI<botcCharacter.ReminderToken> {
 
     private final Script script;
     private final botcSeatManager seatManager;
@@ -118,7 +121,7 @@ public class ReminderSelectGUI extends AbstractSelectionGUI<botcCharacter.Remind
     /**
      * Custom sign GUI for entering a custom reminder token.
      */
-    static class CustomTokenBox extends SignGui {
+    public static class CustomTokenBox extends SignGui {
         private final Function<? super botcCharacter.ReminderToken, ?> onEnterReminder;
 
         /**

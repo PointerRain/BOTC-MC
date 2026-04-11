@@ -1,5 +1,6 @@
 package golden.botc_mc.botc_mc.game.gui;
 
+import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 
@@ -28,7 +29,8 @@ public enum ButtonIcon {
     DEMOTE,
     TELEPORT,
     MORE,
-    LESS;
+    LESS,
+    BAG;
 
     ItemStack toItemStack() {
         return switch (this) {
@@ -56,6 +58,12 @@ public enum ButtonIcon {
 
             case MORE -> new ItemStack(Items.PAPER);
             case LESS -> new ItemStack(Items.PAPER);
+
+            case BAG -> {
+                ItemStack item = new ItemStack(Items.BUNDLE);
+                item.remove(DataComponentTypes.BUNDLE_CONTENTS);
+                yield item;
+            }
 
             default -> new ItemStack(Items.PAPER); // Fallback
         };
