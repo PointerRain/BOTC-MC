@@ -74,11 +74,18 @@ public abstract class AbstractMultiSelectGUI<T> extends AbstractSelectionGUI<T> 
         return Math.max(super.getPageCount(), selectedPageCount);
     }
 
+    /**
+     * Get the items for a specific page.
+     * This uses the same page number as the regular selection menu.
+     * @param page The page number (0-indexed).
+     * @return A sublist of items for the specified page.
+     */
     protected List<T> getSelectedPage(int page) {
         if (this.selectedItems.size() <= SELECTED_ITEMS_PER_PAGE) {
             return selectedItems;
         }
         int start = page * SELECTED_ITEMS_PER_PAGE;
+        if (start >= this.selectedItems.size()) {start = this.selectedItems.size() - SELECTED_ITEMS_PER_PAGE;}
         int end = Math.min(start + SELECTED_ITEMS_PER_PAGE, this.selectedItems.size());
         return this.selectedItems.subList(start, end);
     }
