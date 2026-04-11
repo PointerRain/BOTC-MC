@@ -47,6 +47,8 @@ public class botc implements ModInitializer {
     public static final String ID = "botc-mc";
     /** Structured logger for BOTC mod operations. */
     public static final Logger LOGGER = LogManager.getLogger(ID);
+    /** Whether to use special models */
+    public static final boolean USE_SPECIAL_MODELS = true;
     /**
      * Loaded script definitions keyed by their resource identifier string (for example
      * "botc-mc:scripts/trouble_brewing.json"). Populated by the resource reload listener
