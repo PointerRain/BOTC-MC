@@ -1,5 +1,6 @@
 package golden.botc_mc.botc_mc.game;
 
+import golden.botc_mc.botc_mc.TitleUtil;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.network.packet.s2c.play.OverlayMessageS2CPacket;
@@ -228,8 +229,9 @@ public class botcActive {
             // Notify unseated players every 70 ticks
             for (ServerPlayerEntity participant : this.gameSpace.getPlayers().participants()) {
                 if (seatManager.getSeatFromPlayer(participant) == null) {
-                    OverlayMessageS2CPacket packet = new OverlayMessageS2CPacket(Text.translatable("gui.botc-mc.unseated_warning"));
-                    participant.networkHandler.sendPacket(packet);
+//                    OverlayMessageS2CPacket packet = new OverlayMessageS2CPacket(Text.translatable("gui.botc-mc.unseated_warning"));
+//                    participant.networkHandler.sendPacket(packet);
+                    TitleUtil.showActionBar(participant, Text.translatable("gui.botc-mc.unseated_warning"));
                 }
             }
         }
