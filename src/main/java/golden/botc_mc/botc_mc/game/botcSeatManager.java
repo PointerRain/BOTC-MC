@@ -24,6 +24,12 @@ public class botcSeatManager {
     public static final int ROLES_MAX = 15;
     public static final int MAX_STORYTELLERS = 3;
 
+    /**
+     * Role counts for each player count.
+     * Order is Townsfolk, Outsider, Minion, Demon
+     * Below 5 players is not supported.
+     * Above 15 players extra players are Travellers.
+     */
     private static final HashMap<Integer, int[]> COUNTS = new HashMap<>();
     static {
         COUNTS.put(4, new int[]{3, 0, 0, 1});
@@ -375,6 +381,15 @@ public class botcSeatManager {
         this.playerSeats.add(to - 1, seat);
     }
 
+    /**
+     * Randomly assigns characters to player seats.
+     * Characters are assigned in random order, but seats are assigned in their current order.
+     * Travellers are skipped.
+     * If characters is less than number of assignable seats then not all seats will be assigned a character.
+     * If characters is more than number of assignable seats then not all characters will be used.
+     * Shows a popup for players who are assigned a character.
+     * @param characters The list of characters to assign to players.
+     */
     public void assignCharacters(List<botcCharacter> characters) {
         // Assign characters to players in random order.
         List<botcCharacter> shuffledCharacters = new ArrayList<>(characters);
@@ -394,18 +409,25 @@ public class botcSeatManager {
         }
     }
 
+    /**
+     * Get role counts for a certain player count.
+     * Above 15 returns counts for 15 players.
+     * Below 4 players will return null.
+     * @param players The player count to get the roles count for.
+     * @return Roles count array in order Townsfolk, Outsiders, Minions, Demons
+     */
+    public static int[] getRoleCount(int players) {
+        if (players > 15) {
+            return COUNTS.get(15);
+        }
+        return COUNTS.get(players);
+    }
+
     @Override
     public String toString() {
         return "botcSeatManager{" +
                 "playerSeats=" + playerSeats +
                 ", storytellerSeats=" + storytellerSeats +
                 '}';
-    }
-
-    public static int[] getRoleCount(int players) {
-        if (players > 15) {
-            return COUNTS.get(15);
-        }
-        return COUNTS.get(players);
     }
 }
