@@ -82,6 +82,11 @@ public class BagSelectionGUI extends AbstractMultiSelectGUI<botcCharacter> {
             stack.set(DataComponentTypes.LORE, lore);
 
             this.setSlot(2 + 9 * this.getHeight() + 9 * 3, stack);
+
+            // TODO: Want buttons for:
+            // Assign without notifying players
+            // Clear characters?
+            // Resend characters?
         }
     }
 

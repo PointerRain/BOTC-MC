@@ -34,7 +34,7 @@ public class botcItemManager {
         WrittenBookContentComponent contentComponent = bookGenerator.generateWrittenBook();
         stack.set(DataComponentTypes.WRITTEN_BOOK_CONTENT, contentComponent);
         // Custom color
-        if (script.meta().colour() != null) {
+        if (script.hasColour()) {
             DyedColorComponent colorComponent = new DyedColorComponent(script.colourInt()); // Dark Red color
             stack.set(DataComponentTypes.DYED_COLOR, colorComponent);
         }
