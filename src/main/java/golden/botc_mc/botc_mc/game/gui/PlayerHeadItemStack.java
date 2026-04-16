@@ -38,6 +38,13 @@ public class PlayerHeadItemStack {
         return headItem;
     }
 
+    public static ItemStack of(String name) {
+        ItemStack headItem = new ItemStack(Items.PLAYER_HEAD);
+        ProfileComponent profile = new ProfileComponent(Optional.ofNullable(name), Optional.empty(), new PropertyMap());
+        headItem.set(DataComponentTypes.PROFILE, profile);
+        return headItem;
+    }
+
     /**
      * Create a player head ItemStack for the given seat.
      * If the seat has a player entity, use that player's head; otherwise, use a default player head.
@@ -47,7 +54,12 @@ public class PlayerHeadItemStack {
      * @return An ItemStack representing the seat's occupant's head.
      */
     public static ItemStack of(Seat seat) {
-        ItemStack headItem = seat.hasPlayerEntity() ? of(seat.getPlayerEntity()) : new ItemStack(Items.PLAYER_HEAD);
+        ItemStack headItem = new ItemStack(Items.PLAYER_HEAD);
+        if (seat.hasPlayerEntity()) {
+            headItem = of(seat.getPlayerEntity());
+        } else if (seat.hasFallbackName()) {
+            headItem = of(seat.getFallbackName());
+        }
 
         if (botc.USE_SPECIAL_MODELS) {
             headItem.set(DataComponentTypes.ITEM_MODEL, Identifier.of(botc.ID, "player_head"));
@@ -75,7 +87,7 @@ public class PlayerHeadItemStack {
     public static ItemStack of(Seat seat, int seatNumber) {
         ItemStack headItem = of(seat);
         headItem.setCount(seatNumber);
-        if (POPULATE_HEADS && !seat.hasPlayerEntity()) {
+        if (POPULATE_HEADS && !seat.hasPlayerEntity() && !seat.hasFallbackName()) {
             ProfileComponent profile = new ProfileComponent(Optional.empty(),
                     Optional.of(new UUID(0, seatNumber)),
                     new PropertyMap());
