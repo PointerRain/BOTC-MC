@@ -2,6 +2,7 @@ package golden.botc_mc.botc_mc.game.gui;
 
 import eu.pb4.sgui.api.elements.GuiElement;
 import eu.pb4.sgui.api.gui.layered.Layer;
+import golden.botc_mc.botc_mc.game.gui.selection.AbstractTextEntryGUI;
 import golden.botc_mc.botc_mc.game.seat.Seat;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
@@ -64,6 +65,28 @@ public abstract class AbstractSeatMenuLayer<T extends Seat> extends Layer {
                         gui.getPlayer().teleport(player.getX(), player.getY(), player.getZ(), true);
                         gui.close();
                     }));
+        } else {
+            elements.add(ButtonBuilder.buildButton(
+                Text.translatable("gui.botc-mc.rename"), ButtonIcon.EDIT, (i, c, a, g) -> {
+                        AbstractTextEntryGUI renameGUI = new AbstractTextEntryGUI(gui.getPlayer(), text -> {
+                            String name = text[0];
+                            if (!name.isEmpty()) {
+                                seat.setFallbackName(name);
+                            } else {
+                                seat.clearFallbackName();
+                            }
+                            this.reopen();
+                            return null;
+                        }) {};
+                        renameGUI.open();
+                }));
+            if (seat.hasFallbackName()) {
+                elements.add(ButtonBuilder.buildButton(
+                    Text.translatable("gui.botc-mc.clear_name"), ButtonIcon.DELETE, (i, c, a, g) -> {
+                        seat.clearFallbackName();
+                        this.reopen();
+                    }));
+            }
         }
 
         return elements;
