@@ -55,6 +55,8 @@
   "gui.botc-mc.edit_grim": "Edit Grimoire",
   "gui.botc-mc.add_npc": "Add NPC",
   "gui.botc-mc.start_nomination": "Start Nomination",
+  "gui.botc-mc.rename": "Rename",
+  "gui.botc-mc.clear_name": "Clear Name",
 
   "gui.botc-mc.seats.add_before": "Add Before",
   "gui.botc-mc.seats.add_after": "Add After",
