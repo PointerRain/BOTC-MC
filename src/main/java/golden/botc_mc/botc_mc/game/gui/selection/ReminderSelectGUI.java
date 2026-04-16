@@ -121,7 +121,7 @@ public class ReminderSelectGUI extends AbstractSingleSelectGUI<botcCharacter.Rem
     /**
      * Custom sign GUI for entering a custom reminder token.
      */
-    public static class CustomTokenBox extends SignGui {
+    public static class CustomTokenBox extends AbstractTextEntryGUI {
         private final Function<? super botcCharacter.ReminderToken, ?> onEnterReminder;
 
         /**
@@ -131,28 +131,15 @@ public class ReminderSelectGUI extends AbstractSingleSelectGUI<botcCharacter.Rem
          */
         public CustomTokenBox(ServerPlayerEntity player,
                               Function<? super botcCharacter.ReminderToken, ?> onEnterReminder) {
-            super(player);
+            super(player, text -> {
+                String joinedText = String.join("\n", text).trim();
+                if (!joinedText.isEmpty()) {
+                    botcCharacter.ReminderToken token = new botcCharacter.ReminderToken(botcCharacter.EMPTY, joinedText, false);
+                    onEnterReminder.apply(token);
+                }
+                return null;
+            });
             this.onEnterReminder = onEnterReminder;
-            this.setSignType(Blocks.CRIMSON_WALL_SIGN);
-            this.setColor(DyeColor.WHITE);
-            this.signEntity.changeText(signText -> signText.withGlowing(true), true);
-            botc.LOGGER.info("Opened custom token box for player {}", player.getName().getString());
-        }
-
-        @Override
-        public void onClose() {
-            super.onClose();
-            String text = String.join("\n",
-                    this.getLine(0).getString(),
-                    this.getLine(1).getString(),
-                    this.getLine(2).getString(),
-                    this.getLine(3).getString()).trim();
-            if (!text.isEmpty()) {
-                botc.LOGGER.info("Entered custom reminder: {}", text);
-                this.onEnterReminder.apply(new botcCharacter.ReminderToken(botcCharacter.EMPTY, text, false));
-            } else {
-                botc.LOGGER.info("No custom reminder entered.");
-            }
         }
     }
 }
