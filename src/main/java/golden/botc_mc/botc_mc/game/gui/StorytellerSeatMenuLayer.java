@@ -42,7 +42,7 @@ public class StorytellerSeatMenuLayer extends AbstractSeatMenuLayer<StorytellerS
         elements.add(ButtonBuilder.buildButton(
                 Text.translatable("gui.botc-mc.edit_grim"), ButtonIcon.EDIT, (i, c, a, g) -> gui.editGrimoire()));
 
-        ItemStack bagIcon = ButtonIcon.bagIcon(gui.script);
+        ItemStack bagIcon = BundleItemStack.of(gui.script);
 
         elements.add(ButtonBuilder.buildButton(
                 Text.translatable("gui.botc-mc.build_bag"), bagIcon, (i, c, a, g) -> gui.buildBag()));
