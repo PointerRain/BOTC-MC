@@ -30,6 +30,7 @@
   "gui.botc-mc.see_all": "See All",
 
   "gui.botc-mc.selection": "Select an Item",
+  "gui.botc-mc.selection.finalise_disabled": "Unable to confirm selection",
   "gui.botc-mc.selection.character": "Select Character",
   "gui.botc-mc.selection.character.non_travellers": "See All",
   "gui.botc-mc.selection.character.travellers": "Travellers",
@@ -54,6 +55,8 @@
   "gui.botc-mc.edit_grim": "Edit Grimoire",
   "gui.botc-mc.add_npc": "Add NPC",
   "gui.botc-mc.start_nomination": "Start Nomination",
+  "gui.botc-mc.rename": "Rename",
+  "gui.botc-mc.clear_name": "Clear Name",
 
   "gui.botc-mc.seats.add_before": "Add Before",
   "gui.botc-mc.seats.add_after": "Add After",
@@ -64,6 +67,14 @@
   "gui.botc-mc.seats.shuffle": "Shuffle Seats",
 
   "gui.botc-mc.unseated_warning": "You do not have a seat assigned!",
+
+  "gui.botc-mc.build_bag": "Build Role Bag",
+  "gui.botc-mc.selection.bag": "Role Counts",
+  "gui.botc-mc.selection.bag.townsfolk": "Townsfolk: %s/%s",
+  "gui.botc-mc.selection.bag.outsiders": "Outsiders: %s/%s",
+  "gui.botc-mc.selection.bag.minions": "Minions: %s/%s",
+  "gui.botc-mc.selection.bag.demons": "Demon: %s/%s",
+  "gui.botc-mc.selection.bag.reason": "Roles: %s/%s",
 
   "commands.botc-mc.non-player": "This command may only be used by players",
   "commands.botc-mc.storyteller": "This command may only be used by the Storyteller",

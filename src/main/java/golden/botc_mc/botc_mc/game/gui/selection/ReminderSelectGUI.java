@@ -1,4 +1,4 @@
-package golden.botc_mc.botc_mc.game.gui;
+package golden.botc_mc.botc_mc.game.gui.selection;
 
 import eu.pb4.sgui.api.elements.GuiElementInterface;
 import eu.pb4.sgui.api.gui.SignGui;
@@ -6,6 +6,9 @@ import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.Script;
 import golden.botc_mc.botc_mc.game.botcCharacter;
 import golden.botc_mc.botc_mc.game.botcSeatManager;
+import golden.botc_mc.botc_mc.game.gui.ButtonBuilder;
+import golden.botc_mc.botc_mc.game.gui.ButtonIcon;
+import golden.botc_mc.botc_mc.game.gui.TokenItemStack;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -19,7 +22,7 @@ import java.util.function.Function;
 /**
  * Selection GUI for reminder tokens.
  */
-public class ReminderSelectGUI extends AbstractSelectionGUI<botcCharacter.ReminderToken> {
+public class ReminderSelectGUI extends AbstractSingleSelectGUI<botcCharacter.ReminderToken> {
 
     private final Script script;
     private final botcSeatManager seatManager;
@@ -118,7 +121,7 @@ public class ReminderSelectGUI extends AbstractSelectionGUI<botcCharacter.Remind
     /**
      * Custom sign GUI for entering a custom reminder token.
      */
-    static class CustomTokenBox extends SignGui {
+    public static class CustomTokenBox extends AbstractTextEntryGUI {
         private final Function<? super botcCharacter.ReminderToken, ?> onEnterReminder;
 
         /**
@@ -128,28 +131,15 @@ public class ReminderSelectGUI extends AbstractSelectionGUI<botcCharacter.Remind
          */
         public CustomTokenBox(ServerPlayerEntity player,
                               Function<? super botcCharacter.ReminderToken, ?> onEnterReminder) {
-            super(player);
+            super(player, text -> {
+                String joinedText = String.join("\n", text).trim();
+                if (!joinedText.isEmpty()) {
+                    botcCharacter.ReminderToken token = new botcCharacter.ReminderToken(botcCharacter.EMPTY, joinedText, false);
+                    onEnterReminder.apply(token);
+                }
+                return null;
+            });
             this.onEnterReminder = onEnterReminder;
-            this.setSignType(Blocks.CRIMSON_WALL_SIGN);
-            this.setColor(DyeColor.WHITE);
-            this.signEntity.changeText(signText -> signText.withGlowing(true), true);
-            botc.LOGGER.info("Opened custom token box for player {}", player.getName().getString());
-        }
-
-        @Override
-        public void onClose() {
-            super.onClose();
-            String text = String.join("\n",
-                    this.getLine(0).getString(),
-                    this.getLine(1).getString(),
-                    this.getLine(2).getString(),
-                    this.getLine(3).getString()).trim();
-            if (!text.isEmpty()) {
-                botc.LOGGER.info("Entered custom reminder: {}", text);
-                this.onEnterReminder.apply(new botcCharacter.ReminderToken(botcCharacter.EMPTY, text, false));
-            } else {
-                botc.LOGGER.info("No custom reminder entered.");
-            }
         }
     }
 }

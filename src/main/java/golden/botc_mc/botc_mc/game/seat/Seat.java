@@ -19,6 +19,8 @@ public abstract class Seat {
     ServerPlayerEntity playerEntity = null;
     // Alive status. Not particularly meaningful for storyteller seats.
     boolean alive = true;
+    // Fallback name if there is no player
+    String fallbackName = null;
 
     private static final String SCOREBOARD_TEAM = "botc-mc:game";
 
@@ -167,10 +169,19 @@ public abstract class Seat {
     }
 
     public Text getOccupantText() {
-        MutableText text = (MutableText) (playerEntity != null ? playerEntity.getDisplayName() : Text.of("(Unoccupied)"));
-        if (text == null) {
-            // This should never happen, but just in case
+        MutableText text = null;
+        if (hasPlayerEntity()) {
+            text = (MutableText) playerEntity.getDisplayName();
+        }
+        if (text == null && hasFallbackName()) {
+            text = (MutableText) Text.of(fallbackName);
+        }
+        if (text == null && hasPlayerEntity()) {
+            // This should never happen but it's a required fallback
             text = (MutableText) Text.of("(Occupied)");
+        }
+        if (text == null) {
+            text = (MutableText) Text.of("(Unoccupied)");
         }
         text.styled(style -> style.withFormatting(getColour(false)).withItalic(false));
         return text;
@@ -190,5 +201,21 @@ public abstract class Seat {
                 ", playerEntity=" + (playerEntity != null ? playerEntity.getName().getString() : "null") +
                 ", alive=" + alive +
                 '}';
+    }
+
+    public void setFallbackName(String name) {
+        this.fallbackName = name;
+    }
+
+    public boolean hasFallbackName() {
+        return this.fallbackName != null && !this.fallbackName.isBlank();
+    }
+
+    public String getFallbackName() {
+        return this.fallbackName;
+    }
+
+    public void clearFallbackName() {
+        this.fallbackName = null;
     }
 }

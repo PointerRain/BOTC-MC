@@ -126,13 +126,17 @@ public record Script(Meta meta, List<botcCharacter> characters) {
         };
     }
 
+    public boolean hasColour() {
+        return !(meta.colour == null || meta.colour.length < 3);
+    }
+
     /**
      * Convert the script's colour array to an integer representation.
      * @return The integer representation of the colour.
      * NOTE: Returns 0xFFFFFF (white) if colour is not defined.
      */
     public int colourInt() {
-        if (meta.colour == null || meta.colour.length < 3) {
+        if (!hasColour()) {
             return 0xFFFFFF; // Default to white
         }
         int r = meta.colour[0];

@@ -9,6 +9,10 @@ import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.Script;
 import golden.botc_mc.botc_mc.game.botcCharacter;
 import golden.botc_mc.botc_mc.game.botcSeatManager;
+import golden.botc_mc.botc_mc.game.gui.selection.BagSelectionGUI;
+import golden.botc_mc.botc_mc.game.gui.selection.NPCCharacterSelectGUI;
+import golden.botc_mc.botc_mc.game.gui.selection.PlayerCharacterSelectGUI;
+import golden.botc_mc.botc_mc.game.gui.selection.ReminderSelectGUI;
 import golden.botc_mc.botc_mc.game.seat.PlayerSeat;
 import golden.botc_mc.botc_mc.game.seat.StorytellerSeat;
 import net.minecraft.component.DataComponentTypes;
@@ -134,7 +138,7 @@ public class GrimoireGUI extends LayeredGui {
         botc.LOGGER.info("Showing popout for seat {} at offset {}.", seatNumber, offset);
         this.playerPopoutView = this.addLayer(new SeatPopoutLayer(this, seat, seatNumber), offset,
                 this.getHeight() - 3);
-        this.playerMenuView = this.addLayer(new SeatMenuLayer(this, seat), 0, this.getHeight() - 1);
+        this.playerMenuView = this.addLayer(new PlayerSeatMenuLayer(this, seat), 0, this.getHeight() - 1);
         this.markDirty();
     }
 
@@ -146,7 +150,7 @@ public class GrimoireGUI extends LayeredGui {
         clearInventorySection();
         botc.LOGGER.info("Showing menu for storyteller seat.");
         this.playerPopoutView = this.addLayer(new SeatPopoutLayer(this, seat), 3, this.getHeight() - 3);
-        this.playerMenuView = this.addLayer(new SeatMenuLayer(this, seat), 0, this.getHeight() - 1);
+        this.playerMenuView = this.addLayer(new StorytellerSeatMenuLayer(this, seat), 0, this.getHeight() - 1);
         this.markDirty();
     }
 
@@ -300,10 +304,23 @@ public class GrimoireGUI extends LayeredGui {
     }
 
     /**
-     * Opens the grimoire resizing GUI to edit the layout of the grimoire.
+     * Opens the grimoire resizing GUI to edit the player count and seat order.
      */
     public void editGrimoire() {
         ResizeGrimGUI gui = new ResizeGrimGUI(this.getPlayer(), this.seatManager);
+        gui.open();
+    }
+
+    /**
+     * Opens the role selection gui to select and distribute characters.
+     */
+    public void buildBag() {
+        BagSelectionGUI gui = new BagSelectionGUI(this.getPlayer(), this.script, this.seatManager, List.of(),
+            selectedItems -> {
+                botc.LOGGER.info("Selected {}", selectedItems);
+                this.seatManager.assignCharacters(selectedItems);
+                return null;
+            }, this::reopen, 0);
         gui.open();
     }
 
