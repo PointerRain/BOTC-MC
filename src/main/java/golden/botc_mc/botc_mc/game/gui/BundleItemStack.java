@@ -5,6 +5,7 @@ import golden.botc_mc.botc_mc.game.botcCharacter;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.BundleContentsComponent;
 import net.minecraft.component.type.DyedColorComponent;
+import net.minecraft.component.type.TooltipDisplayComponent;
 import net.minecraft.item.BundleItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -18,6 +19,9 @@ public class BundleItemStack {
                 (color != null) ? BundleItem.getBundle(color) : Items.BUNDLE
         );
         item.remove(DataComponentTypes.BUNDLE_CONTENTS);
+        TooltipDisplayComponent tooltipComponent = TooltipDisplayComponent.DEFAULT.with(DataComponentTypes.DYED_COLOR, true)
+                .with(DataComponentTypes.WRITTEN_BOOK_CONTENT, true);
+        item.set(DataComponentTypes.TOOLTIP_DISPLAY, tooltipComponent);
         return item;
     }
 
@@ -28,6 +32,7 @@ public class BundleItemStack {
             case "Sects & Violets" -> DyeColor.PURPLE;
             case "Bad Moon Rising" -> DyeColor.ORANGE;
             case "Garden of Sin" -> DyeColor.GREEN;
+            case "The Tomb" -> DyeColor.MAGENTA;
             case "Midnight in the House of the Damned" -> DyeColor.BLUE;
             default -> null;
         };
