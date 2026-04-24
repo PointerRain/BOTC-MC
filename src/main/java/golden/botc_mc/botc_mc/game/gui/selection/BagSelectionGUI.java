@@ -4,7 +4,7 @@ import golden.botc_mc.botc_mc.game.Script;
 import golden.botc_mc.botc_mc.game.Team;
 import golden.botc_mc.botc_mc.game.botcCharacter;
 import golden.botc_mc.botc_mc.game.botcSeatManager;
-import golden.botc_mc.botc_mc.game.gui.TokenItemStack;
+import golden.botc_mc.botc_mc.game.items.TokenItemStack;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.LoreComponent;
 import net.minecraft.item.ItemStack;

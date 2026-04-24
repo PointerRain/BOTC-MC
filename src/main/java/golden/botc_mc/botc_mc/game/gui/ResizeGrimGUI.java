@@ -5,6 +5,7 @@ import eu.pb4.sgui.api.gui.layered.Layer;
 import eu.pb4.sgui.api.gui.layered.LayerView;
 import eu.pb4.sgui.api.gui.layered.LayeredGui;
 import golden.botc_mc.botc_mc.game.botcSeatManager;
+import golden.botc_mc.botc_mc.game.items.PlayerHeadItemStack;
 import golden.botc_mc.botc_mc.game.seat.PlayerSeat;
 import net.minecraft.item.ItemStack;
 import net.minecraft.screen.ScreenHandlerType;

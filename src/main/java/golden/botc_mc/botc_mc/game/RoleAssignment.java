@@ -2,7 +2,7 @@ package golden.botc_mc.botc_mc.game;
 
 import golden.botc_mc.botc_mc.TitleUtil;
 import golden.botc_mc.botc_mc.botc;
-import golden.botc_mc.botc_mc.game.gui.TokenItemStack;
+import golden.botc_mc.botc_mc.game.items.TokenItemStack;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.DeathProtectionComponent;
 import net.minecraft.item.ItemStack;
