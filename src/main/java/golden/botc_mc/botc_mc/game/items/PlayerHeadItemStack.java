@@ -1,4 +1,4 @@
-package golden.botc_mc.botc_mc.game.gui;
+package golden.botc_mc.botc_mc.game.items;
 
 import com.mojang.authlib.properties.PropertyMap;
 import golden.botc_mc.botc_mc.botc;

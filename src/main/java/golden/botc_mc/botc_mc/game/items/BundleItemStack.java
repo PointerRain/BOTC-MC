@@ -1,4 +1,4 @@
-package golden.botc_mc.botc_mc.game.gui;
+package golden.botc_mc.botc_mc.game.items;
 
 import golden.botc_mc.botc_mc.game.Script;
 import golden.botc_mc.botc_mc.game.botcCharacter;
@@ -19,8 +19,7 @@ public class BundleItemStack {
                 (color != null) ? BundleItem.getBundle(color) : Items.BUNDLE
         );
         item.remove(DataComponentTypes.BUNDLE_CONTENTS);
-        TooltipDisplayComponent tooltipComponent = TooltipDisplayComponent.DEFAULT.with(DataComponentTypes.DYED_COLOR, true)
-                .with(DataComponentTypes.WRITTEN_BOOK_CONTENT, true);
+        TooltipDisplayComponent tooltipComponent = TooltipDisplayComponent.DEFAULT.with(DataComponentTypes.DYED_COLOR, true);
         item.set(DataComponentTypes.TOOLTIP_DISPLAY, tooltipComponent);
         return item;
     }
@@ -36,6 +35,9 @@ public class BundleItemStack {
             case "Midnight in the House of the Damned" -> DyeColor.BLUE;
             default -> null;
         };
+        if (script.isHomebrew()) {
+            color = DyeColor.LIME;
+        }
         ItemStack item = of(color);
         if (script.hasColour()) {
             item.set(DataComponentTypes.DYED_COLOR, new DyedColorComponent(script.colourInt()));

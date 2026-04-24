@@ -1,6 +1,7 @@
 package golden.botc_mc.botc_mc.game.gui;
 
 import eu.pb4.sgui.api.elements.GuiElement;
+import golden.botc_mc.botc_mc.game.items.BundleItemStack;
 import golden.botc_mc.botc_mc.game.seat.StorytellerSeat;
 import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;

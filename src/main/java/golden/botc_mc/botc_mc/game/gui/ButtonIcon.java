@@ -1,5 +1,6 @@
 package golden.botc_mc.botc_mc.game.gui;
 
+import golden.botc_mc.botc_mc.game.items.BundleItemStack;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.util.DyeColor;
