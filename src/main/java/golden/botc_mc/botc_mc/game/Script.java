@@ -15,6 +15,7 @@ import net.minecraft.util.Formatting;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -263,6 +264,17 @@ public record Script(Meta meta, List<botcCharacter> characters) {
             }
         }
         return teamCharacters.stream().toList();
+    }
+
+    /**
+     * Checks if the script is homebrew.
+     * A script is homebrew if the bootlegger field is not empty, or if the Bootlegger is in characters list.
+     * @return Whether the script is homebrew.
+     */
+    public boolean isHomebrew() {
+        return (this.meta.bootlegger() != null && !this.meta.bootlegger().isEmpty())
+                || characters.stream().anyMatch(c -> c.id().equals("bootlegger"))
+                || characters.stream().anyMatch(c -> !Arrays.asList(CharacterLoader.baseCharacters).contains(c));
     }
 
 //    @Override
