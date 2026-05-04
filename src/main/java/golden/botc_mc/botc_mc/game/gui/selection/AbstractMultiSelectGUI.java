@@ -12,6 +12,7 @@ import net.minecraft.text.Text;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -23,7 +24,8 @@ public abstract class AbstractMultiSelectGUI<T> extends AbstractSelectionGUI<T> 
     protected static final int SELECTED_ITEMS_PER_PAGE = 3 * 9;
 
     List<T> selectedItems;
-    protected Function<List<T>, ?> onFinaliseSelection;
+    protected Consumer<List<T>> onFinaliseSelection;
+    protected Consumer<List<T>> onCancel;
 
     /**
      * Constructor for AbstractMultiSelectGUI.
@@ -35,17 +37,27 @@ public abstract class AbstractMultiSelectGUI<T> extends AbstractSelectionGUI<T> 
      */
     public AbstractMultiSelectGUI(ServerPlayerEntity player,
                                   List<T> items, List<T> selectedItems,
-                                  Function<List<T>, ?> onFinaliseSelection, Runnable onCancel,
+                                  Consumer<List<T>> onFinaliseSelection, Consumer<List<T>> onCancel,
                                   int page) {
-        super(player, items, onCancel, page, true);
+        super(player, items, page, true);
 
         this.selectedItems = selectedItems;
         this.onFinaliseSelection = onFinaliseSelection;
+        this.onCancel = onCancel;
     }
 
     @Override
     public void beforeOpen() {
         super.beforeOpen();
+
+        // Cancel button
+        GuiElementInterface.ClickCallback cancelCallback = (i, c, a, g) -> {
+            if (this.onCancel != null) {
+                this.onCancel.accept(this.selectedItems);
+            } else this.close();
+        };
+        this.setSlot(9 * this.getHeight() - 2, ButtonBuilder.buildButton(
+                Text.translatable("gui.cancel"), ButtonIcon.CLOSE, cancelCallback));
 
         for (int n = 0; n < getSelectedPage(page).size(); n++) {
             T item = getSelectedPage(page).get(n);
@@ -148,7 +160,7 @@ public abstract class AbstractMultiSelectGUI<T> extends AbstractSelectionGUI<T> 
      * Finalise the selection by applying the selected items to the callback function, and close the gui.
      */
     protected void finaliseSelection() {
-        this.onFinaliseSelection.apply(this.selectedItems);
+        this.onFinaliseSelection.accept(this.selectedItems);
         this.close();
     }
 }

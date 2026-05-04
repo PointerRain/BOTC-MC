@@ -12,6 +12,7 @@ import net.minecraft.text.Text;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -31,7 +32,7 @@ public class NPCCharacterSelectGUI extends AbstractSingleSelectGUI<botcCharacter
      * @param page The current page number (0-indexed).
      */
     public NPCCharacterSelectGUI(ServerPlayerEntity player, Script script, botcSeatManager seatManager,
-                                Function<botcCharacter, ?> onSelectCharacter, Runnable onCancel, int page) {
+                                 Consumer<botcCharacter> onSelectCharacter, Runnable onCancel, int page) {
         super(player, getRoles(script, seatManager, List.of(Team.FABLED, Team.LORIC)), onSelectCharacter, onCancel, page);
         this.setTitle(Text.translatable("gui.botc-mc.selection.character"));
 

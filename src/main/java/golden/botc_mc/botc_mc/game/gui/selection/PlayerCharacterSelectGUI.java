@@ -13,6 +13,7 @@ import net.minecraft.text.Text;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -32,7 +33,7 @@ public class PlayerCharacterSelectGUI extends AbstractSingleSelectGUI<botcCharac
      * @param page The current page number (0-indexed).
      */
     public PlayerCharacterSelectGUI(ServerPlayerEntity player, Script script,
-                                    Function<botcCharacter, ?> onSelectCharacter, Runnable onCancel,
+                                    Consumer<botcCharacter> onSelectCharacter, Runnable onCancel,
                                     boolean seeTravellers, int page) {
 
         super(player, getRoles(script, !seeTravellers ? List.of(

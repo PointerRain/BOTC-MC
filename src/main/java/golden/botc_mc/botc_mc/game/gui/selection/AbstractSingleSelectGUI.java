@@ -1,8 +1,13 @@
 package golden.botc_mc.botc_mc.game.gui.selection;
 
+import eu.pb4.sgui.api.elements.GuiElementInterface;
+import golden.botc_mc.botc_mc.game.gui.ButtonBuilder;
+import golden.botc_mc.botc_mc.game.gui.ButtonIcon;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.Text;
 
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -11,7 +16,8 @@ import java.util.function.Function;
  * @param <T> The type of items to select from.
  */
 public abstract class AbstractSingleSelectGUI<T> extends AbstractSelectionGUI<T> {
-    protected final Function<T, ?> onSelectItem;
+    protected final Consumer<T> onSelectItem;
+    protected final Runnable onCancel;
 
     /**
      * Constructor for AbstractSelectionGUI.
@@ -22,11 +28,25 @@ public abstract class AbstractSingleSelectGUI<T> extends AbstractSelectionGUI<T>
      * @param page         The current page number (0-indexed).
      */
     public AbstractSingleSelectGUI(ServerPlayerEntity player, List<T> items,
-                                   Function<T, ?> onSelectItem, Runnable onCancel,
+                                   Consumer<T> onSelectItem, Runnable onCancel,
                                    int page) {
-        super(player, items, onCancel, page, false);
+        super(player, items, page, false);
 
         this.onSelectItem = onSelectItem;
+        this.onCancel = onCancel;
+    }
+
+    @Override
+    public void beforeOpen() {
+        super.beforeOpen();
+        // Cancel button
+        GuiElementInterface.ClickCallback cancelCallback = (i, c, a, g) -> {
+            if (this.onCancel != null) {
+                this.onCancel.run();
+            } else this.close();
+        };
+        this.setSlot(9 * this.getHeight() - 2, ButtonBuilder.buildButton(
+                Text.translatable("gui.cancel"), ButtonIcon.CLOSE, cancelCallback));
     }
 
     /**
@@ -34,7 +54,7 @@ public abstract class AbstractSingleSelectGUI<T> extends AbstractSelectionGUI<T>
      * @param item The selected item.
      */
     protected void itemSelectCallback(T item) {
-        this.onSelectItem.apply(item);
+        this.onSelectItem.accept(item);
         this.close();
     }
 }

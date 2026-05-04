@@ -5,11 +5,12 @@ import net.minecraft.block.Blocks;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.DyeColor;
 
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public abstract class AbstractTextEntryGUI extends SignGui {
 
-    final Function<String[], ?> onEnterText;
+    final Consumer<String[]> onEnterText;
 
     /**
      * Constructor for AbstractTextEntryGUI.
@@ -17,7 +18,7 @@ public abstract class AbstractTextEntryGUI extends SignGui {
      * @param onEnterText A function to call when a text reminder is entered.
      */
     public AbstractTextEntryGUI(ServerPlayerEntity player,
-                          Function<String[], ?> onEnterText) {
+                          Consumer<String[]> onEnterText) {
         super(player);
         this.onEnterText = onEnterText;
         this.setSignType(Blocks.CRIMSON_WALL_SIGN);
@@ -34,6 +35,6 @@ public abstract class AbstractTextEntryGUI extends SignGui {
                 this.getLine(2).getString().trim(),
                 this.getLine(3).getString().trim()};
 
-        this.onEnterText.apply(text);
+        this.onEnterText.accept(text);
     }
 }

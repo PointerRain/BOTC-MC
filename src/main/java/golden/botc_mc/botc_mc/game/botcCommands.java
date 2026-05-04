@@ -591,9 +591,8 @@ public final class botcCommands {
                         selectedItems -> {
                             botc.LOGGER.info("Selected {}", selectedItems);
                             activeGame.getSeatManager().assignCharacters(selectedItems);
-                            return null;
                         },
-                        () -> {}, 0);
+                        null, 0);
                 gui.open();
                 return 1;
             }));

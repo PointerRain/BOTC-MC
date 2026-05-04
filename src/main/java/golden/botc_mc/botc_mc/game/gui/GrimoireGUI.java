@@ -40,6 +40,8 @@ public class GrimoireGUI extends LayeredGui {
     private LayerView playerMenuView;
     private LayerView storytellerView;
 
+    protected List<botcCharacter> partialSelection;
+
     /**
      * Constructor for GrimoireGUI.
      * @param player      The player for whom the GUI is being created.
@@ -181,7 +183,6 @@ public class GrimoireGUI extends LayeredGui {
         PlayerCharacterSelectGUI gui = new PlayerCharacterSelectGUI(this.getPlayer(), script, (c) -> {
             seat.setCharacter(c);
             this.reopen(seat);
-            return null;
         }, () -> this.reopen(seat), false, 0);
         gui.open();
     }
@@ -194,7 +195,6 @@ public class GrimoireGUI extends LayeredGui {
         PlayerCharacterSelectGUI gui = new PlayerCharacterSelectGUI(this.getPlayer(), script, (c) -> {
             seat.setCharacter(c);
             this.reopen(seat);
-            return null;
         }, () -> this.reopen(seat), false, 0);
         gui.open();
     }
@@ -265,7 +265,6 @@ public class GrimoireGUI extends LayeredGui {
                     seat.removeReminder(n);
                     seat.addReminderToken(token);
                     this.reopen(seat);
-                    return null;
                 });
                 String[] existingLines = reminders.get(n).reminder().split("\n", 4);
                 for (int lineIndex = 0; lineIndex < existingLines.length; lineIndex++) {
@@ -286,7 +285,6 @@ public class GrimoireGUI extends LayeredGui {
         ReminderSelectGUI gui = new ReminderSelectGUI(this.getPlayer(), script, seatManager, (token) -> {
             seat.addReminderToken(token);
             this.reopen(seat);
-            return null;
         }, () -> this.reopen(seat), false, 0);
         gui.open();
     }
@@ -299,7 +297,6 @@ public class GrimoireGUI extends LayeredGui {
                 (c) -> {
                     seatManager.addNPC(c);
                     this.reopen();
-                    return null;
                 }, this::reopen, 0);
         gui.open();
     }
@@ -320,8 +317,11 @@ public class GrimoireGUI extends LayeredGui {
             selectedItems -> {
                 botc.LOGGER.info("Selected {}", selectedItems);
                 this.seatManager.assignCharacters(selectedItems);
-                return null;
-            }, this::reopen, 0);
+            },
+            selectedItems -> {
+                this.partialSelection = selectedItems;
+                this.reopen();
+            }, 0);
         gui.open();
     }
 
