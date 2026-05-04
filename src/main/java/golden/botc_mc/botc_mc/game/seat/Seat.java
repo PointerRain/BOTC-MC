@@ -139,7 +139,7 @@ public abstract class Seat {
 
         this.alive = false;
         if (this.hasPlayerEntity()) {
-            this.playerEntity.addStatusEffect(new StatusEffectInstance(StatusEffects.INVISIBILITY, -1));
+            this.playerEntity.addStatusEffect(new StatusEffectInstance(StatusEffects.INVISIBILITY, -1, 0, true, false));
         }
         return true;
     }
