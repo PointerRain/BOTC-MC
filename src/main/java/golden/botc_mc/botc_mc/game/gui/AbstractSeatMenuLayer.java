@@ -76,7 +76,6 @@ public abstract class AbstractSeatMenuLayer<T extends Seat> extends Layer {
                                 seat.clearFallbackName();
                             }
                             this.reopen();
-                            return null;
                         }) {};
                         renameGUI.open();
                 }));

@@ -21,24 +21,20 @@ import java.util.List;
 public abstract class AbstractSelectionGUI<T> extends SimpleGui {
     protected static final int ITEMS_PER_PAGE = 5 * 9;
     protected final List<T> items;
-    protected final Runnable onCancel;
     protected final int page;
 
     /**
      * Constructor for AbstractSelectionGUI.
      * @param player The player for whom the GUI is being created.
      * @param items The list of items to display for selection.
-     * @param onCancel A runnable to call when the selection is cancelled.
      * @param page The current page number (0-indexed).
      */
     public AbstractSelectionGUI(ServerPlayerEntity player, List<T> items,
-                                Runnable onCancel,
                                 int page, boolean manipulatePlayerSlots) {
         super(getScreenSize(items), player, manipulatePlayerSlots);
         this.setTitle(Text.translatable("gui.botc-mc.selection"));
 
         this.items = items;
-        this.onCancel = onCancel;
         this.page = page;
     }
 
@@ -66,15 +62,6 @@ public abstract class AbstractSelectionGUI<T> extends SimpleGui {
             this.setSlot(9 * this.getHeight() - 1, ButtonBuilder.buildButton(
                     Text.translatable("book.page_button.next"), ButtonIcon.RIGHT, nextPageCallback));
         }
-
-        // Cancel button
-        GuiElementInterface.ClickCallback cancelCallback = (i, c, a, g) -> {
-            if (this.onCancel != null) {
-                this.onCancel.run();
-            } else this.close();
-        };
-        this.setSlot(9 * this.getHeight() - 2, ButtonBuilder.buildButton(
-                Text.translatable("gui.cancel"), ButtonIcon.CLOSE, cancelCallback));
     }
 
     /**

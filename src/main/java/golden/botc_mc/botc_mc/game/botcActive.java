@@ -222,7 +222,7 @@ public class botcActive {
         long total = this.stageManager.getStateDuration();
         this.timerBar.updatePhase(this.stageManager.getCurrentState(), remaining, total);
 
-        if ((time % 70) == 0) {
+        if ((time % 70) == 0 && time >= 200) {
             long ticksInState = this.stageManager.getTicksInState();
             botc.LOGGER.debug("State {} ticksInState={}", this.stageManager.getCurrentState(), ticksInState);
 

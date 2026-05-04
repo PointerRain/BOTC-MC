@@ -14,6 +14,7 @@ import net.minecraft.text.Text;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class BagSelectionGUI extends AbstractMultiSelectGUI<botcCharacter> {
@@ -24,7 +25,7 @@ public class BagSelectionGUI extends AbstractMultiSelectGUI<botcCharacter> {
 
     public BagSelectionGUI(ServerPlayerEntity player,
                            Script script, botcSeatManager seatManager, List<botcCharacter> selectedItems,
-                           Function<List<botcCharacter>, ?> onFinaliseSelection, Runnable onCancel,
+                           Consumer<List<botcCharacter>> onFinaliseSelection, Consumer<List<botcCharacter>> onCancel,
                            int page) {
         super(player, getAllCharacters(script), selectedItems, onFinaliseSelection, onCancel, page);
 

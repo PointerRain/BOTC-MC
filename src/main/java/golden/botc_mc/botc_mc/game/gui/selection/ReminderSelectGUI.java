@@ -13,6 +13,7 @@ import net.minecraft.text.Text;
 
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -35,7 +36,7 @@ public class ReminderSelectGUI extends AbstractSingleSelectGUI<botcCharacter.Rem
      * @param page The current page number (0-indexed).
      */
     public ReminderSelectGUI(ServerPlayerEntity player, Script script, botcSeatManager seatManager,
-                             Function<botcCharacter.ReminderToken, ?> onSelectItem, Runnable onCancel,
+                             Consumer<botcCharacter.ReminderToken> onSelectItem, Runnable onCancel,
                              boolean seeAll, int page) {
         super(player, getReminderTokens(script, seatManager, seeAll), onSelectItem, onCancel, page);
         this.setTitle(Text.translatable("gui.botc-mc.selection.reminder"));
@@ -118,7 +119,7 @@ public class ReminderSelectGUI extends AbstractSingleSelectGUI<botcCharacter.Rem
      * Custom sign GUI for entering a custom reminder token.
      */
     public static class CustomTokenBox extends AbstractTextEntryGUI {
-        private final Function<? super botcCharacter.ReminderToken, ?> onEnterReminder;
+        private final Consumer<? super botcCharacter.ReminderToken> onEnterReminder;
 
         /**
          * Constructor for CustomTokenBox.
@@ -126,14 +127,13 @@ public class ReminderSelectGUI extends AbstractSingleSelectGUI<botcCharacter.Rem
          * @param onEnterReminder A function to call when a custom reminder is entered.
          */
         public CustomTokenBox(ServerPlayerEntity player,
-                              Function<? super botcCharacter.ReminderToken, ?> onEnterReminder) {
+                              Consumer<? super botcCharacter.ReminderToken> onEnterReminder) {
             super(player, text -> {
                 String joinedText = String.join("\n", text).trim();
                 if (!joinedText.isEmpty()) {
                     botcCharacter.ReminderToken token = new botcCharacter.ReminderToken(botcCharacter.EMPTY, joinedText, false);
-                    onEnterReminder.apply(token);
+                    onEnterReminder.accept(token);
                 }
-                return null;
             });
             this.onEnterReminder = onEnterReminder;
         }
