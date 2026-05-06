@@ -19,6 +19,8 @@ public class botcSeatManager {
     private final List<StorytellerSeat> storytellerSeats = new ArrayList<>();
     private final List<botcCharacter> npcCharacters = new ArrayList<>();
 
+    private List<botcCharacter> partialSelection = new ArrayList<>();
+
     public static final int MIN_PLAYERS = 4;
     public static final int MAX_PLAYERS = 18;
     public static final int ROLES_MAX = 15;
@@ -421,6 +423,29 @@ public class botcSeatManager {
             return COUNTS.get(15);
         }
         return COUNTS.get(players);
+    }
+
+    /**
+     * Save partial character selection during role bag selection.
+     * @param characters The characters to save.
+     */
+    public void setPartialSelection(List<botcCharacter> characters) {
+        this.partialSelection = characters;
+    }
+
+    /**
+     * Get the saved partial role selection.
+     * @return The partial selection.
+     */
+    public List<botcCharacter> getPartialSelection() {
+        return this.partialSelection;
+    }
+
+    /**
+     * Clear the saved partial role selection.
+     */
+    public void clearPartialSelection() {
+        this.partialSelection.clear();
     }
 
     @Override

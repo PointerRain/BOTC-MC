@@ -45,6 +45,8 @@ public record TokenItemStack(ItemStack tokenItem) {
     }
 
     private static NbtComponent createCustomData(botcCharacter character, Script script) {
+        if (script == null) return createCustomData(character);
+
         boolean actsFirstNight = script.firstNightOrder(false).stream()
             .anyMatch(action -> Objects.equals(action.id, character.id()));
         boolean actsOtherNights = script.otherNightOrder().stream()
@@ -111,14 +113,16 @@ public record TokenItemStack(ItemStack tokenItem) {
     /**
      * Create a token ItemStack for the given character.
      * The token's appearance and lore are based on the character's team and ability.<br>
-     * {@link #of(Seat, Script)} is preferred when creating tokens for seats, as it sets the name and alignment
-     * appropriately.<br>
-     * {@link #of(botcCharacter, Script)} is preferred when creating tokens for characters in a specific script, as
-     * it includes script-specific data.
+     * {@link #of(Seat, Script)} is preferred when creating tokens for seats, as it sets the name and alignment appropriately.<br>
+     * {@link #of(botcCharacter, Script)} is preferred when creating tokens for characters in a specific script, as it includes script-specific data.
      * @param character The character for whom to create the token.
      * @return An ItemStack representing the character's token.
      */
     public static ItemStack of(botcCharacter character) {
+        return of(character, null);
+    }
+
+    public static ItemStack of(botcCharacter character, Script script) {
         ItemStack tokenItem = createUnformattedToken(character);
 
         List<Integer> colours = List.of();
@@ -130,14 +134,6 @@ public record TokenItemStack(ItemStack tokenItem) {
         }
 
         tokenItem.set(DataComponentTypes.CUSTOM_MODEL_DATA, createCustomModelData(colours));
-        tokenItem.set(DataComponentTypes.CUSTOM_DATA, createCustomData(character));
-
-        return tokenItem;
-    }
-
-    public static ItemStack of(botcCharacter character, Script script) {
-        ItemStack tokenItem = TokenItemStack.of(character);
-
         tokenItem.set(DataComponentTypes.CUSTOM_DATA, createCustomData(character, script));
 
         return tokenItem;

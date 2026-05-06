@@ -40,8 +40,6 @@ public class GrimoireGUI extends LayeredGui {
     private LayerView playerMenuView;
     private LayerView storytellerView;
 
-    protected List<botcCharacter> partialSelection;
-
     /**
      * Constructor for GrimoireGUI.
      * @param player      The player for whom the GUI is being created.
@@ -313,13 +311,14 @@ public class GrimoireGUI extends LayeredGui {
      * Opens the role selection gui to select and distribute characters.
      */
     public void buildBag() {
-        BagSelectionGUI gui = new BagSelectionGUI(this.getPlayer(), this.script, this.seatManager, List.of(),
+        BagSelectionGUI gui = new BagSelectionGUI(this.getPlayer(), this.script, this.seatManager, seatManager.getPartialSelection(),
             selectedItems -> {
                 botc.LOGGER.info("Selected {}", selectedItems);
                 this.seatManager.assignCharacters(selectedItems);
+                this.seatManager.clearPartialSelection();
             },
             selectedItems -> {
-                this.partialSelection = selectedItems;
+                this.seatManager.setPartialSelection(selectedItems);
                 this.reopen();
             }, 0);
         gui.open();
