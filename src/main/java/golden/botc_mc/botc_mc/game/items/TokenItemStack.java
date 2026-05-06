@@ -42,6 +42,8 @@ public record TokenItemStack(ItemStack tokenItem) {
     }
 
     private static NbtComponent createCustomData(botcCharacter character, Script script) {
+        if (script == null) return createCustomData(character);
+
         boolean actsFirstNight = script.firstNightOrder(false).stream()
             .anyMatch(action -> Objects.equals(action.id, character.id()));
         boolean actsOtherNights = script.otherNightOrder().stream()
@@ -113,24 +115,10 @@ public record TokenItemStack(ItemStack tokenItem) {
      * @return An ItemStack representing the character's token.
      */
     public static ItemStack of(botcCharacter character) {
-        ItemStack tokenItem = createUnformattedToken(character);
-
-        List<Integer> colours = List.of();
-        if (character.team() != null && character.team().getColour(false) != null) {
-        Integer colourValue = character.team().getColour(false).getColorValue();
-        if (colourValue != null) {
-            colours = List.of(colourValue);
-            }
-        }
-
-        tokenItem.set(DataComponentTypes.CUSTOM_MODEL_DATA, createCustomModelData(colours));
-        tokenItem.set(DataComponentTypes.CUSTOM_DATA, createCustomData(character));
-
-        return tokenItem;
+        return of(character, null);
     }
 
     public static ItemStack of(botcCharacter character, Script script) {
-        botc.LOGGER.info("This script4 is: {}", script);
         ItemStack tokenItem = createUnformattedToken(character);
 
         List<Integer> colours = List.of();
