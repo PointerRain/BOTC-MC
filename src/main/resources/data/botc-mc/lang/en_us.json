@@ -75,6 +75,8 @@
   "gui.botc-mc.selection.bag.minions": "Minions: %s/%s",
   "gui.botc-mc.selection.bag.demons": "Demon: %s/%s",
   "gui.botc-mc.selection.bag.reason": "Roles: %s/%s",
+  "gui.botc-mc.selection.bag.warning.single": "%s modifies setup! Make sure to adjust roles accordingly!",
+  "gui.botc-mc.selection.bag.warning.multiple": "%s roles modify setup! Make sure to adjust roles accordingly!",
 
   "commands.botc-mc.non-player": "This command may only be used by players",
   "commands.botc-mc.storyteller": "This command may only be used by the Storyteller",

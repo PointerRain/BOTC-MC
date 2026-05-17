@@ -15,7 +15,6 @@ import net.minecraft.text.Text;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 public class BagSelectionGUI extends AbstractMultiSelectGUI<botcCharacter> {
 
@@ -83,6 +82,23 @@ public class BagSelectionGUI extends AbstractMultiSelectGUI<botcCharacter> {
             stack.set(DataComponentTypes.LORE, lore);
 
             this.setSlot(2 + 9 * this.getHeight() + 9 * 3, stack);
+
+            List<botcCharacter> modifyingCharacters = this.selectedItems.stream().filter(botcCharacter::setup).toList();
+            if (!modifyingCharacters.isEmpty()) {
+                ItemStack warningStack = new ItemStack(Items.YELLOW_DYE);
+                Text warningName;
+                if (modifyingCharacters.size() == 1) {
+                    warningName = Text.translatable("gui.botc-mc.selection.bag.warning.single", modifyingCharacters.getFirst().toFormattedText(false, false, false, false));
+                } else {
+                    warningName = Text.translatable("gui.botc-mc.selection.bag.warning.multiple", modifyingCharacters.size());
+                    LoreComponent warningLore = new LoreComponent(modifyingCharacters.stream().map(botcCharacter ->
+                            botcCharacter.toFormattedText(false, false, true, false)).toList());
+                    warningStack.set(DataComponentTypes.LORE, warningLore);
+                }
+                warningStack.set(DataComponentTypes.CUSTOM_NAME, warningName);
+                this.setSlot(6 + 9 * this.getHeight() + 9 * 3, warningStack);
+            }
+
 
             // TODO: Want buttons for:
             // Assign without notifying players
