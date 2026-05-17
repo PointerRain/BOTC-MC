@@ -401,9 +401,10 @@ public class botcSeatManager {
                 break; // No more characters to assign
             }
             if (seat.getCharacter() != botcCharacter.EMPTY && seat.getCharacter().team() == Team.TRAVELLER) {
-                continue;
+                RoleAssignment.sendCharacter(seat.getPlayerEntity(), seat.getCharacter());
             }
             botcCharacter character = shuffledCharacters.removeFirst();
+            seat.clearCharacter();
             seat.setCharacter(character);
             if (seat.hasPlayerEntity()) {
                 RoleAssignment.sendCharacter(seat.getPlayerEntity(), character);
