@@ -20,6 +20,11 @@ public class RoleAssignment {
 
     private static final int CHARACTER_REVEAL_DELAY_TICKS = 80; // 4 seconds at 20 ticks per second
 
+    /**
+     * Show a totem pop effect to a player with a custom item.
+     * @param player The player to show the totem effect to.
+     * @param item The item to show as the effect.
+     */
     public static void showTotemEffect(ServerPlayerEntity player, ItemStack item) {
         DeathProtectionComponent deathProtectionComponent = new DeathProtectionComponent(List.of());
         item.set(DataComponentTypes.DEATH_PROTECTION, deathProtectionComponent);
@@ -39,6 +44,11 @@ public class RoleAssignment {
         player.currentScreenHandler.sendContentUpdates();
     }
 
+    /**
+     * Send a character reveal announcement to a player.
+     * @param player The player to send the announcement to.
+     * @param character The character to send the announcement to.
+     */
     public static void sendCharacter(ServerPlayerEntity player, botcCharacter character) {
 
         MutableText titleText = Text.literal("You are the").formatted(character.team().getColour(false), Formatting.BOLD);
@@ -51,16 +61,3 @@ public class RoleAssignment {
                 });
     }
 }
-
-
-
-/*
-Show GUI to select in play roles
-Hover showing how many of each are expected
-Once as many roles as seats are selected, the finalise button can be clicked
-Assign one role to each seat
-Shuffle roles and assign sequentially
-On assignment also display the effects
-
-Some kind of mechanism to resend characters?
- */

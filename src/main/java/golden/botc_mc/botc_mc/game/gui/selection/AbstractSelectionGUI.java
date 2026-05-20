@@ -103,6 +103,15 @@ public abstract class AbstractSelectionGUI<T> extends SimpleGui {
     protected abstract void itemSelectCallback(T item);
 
     /**
+     * Gets the slot index for a given hotbar slot index.
+     * @param slot Hotbar slot index 0-8.
+     * @return GUI slot index.
+     */
+    public int hotbarSlot(int slot) {
+        return this.getHotbarSlotIndex(9 * this.getHeight() + 9 * 4, slot);
+    }
+
+    /**
      * Create a new instance of the selection GUI for pagination.
      * @param player The player for whom the GUI is being created.
      * @param page The page number (0-indexed).

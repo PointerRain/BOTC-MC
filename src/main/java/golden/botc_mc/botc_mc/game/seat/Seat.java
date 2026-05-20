@@ -202,18 +202,34 @@ public abstract class Seat {
                 '}';
     }
 
+    /**
+     * Sets the name for this seat. The name will be used if there is no player in the seat.
+     * The name will also be used for the skin texture.
+     * @param name The name to set on the seat.
+     */
     public void setFallbackName(String name) {
         this.fallbackName = name;
     }
 
+    /**
+     * Returns whether the seat has a fallback name defined.
+     * @return Whether the seat has a fallback name.
+     */
     public boolean hasFallbackName() {
         return this.fallbackName != null && !this.fallbackName.isBlank();
     }
 
+    /**
+     * Returns the seat's set fallback name. Might be null.
+     * @return The fallback name.
+     */
     public String getFallbackName() {
         return this.fallbackName;
     }
 
+    /**
+     * Clear the seat's fallback name.
+     */
     public void clearFallbackName() {
         this.fallbackName = null;
     }

@@ -127,6 +127,11 @@ public record Script(Meta meta, List<botcCharacter> characters) {
         };
     }
 
+    /**
+     * Returns whether the script has an associated colour.
+     * A script has a colour if it is not null and has length 3.
+     * @return Whether the script has an associated colour.
+     */
     public boolean hasColour() {
         return !(meta.colour == null || meta.colour.length < 3);
     }
