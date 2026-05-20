@@ -38,6 +38,11 @@ public class PlayerHeadItemStack {
         return headItem;
     }
 
+    /**
+     * Create a player head for a player with the given name, looking it up and using the correct skin.
+     * @param name The name to construct a head for.
+     * @return An ItemStack representing the given player name.
+     */
     public static ItemStack of(String name) {
         ItemStack headItem = new ItemStack(Items.PLAYER_HEAD);
         ProfileComponent profile = new ProfileComponent(Optional.ofNullable(name), Optional.empty(), new PropertyMap());

@@ -16,12 +16,25 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+/**
+ * A multiselection GUI for selecting roles to be distributed.
+ */
 public class BagSelectionGUI extends AbstractMultiSelectGUI<botcCharacter> {
 
     protected final Script script;
     protected final botcSeatManager seatManager;
     private int requiredRoles;
 
+    /**
+     * Constructor for BagSelectionGUI.
+     * @param player        The player for whom the GUI is being created.
+     * @param script        The script characters are taken from
+     * @param seatManager   The seat manager of the game
+     * @param selectedItems Items to prefill the gui with
+     * @param onFinaliseSelection The function to call when the selection is finalised.
+     * @param onCancel            A runnable to call when the selection is cancelled.
+     * @param page                The current page number (0-indexed).
+     */
     public BagSelectionGUI(ServerPlayerEntity player,
                            Script script, botcSeatManager seatManager, List<botcCharacter> selectedItems,
                            Consumer<List<botcCharacter>> onFinaliseSelection, Consumer<List<botcCharacter>> onCancel,

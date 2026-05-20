@@ -13,7 +13,17 @@ import net.minecraft.util.DyeColor;
 
 import java.util.List;
 
+/**
+ * Utility class for creating dyed and coloured Bundle ItemStacks.
+ * Can create bundles of any DyeColor or Script.
+ */
 public class BundleItemStack {
+
+    /**
+     * Create a bundle with a given DyeColor.
+     * @param color The colour to make the bundle.
+     * @return An item stack of the specified dye colour.
+     */
     public static ItemStack of(DyeColor color) {
         ItemStack item = new ItemStack(
                 (color != null) ? BundleItem.getBundle(color) : Items.BUNDLE
@@ -24,6 +34,14 @@ public class BundleItemStack {
         return item;
     }
 
+    /**
+     * Create a bundle for a given script.
+     * If script is one of base 6 (matching on name) then has a corresponding underlying colour.
+     * Otherwise, if script is homebrew then has underlying colour Lime, otherwise default.
+     * If script has a colour specified then bundle has matching DyedColourComponent.
+     * @param script The script to generate a bundle for.
+     * @return An ItemStack corresponding to the given script.
+     */
     public static ItemStack of(Script script) {
         DyeColor color = switch (script.meta().name()) {
             // Matching on name is very yucky but missing shouldn't have consequences
@@ -45,6 +63,12 @@ public class BundleItemStack {
         return item;
     }
 
+    /**
+     * Generates a bundle prefilled with character tokens as bundle contents.
+     * @param script The script to construct the bundle for.
+     * @param selectedItems The characters in the bundle.
+     * @return An ItemStack corresponding to the given script with characters prefilled.
+     */
     public static ItemStack of(Script script, List<botcCharacter> selectedItems) {
         ItemStack item = of(script);
         if (selectedItems != null && !selectedItems.isEmpty()) {
