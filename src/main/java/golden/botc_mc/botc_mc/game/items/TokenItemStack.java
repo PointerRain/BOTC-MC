@@ -83,7 +83,7 @@ public record TokenItemStack(ItemStack tokenItem) {
         );
 
         if (botc.USE_SPECIAL_MODELS) {
-            String tokenPath = character.token() != null ? "tokens/" + character.token() : "tokens/empty";
+            String tokenPath = getTokenPath(character);
             tokenItem.set(DataComponentTypes.ITEM_MODEL, Identifier.of(botc.ID, tokenPath));
         }
 
@@ -93,17 +93,36 @@ public record TokenItemStack(ItemStack tokenItem) {
         if (character == botcCharacter.EMPTY) {
             return tokenItem;
         }
-//        List<Text> loreLines = new ArrayList<>();
-//        for (String line : character.abilityText().getString().split("\\.")) {
-//            MutableText loreLine = (MutableText) Text.of(line.trim() + ".");
-//            loreLine.styled(style -> style.withItalic(false).withColor(Formatting.GRAY));
-//            loreLines.add(loreLine);
-//        }
+
         MutableText loreText = (MutableText) character.abilityText();
         loreText.styled(style -> style.withItalic(false).withColor(Formatting.GRAY));
         List<Text> loreLines = List.of(character.abilityText());
         tokenItem.set(DataComponentTypes.LORE, new LoreComponent(loreLines));
         return tokenItem;
+    }
+
+    /**
+     * Gets the token texture for a character. If the character has a token defined then it will be used.
+     * Otherwise, use a fallback based on the team.
+     * @param character The character to find the token path for.
+     * @return A string representing the token path for that character.
+     */
+    private static String getTokenPath(botcCharacter character) {
+        if (character.token() != null) {
+            return "tokens/" + character.token();
+        }
+        if (character.team() == null) {
+            return "tokens/empty";
+        }
+        return switch (character.team()) {
+            case Team.TOWNSFOLK -> "tokens/heart";
+            case Team.OUTSIDER -> "tokens/angler";
+            case Team.MINION -> "tokens/brewer";
+            case Team.DEMON -> "tokens/skull";
+            case Team.TRAVELLER -> "tokens/prize";
+            case Team.FABLED -> "tokens/burn";
+            case Team.LORIC -> "tokens/plenty";
+        };
     }
 
     /**
