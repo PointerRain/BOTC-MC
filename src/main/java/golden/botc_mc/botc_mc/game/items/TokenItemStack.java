@@ -187,11 +187,8 @@ public record TokenItemStack(ItemStack tokenItem) {
         ItemStack tokenItem = new ItemStack(Items.PAPER);
 
         if (botc.USE_SPECIAL_MODELS) {
-            if (token.character() == null || token.character() == botcCharacter.EMPTY || token.character().token() == null) {
-            tokenItem.set(DataComponentTypes.ITEM_MODEL, Identifier.of(botc.ID, "reminders/empty"));
-            } else {
-                tokenItem.set(DataComponentTypes.ITEM_MODEL, Identifier.of(botc.ID, "reminders/" + token.character().token()));
-            }
+            String tokenPath = getTokenPath(token.character()).replace("tokens/", "reminders/");
+            tokenItem.set(DataComponentTypes.ITEM_MODEL, Identifier.of(botc.ID, tokenPath));
         }
 
         MutableText reminderText = (MutableText) token.toText();
@@ -200,7 +197,7 @@ public record TokenItemStack(ItemStack tokenItem) {
 
         if (token.character() != botcCharacter.EMPTY && token.character() != null) {
             Integer colourValue = token.character().team().getColour(false).getColorValue();
-            if (colourValue != null) {
+            if (colourValue != null && token.character().token() != null) {
                 tokenItem.set(DataComponentTypes.CUSTOM_MODEL_DATA, new CustomModelDataComponent(
                     List.of(), List.of(), List.of(), List.of(colourValue)));
             }
