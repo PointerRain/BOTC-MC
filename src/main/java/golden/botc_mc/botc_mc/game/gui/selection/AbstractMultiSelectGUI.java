@@ -67,7 +67,7 @@ public abstract class AbstractMultiSelectGUI<T> extends AbstractSelectionGUI<T> 
 
         if (this.canFinalise()) {
             GuiElementInterface.ClickCallback finaliseCallback = (i, c, a, g) -> finaliseSelection();
-            this.setSlot(7 + 9 * this.getHeight() + 9 * 3, ButtonBuilder.buildButton(
+            this.setSlot(hotbarSlot(8), ButtonBuilder.buildButton(
                     Text.translatable("gui.ok"),
                     ButtonIcon.CONFIRM,
                     finaliseCallback));
@@ -76,7 +76,7 @@ public abstract class AbstractMultiSelectGUI<T> extends AbstractSelectionGUI<T> 
             emptyStack.set(DataComponentTypes.CUSTOM_NAME,
                     ((MutableText) this.getFinaliseReason())
                             .styled(style -> style.withItalic(false)));
-            this.setSlot(7 + 9 * this.getHeight() + 9 * 3, emptyStack);
+            this.setSlot(hotbarSlot(8), emptyStack);
         }
     }
 

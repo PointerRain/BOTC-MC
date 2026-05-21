@@ -77,6 +77,9 @@
   "gui.botc-mc.selection.bag.reason": "Roles: %s/%s",
   "gui.botc-mc.selection.bag.warning.single": "%s modifies setup! Make sure to adjust roles accordingly!",
   "gui.botc-mc.selection.bag.warning.multiple": "%s roles modify setup! Make sure to adjust roles accordingly!",
+  "gui.botc-mc.selection.bag.clear": "Clear Grimoire",
+  "gui.botc-mc.selection.bag.silent": "Silently/partially assign roles",
+  "gui.botc-mc.selection.bag.announce": "Announce assigned roles",
 
   "commands.botc-mc.non-player": "This command may only be used by players",
   "commands.botc-mc.storyteller": "This command may only be used by the Storyteller",

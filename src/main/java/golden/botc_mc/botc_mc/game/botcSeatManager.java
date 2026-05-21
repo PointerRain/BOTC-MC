@@ -1,5 +1,6 @@
 package golden.botc_mc.botc_mc.game;
 
+import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.exceptions.InvalidSeatException;
 import golden.botc_mc.botc_mc.game.seat.PlayerSeat;
 import golden.botc_mc.botc_mc.game.seat.Seat;
@@ -409,6 +410,79 @@ public class botcSeatManager {
             if (seat.hasPlayerEntity()) {
                 RoleAssignment.sendCharacter(seat.getPlayerEntity(), character);
             }
+        }
+    }
+
+    /**
+     * Silently assigns character to players that do not have a role, and not duplicating roles already in play.
+     * First assigns roles that already exist in the grimoire.
+     * Then assigns roles to players with no role.
+     * Then assigns roles to players who already have roles.
+     * This is useful for fixing mistakes, gardener, tor, or simply assigning roles without popups.
+     * @param characters The characters to assign.
+     */
+    public void partialAssignCharacters(List<botcCharacter> characters) {
+        List<botcCharacter> toAssign = new ArrayList<>(characters);
+        // Consume characters already assigned
+        List<PlayerSeat> assigned = new ArrayList<>(List.of());
+        for (PlayerSeat seat : this.playerSeats) {
+            if (seat.getCharacter() != botcCharacter.EMPTY && toAssign.remove(seat.getCharacter())) {
+                assigned.add(seat);
+            }
+        }
+        List<PlayerSeat> shuffledSeats =  new ArrayList<>(this.playerSeats);
+        Collections.shuffle(shuffledSeats);
+        for (PlayerSeat seat : shuffledSeats) {
+            if (toAssign.isEmpty()) {
+                return; // No more characters to assign
+            }
+            if (seat.getCharacter() == botcCharacter.EMPTY) {
+                seat.clearCharacter();
+                seat.setCharacter(toAssign.removeFirst());
+                assigned.add(seat);
+            }
+        }
+        // Assign to present seats
+        for (PlayerSeat seat : shuffledSeats) {
+            if (toAssign.isEmpty()) {
+                return; // No more characters to assign
+            }
+            if (assigned.contains(seat)) {
+                continue;
+            }
+            if (seat.getCharacter() != botcCharacter.EMPTY && seat.getCharacter().team() == Team.TRAVELLER) {
+                continue;
+            }
+            seat.clearCharacter();
+            seat.setCharacter(toAssign.removeFirst());
+        }
+        if (!toAssign.isEmpty()) {
+            botc.LOGGER.error("Characters were left over after partially assigning roles!");
+        }
+    }
+
+    /**
+     * Announce characters to players who have characters assigned.
+     * Shows a popup and text.
+     */
+    public void announceCharacters() {
+        for (PlayerSeat seat : this.playerSeats) {
+            if (seat.hasPlayerEntity() && seat.getCharacter() != botcCharacter.EMPTY) {
+                RoleAssignment.sendCharacter(seat.getPlayerEntity(), seat.getCharacter());
+            }
+        }
+    }
+
+    /**
+     * Clear the entire grimoire of characters, reminders, and alignments.
+     */
+    public void clearCharacters() {
+        for (PlayerSeat seat : this.playerSeats) {
+            seat.clearCharacter();
+            seat.clearReminders();
+        }
+        for (StorytellerSeat seat : this.storytellerSeats) {
+            seat.clearCharacter();
         }
     }
 

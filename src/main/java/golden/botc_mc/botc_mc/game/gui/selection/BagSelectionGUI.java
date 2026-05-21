@@ -4,6 +4,8 @@ import golden.botc_mc.botc_mc.game.Script;
 import golden.botc_mc.botc_mc.game.Team;
 import golden.botc_mc.botc_mc.game.botcCharacter;
 import golden.botc_mc.botc_mc.game.botcSeatManager;
+import golden.botc_mc.botc_mc.game.gui.ButtonBuilder;
+import golden.botc_mc.botc_mc.game.gui.ButtonIcon;
 import golden.botc_mc.botc_mc.game.items.TokenItemStack;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.LoreComponent;
@@ -94,7 +96,7 @@ public class BagSelectionGUI extends AbstractMultiSelectGUI<botcCharacter> {
             stack.set(DataComponentTypes.CUSTOM_NAME, name);
             stack.set(DataComponentTypes.LORE, lore);
 
-            this.setSlot(2 + 9 * this.getHeight() + 9 * 3, stack);
+            this.setSlot(hotbarSlot(5), stack);
 
             List<botcCharacter> modifyingCharacters = this.selectedItems.stream().filter(botcCharacter::setup).toList();
             if (!modifyingCharacters.isEmpty()) {
@@ -109,14 +111,49 @@ public class BagSelectionGUI extends AbstractMultiSelectGUI<botcCharacter> {
                     warningStack.set(DataComponentTypes.LORE, warningLore);
                 }
                 warningStack.set(DataComponentTypes.CUSTOM_NAME, warningName);
-                this.setSlot(6 + 9 * this.getHeight() + 9 * 3, warningStack);
+                this.setSlot(hotbarSlot(7), warningStack);
             }
 
+            boolean hasCharacter = false;
+            for (int i = 0; i < this.seatManager.getSeatCount(); i++) {
+                if (this.seatManager.getSeatFromNumber(i+1).getCharacter() != botcCharacter.EMPTY
+                    && this.seatManager.getSeatFromNumber(i+1).getCharacter().team() != Team.TRAVELLER) {
+                    hasCharacter = true;
+                    break;
+                }
+            }
 
-            // TODO: Want buttons for:
-            // Assign without notifying players
-            // Clear characters?
-            // Resend characters?
+            if (hasCharacter) {
+                // 0: Clear Grimoire
+                this.setSlot(hotbarSlot(0), ButtonBuilder.buildButton(
+                        Text.translatable("gui.botc-mc.selection.bag.clear"),
+                        ButtonIcon.DELETE, (i, c, a, g) -> {
+                            this.seatManager.clearCharacters();
+                            this.close();
+                        })
+                );
+                // 2: Resend character info
+                this.setSlot(hotbarSlot(2), ButtonBuilder.buildButton(
+                        Text.translatable("gui.botc-mc.selection.bag.announce"),
+                        ButtonIcon.ANNOUNCE, (i, c, a, g) -> {
+                            this.seatManager.announceCharacters();
+                            this.close();
+                        }
+                ));
+
+            }
+
+            // 1: Partial/Silent Assign characters
+            if (!selectedItems.isEmpty() && selectedItems.size() <= requiredRoles) {
+                this.setSlot(hotbarSlot(1), ButtonBuilder.buildButton(
+                        Text.translatable("gui.botc-mc.selection.bag.silent"),
+                        ButtonIcon.SILENT, (i, c, a, g) -> {
+                            this.seatManager.partialAssignCharacters(selectedItems);
+                            this.close();
+                        }
+                ));
+            }
+
         }
     }
 
