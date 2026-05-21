@@ -171,14 +171,11 @@ public record TokenItemStack(ItemStack tokenItem) {
     public static ItemStack of(botcCharacter.ReminderToken token) {
         ItemStack tokenItem = new ItemStack(Items.PAPER);
 
-        if (token.character() == null || token.character() == botcCharacter.EMPTY || token.character().token() == null) {
+        if (botc.USE_SPECIAL_MODELS) {
+            if (token.character() == null || token.character() == botcCharacter.EMPTY || token.character().token() == null) {
             tokenItem.set(DataComponentTypes.ITEM_MODEL, Identifier.of(botc.ID, "reminders/empty"));
-        } else {
-            tokenItem.set(DataComponentTypes.ITEM_MODEL, Identifier.of(botc.ID, "reminders/" + token.character().token()));
-            Integer colourValue = token.character().team().getColour(false).getColorValue();
-            if (colourValue != null) {
-                tokenItem.set(DataComponentTypes.CUSTOM_MODEL_DATA, new CustomModelDataComponent(
-                    List.of(), List.of(), List.of(), List.of(colourValue)));
+            } else {
+                tokenItem.set(DataComponentTypes.ITEM_MODEL, Identifier.of(botc.ID, "reminders/" + token.character().token()));
             }
         }
 
@@ -187,6 +184,12 @@ public record TokenItemStack(ItemStack tokenItem) {
         tokenItem.set(DataComponentTypes.CUSTOM_NAME, reminderText);
 
         if (token.character() != botcCharacter.EMPTY && token.character() != null) {
+            Integer colourValue = token.character().team().getColour(false).getColorValue();
+            if (colourValue != null) {
+                tokenItem.set(DataComponentTypes.CUSTOM_MODEL_DATA, new CustomModelDataComponent(
+                    List.of(), List.of(), List.of(), List.of(colourValue)));
+            }
+
             MutableText characterName = (MutableText) token.character().toFormattedText(false, false, true, false);
             characterName.styled(style -> style.withBold(false).withItalic(false));
             tokenItem.set(DataComponentTypes.LORE, new LoreComponent(List.of(characterName)));
