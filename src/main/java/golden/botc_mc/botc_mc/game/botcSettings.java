@@ -16,7 +16,7 @@ import golden.botc_mc.botc_mc.game.voice.VoiceRegionService;
 
 /**
  * Simple file-backed settings for the BOTC game. This provides a single place to edit
- * common values (time limits, per-phase durations, player limits) without rebuilding the mod.
+ * common values (time limits, player limits, map selection) without rebuilding the mod.
  * <p>
  * The settings are stored at run/config/botc/config/botc.properties relative to the project root.
  */
@@ -32,14 +32,6 @@ public final class botcSettings {
     public int timeLimitSecs = 300;
     /** Target player count. */
     public int players = 8;
-    /** Day discussion duration seconds. */
-    public int dayDiscussionSecs = 120;
-    /** Nomination phase duration seconds. */
-    public int nominationSecs = 45;
-    /** Execution phase duration seconds. */
-    public int executionSecs = 20;
-    /** Night phase duration seconds. */
-    public int nightSecs = 60;
     /** Map identifier string used to resolve resources. */
     public String mapId = "botc-mc:test";
     /** Fallback spawn position if map lacks defined spawn. */
@@ -62,10 +54,6 @@ public final class botcSettings {
 
                 s.timeLimitSecs = parseInt(p.getProperty("timeLimitSecs"), s.timeLimitSecs);
                 s.players = parseInt(p.getProperty("players"), s.players);
-                s.dayDiscussionSecs = parseInt(p.getProperty("dayDiscussionSecs"), s.dayDiscussionSecs);
-                s.nominationSecs = parseInt(p.getProperty("nominationSecs"), s.nominationSecs);
-                s.executionSecs = parseInt(p.getProperty("executionSecs"), s.executionSecs);
-                s.nightSecs = parseInt(p.getProperty("nightSecs"), s.nightSecs);
                 s.mapId = p.getProperty("mapId", s.mapId);
                 s.fallbackSpawn = parseBlockPos(p.getProperty("fallbackSpawn"), s.fallbackSpawn);
             } else {
@@ -90,10 +78,6 @@ public final class botcSettings {
         Properties p = new Properties();
         p.setProperty("timeLimitSecs", Integer.toString(this.timeLimitSecs));
         p.setProperty("players", Integer.toString(this.players));
-        p.setProperty("dayDiscussionSecs", Integer.toString(this.dayDiscussionSecs));
-        p.setProperty("nominationSecs", Integer.toString(this.nominationSecs));
-        p.setProperty("executionSecs", Integer.toString(this.executionSecs));
-        p.setProperty("nightSecs", Integer.toString(this.nightSecs));
         p.setProperty("mapId", this.mapId);
         p.setProperty("fallbackSpawn", formatBlockPos(this.fallbackSpawn));
 
@@ -116,20 +100,18 @@ public final class botcSettings {
      * @return a merged botcConfig instance combining configured overrides and datapack defaults
      */
     public botcConfig applyTo(botcConfig base) {
-        // Settings override datapack-provided map selection
         Identifier selectedMap = Identifier.of(this.mapId);
         int players = this.players > 0 ? this.players : (base == null ? 8 : base.players());
         int timeLimit = this.timeLimitSecs > 0 ? this.timeLimitSecs : (base == null ? 300 : base.timeLimitSecs());
-        botcPhaseDurations durations = new botcPhaseDurations(this.dayDiscussionSecs, this.nominationSecs, this.executionSecs, this.nightSecs);
         Script script = Script.MISSING;
         String scriptId = "trouble_brewing";
-        if (base != null)  {
+        if (base != null) {
             script = base.script() != Script.MISSING ? base.script() : Script.fromId(base.scriptId());
             scriptId = base.scriptId();
         }
         botc.LOGGER.info("Resolved script: {}", script);
 
-        return botcConfig.of(selectedMap, players, timeLimit, durations, scriptId, script);
+        return botcConfig.of(selectedMap, players, timeLimit, scriptId, script);
     }
 
     private static BlockPos parseBlockPos(String value, BlockPos fallback) {

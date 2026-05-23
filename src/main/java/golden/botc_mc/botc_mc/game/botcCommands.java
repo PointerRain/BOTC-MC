@@ -11,6 +11,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.resource.Resource;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.Formatting;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -102,8 +103,79 @@ public final class botcCommands {
                     )
             );
 
+            // /botc advance — move to next phase (SETUP -> NIGHT 1 -> DAY 1 -> ...)
+            root.then(literal("advance").executes(ctx -> {
+                botcActive game = botcActive.activeGame;
+                if (game == null) {
+                    ctx.getSource().sendError(Text.literal("No game is currently active."));
+                    return 0;
+                }
+                game.advancePhase();
+                ctx.getSource().sendFeedback(() -> Text.literal("Phase advanced.").formatted(Formatting.GREEN), false);
+                return 1;
+            }));
+
+            // /botc end — end the game immediately
+            root.then(literal("end").executes(ctx -> {
+                botcActive game = botcActive.activeGame;
+                if (game == null) {
+                    ctx.getSource().sendError(Text.literal("No game is currently active."));
+                    return 0;
+                }
+                game.endGame();
+                ctx.getSource().sendFeedback(() -> Text.literal("Game ended.").formatted(Formatting.RED), false);
+                return 1;
+            }));
+
+            // /botc bell — ring the bell and send return-to-town-square message
+            root.then(literal("bell").executes(ctx -> {
+                botcActive game = botcActive.activeGame;
+                if (game == null) {
+                    ctx.getSource().sendError(Text.literal("No game is currently active."));
+                    return 0;
+                }
+                game.ringBell();
+                ctx.getSource().sendFeedback(() -> Text.literal("Bell rung.").formatted(Formatting.GOLD), false);
+                return 1;
+            }));
+
+            // /botc timer stop
+            // /botc timer start <seconds>
+            LiteralArgumentBuilder<ServerCommandSource> timer = literal("timer");
+
+            timer.then(literal("stop").executes(ctx -> {
+                botcActive game = botcActive.activeGame;
+                if (game == null) {
+                    ctx.getSource().sendError(Text.literal("No game is currently active."));
+                    return 0;
+                }
+                game.stopTimer();
+                return 1;
+            }));
+
+            timer.then(literal("start")
+                .then(CommandManager.argument("seconds", IntegerArgumentType.integer(1))
+                    .executes(ctx -> {
+                        int seconds = IntegerArgumentType.getInteger(ctx, "seconds");
+                        return startTimer(ctx.getSource(), seconds);
+                    })
+                )
+            );
+
+            root.then(timer);
+
             dispatcher.register(root);
         });
+    }
+
+    private static int startTimer(ServerCommandSource source, int seconds) {
+        botcActive game = botcActive.activeGame;
+        if (game == null) {
+            source.sendError(Text.literal("No game is currently active."));
+            return 0;
+        }
+        game.startTimer((long) seconds * 20, "Discussion");
+        return 1;
     }
 
     /**

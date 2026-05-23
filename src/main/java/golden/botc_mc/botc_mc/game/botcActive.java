@@ -29,7 +29,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import golden.botc_mc.botc_mc.botc;
 
 /**
  * Active game session controller for a Blood on the Clocktower match.
@@ -41,6 +40,9 @@ import golden.botc_mc.botc_mc.botc;
 public class botcActive {
     private static final Logger LOG = LoggerFactory.getLogger("botc-mc");
 
+    /** Currently running game session; null when no game is active. */
+    public static botcActive activeGame = null;
+
     /** Plasmid game space hosting the session. */
     public final GameSpace gameSpace;
 
@@ -49,7 +51,6 @@ public class botcActive {
     private final botcStageManager stageManager;
     private final botcTimerBar timerBar;
     private final ServerWorld world;
-    private final Script script;
 
     private GameLifecycleStatus lifecycleStatus = GameLifecycleStatus.STOPPED;
     private boolean startingLogged = false;
@@ -60,7 +61,6 @@ public class botcActive {
         this.spawnLogic = new SpawnLogic(world, map);
         this.participants = new Object2ObjectOpenHashMap<>();
         this.world = world;
-        this.script = script;
 
         for (PlayerRef player : participants) {
             this.participants.put(player, new botcPlayer());
@@ -117,6 +117,7 @@ public class botcActive {
 
     /** Game open hook: spawn existing participants/spectators and initialize the state machine. */
     private void onOpen() {
+        botcActive.activeGame = this;
         for (var participant : this.gameSpace.getPlayers().participants()) this.spawnParticipant(participant);
         for (var spectator : this.gameSpace.getPlayers().spectators()) this.spawnSpectator(spectator);
         this.stageManager.attachContext(this.gameSpace);
@@ -126,11 +127,12 @@ public class botcActive {
 
     /** Game close hook; placeholder for teardown logic (voice region cleanup, etc.). */
     private void onClose() {
+        botcActive.activeGame = null;
         int participantsCount = this.gameSpace.getPlayers().participants().size();
         int spectatorsCount = this.gameSpace.getPlayers().spectators().size();
         LOG.info("[BOTC:CLOSE] Closing game lifecycle={} participants={} spectators={}", this.lifecycleStatus, participantsCount, spectatorsCount);
         try {
-            golden.botc_mc.botc_mc.game.voice.VoiceRegionService.setActive(null); // clear active voice context (updated signature)
+            golden.botc_mc.botc_mc.game.voice.VoiceRegionService.setActive(null); // clear active voice context
         } catch (Throwable t) {
             LOG.warn("[BOTC:CLOSE] Voice region cleanup failed: {}", t.toString());
         }
@@ -149,7 +151,7 @@ public class botcActive {
         this.participants.remove(PlayerRef.of(player));
     }
 
-    /** Intercepts damage; prototype logic respawns player and cancels damage.
+    /** Intercepts damage; respawns player and cancels damage.
      * Listener registration expects EventResult.DENY to suppress default handling.
      */
     private void onPlayerDamage(ServerPlayerEntity player, DamageSource source, float amount) {
@@ -157,7 +159,7 @@ public class botcActive {
         this.spawnParticipant(player);
     }
 
-    /** Intercepts death; prototype respawn and cancels death handling.
+    /** Intercepts death; respawns player and cancels death handling.
      * Listener registration expects EventResult.DENY to suppress default handling.
      */
     private void onPlayerDeath(ServerPlayerEntity player, DamageSource source) {
@@ -206,14 +208,12 @@ public class botcActive {
             }
         }
 
-        long remaining = this.stageManager.getStateTicksRemaining();
-        long total = this.stageManager.getStateDuration();
-        this.timerBar.updatePhase(this.stageManager.getCurrentState(), remaining, total);
-
-        if ((time % 100) == 0) {
-            long ticksInState = this.stageManager.getTicksInState();
-            botc.LOGGER.debug("State {} ticksInState={}", this.stageManager.getCurrentState(), ticksInState);
-        }
+        this.timerBar.update(
+            this.stageManager.isTimerActive(),
+            this.stageManager.getTimerTitle(),
+            this.stageManager.getTimerTicksRemaining(time),
+            this.stageManager.getTimerDurationTicks()
+        );
 
         // TODO tick logic per state
     }
@@ -254,5 +254,36 @@ public class botcActive {
         // Print a concise console line when the game begins
         int participantCount = this.gameSpace.getPlayers().participants().size();
         LOG.info("Game STARTING at tick {} with {} participant(s)", this.world.getTime(), participantCount);
+    }
+
+    // --- Storyteller command delegates ---
+
+    /** Advance to the next game phase (SETUP -> NIGHT 1 -> DAY 1 -> ...). */
+    public void advancePhase() {
+        this.stageManager.advance();
+    }
+
+    /** End the game immediately. */
+    public void endGame() {
+        this.stageManager.endGame();
+    }
+
+    /**
+     * Start a storyteller countdown timer.
+     * @param durationTicks duration in ticks
+     * @param title display title
+     */
+    public void startTimer(long durationTicks, String title) {
+        this.stageManager.startTimer(this.world.getTime(), durationTicks, title);
+    }
+
+    /** Stop the current timer without ringing the bell. */
+    public void stopTimer() {
+        this.stageManager.stopTimer();
+    }
+
+    /** Ring the bell and broadcast the return-to-town-square message. */
+    public void ringBell() {
+        this.stageManager.ringBell(this.gameSpace);
     }
 }
