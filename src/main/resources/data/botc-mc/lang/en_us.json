@@ -67,6 +67,7 @@
   "gui.botc-mc.seats.shuffle": "Shuffle Seats",
 
   "gui.botc-mc.unseated_warning": "You do not have a seat assigned!",
+  "gui.botc-mc.role_announcement": "You are the",
 
   "gui.botc-mc.build_bag": "Build Role Bag",
   "gui.botc-mc.selection.bag": "Role Counts",
