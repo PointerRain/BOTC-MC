@@ -51,6 +51,7 @@ public class botcActive {
     private final botcStageManager stageManager;
     private final botcTimerBar timerBar;
     private final ServerWorld world;
+    private final Script script;
 
     private GameLifecycleStatus lifecycleStatus = GameLifecycleStatus.STOPPED;
     private boolean startingLogged = false;
@@ -61,6 +62,7 @@ public class botcActive {
         this.spawnLogic = new SpawnLogic(world, map);
         this.participants = new Object2ObjectOpenHashMap<>();
         this.world = world;
+        this.script = script;
 
         for (PlayerRef player : participants) {
             this.participants.put(player, new botcPlayer());
