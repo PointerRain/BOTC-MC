@@ -32,7 +32,7 @@ public class ScriptDeserializer implements JsonDeserializer<Script> {
         List<String> firstNight = null;
         List<String> otherNight = null;
         int[] colour = null;
-        List<Character> characters = new ArrayList<>();
+        List<botcCharacter> characters = new ArrayList<>();
 
         for (JsonElement element : jsonArray) {
             if (element.isJsonObject() && element.getAsJsonObject().has("id") && "_meta".equals(element.getAsJsonObject().get("id").getAsString())) {
@@ -45,8 +45,8 @@ public class ScriptDeserializer implements JsonDeserializer<Script> {
                 almanac = getString(metaObj, "almanac");
                 flavor = getString(metaObj, "flavor");
                 bootlegger = getStringList(metaObj, "bootlegger");
-                firstNight = getStringList(metaObj, "first_night");
-                otherNight = getStringList(metaObj, "other_night");
+                firstNight = getStringList(metaObj, "firstNight");
+                otherNight = getStringList(metaObj, "otherNight");
 
                 if (metaObj.has("colour") && metaObj.get("colour").isJsonArray()) {
                     JsonArray colourArray = metaObj.get("colour").getAsJsonArray();
@@ -57,9 +57,9 @@ public class ScriptDeserializer implements JsonDeserializer<Script> {
                 }
 
             } else if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isString()) {
-                characters.add(new Character(element.getAsString()));
+                characters.add(new botcCharacter(element.getAsString()));
             } else if (element.isJsonObject()) {
-                characters.add(context.deserialize(element, Character.class));
+                characters.add(context.deserialize(element, botcCharacter.class));
             } else {
                 throw new JsonParseException("Unexpected JSON element: " + element);
             }

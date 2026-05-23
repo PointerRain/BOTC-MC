@@ -2,6 +2,7 @@ package golden.botc_mc.botc_mc.game;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import net.minecraft.network.packet.s2c.play.OverlayMessageS2CPacket;
 import net.minecraft.util.math.Vec3d;
 import xyz.nucleoid.plasmid.api.game.GameCloseReason;
 import xyz.nucleoid.plasmid.api.game.GameSpace;
@@ -48,18 +49,21 @@ public class botcActive {
 
     private final Object2ObjectMap<PlayerRef, botcPlayer> participants;
     private final SpawnLogic spawnLogic;
+    private final botcItemManager itemManager;
     private final botcStageManager stageManager;
+    private final botcSeatManager seatManager;
     private final botcTimerBar timerBar;
     private final ServerWorld world;
     private final Script script;
-
     private GameLifecycleStatus lifecycleStatus = GameLifecycleStatus.STOPPED;
     private boolean startingLogged = false;
 
     private botcActive(GameSpace gameSpace, ServerWorld world, Map map, GlobalWidgets widgets,
                        Set<PlayerRef> participants, Script script) {
         this.gameSpace = gameSpace;
+        // keep a reference to the world and participants; map/config not stored here to avoid merge artifacts
         this.spawnLogic = new SpawnLogic(world, map);
+        this.itemManager = new botcItemManager();
         this.participants = new Object2ObjectOpenHashMap<>();
         this.world = world;
         this.script = script;
@@ -69,6 +73,7 @@ public class botcActive {
         }
 
         this.stageManager = new botcStageManager();
+        this.seatManager = new botcSeatManager();
         this.timerBar = botcTimerBar.of(widgets);
     }
 
@@ -102,7 +107,7 @@ public class botcActive {
             game.listen(GameActivityEvents.DISABLE, active::onClose);
             game.listen(GameActivityEvents.STATE_UPDATE, state -> state.canPlay(false));
 
-            game.listen(GamePlayerEvents.OFFER, JoinOffer::acceptSpectators);
+            game.listen(GamePlayerEvents.OFFER, JoinOffer::accept);
             game.listen(GamePlayerEvents.ACCEPT, joinAcceptor -> {
                 Vec3d safe = active.spawnLogic.getSafeSpawnPosition();
                 return joinAcceptor.teleport(world, safe);
@@ -125,6 +130,9 @@ public class botcActive {
         this.stageManager.attachContext(this.gameSpace);
         this.stageManager.markPlayersPresent(!this.gameSpace.getPlayers().participants().isEmpty());
         this.stageManager.onOpen(this.world.getTime());
+
+        // Register this active game
+        botc.addGame(this);
     }
 
     /** Game close hook; placeholder for teardown logic (voice region cleanup, etc.). */
@@ -139,6 +147,9 @@ public class botcActive {
             LOG.warn("[BOTC:CLOSE] Voice region cleanup failed: {}", t.toString());
         }
         // Future: flush stats, persist results, release resources.
+
+        // Unregister this active game
+        botc.removeGame(this);
     }
 
     /** Add a newly joined player (as spectator if not in participants). */
@@ -217,6 +228,15 @@ public class botcActive {
             this.stageManager.getTimerDurationTicks()
         );
 
+        if ((time % 70) == 0) {
+            for (ServerPlayerEntity participant : this.gameSpace.getPlayers().participants()) {
+                if (seatManager.getSeatFromPlayer(participant) == null) {
+                    OverlayMessageS2CPacket packet = new OverlayMessageS2CPacket(Text.translatable("gui.botc-mc.unseated_warning"));
+                    participant.networkHandler.sendPacket(packet);
+                }
+            }
+        }
+
         // TODO tick logic per state
     }
 
@@ -256,6 +276,32 @@ public class botcActive {
         // Print a concise console line when the game begins
         int participantCount = this.gameSpace.getPlayers().participants().size();
         LOG.info("Game STARTING at tick {} with {} participant(s)", this.world.getTime(), participantCount);
+        // giveStarterItems();
+        itemManager.giveStarterItems(this.gameSpace, this.script);
+    }
+
+    /** Get the SeatManager for this active game. */
+    public botcSeatManager getSeatManager() {
+        return this.seatManager;
+    }
+
+    /** Get the participant map for this active game. */
+    public Object2ObjectMap<PlayerRef, botcPlayer> getParticipants() {
+        return this.participants;
+    }
+
+    /** Get the script for this active game. */
+    public Script getScript() {
+        return script;
+    }
+
+    @Override
+    public String toString() {
+        return "botcActive{" +
+                "lifecycleStatus=" + lifecycleStatus +
+                ", participants=" + participants.size() +
+                ", seatManager=" + seatManager +
+                '}';
     }
 
     // --- Storyteller command delegates ---

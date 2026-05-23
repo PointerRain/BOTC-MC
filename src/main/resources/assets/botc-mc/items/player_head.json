@@ -1,0 +1,35 @@
+{
+  "model": {
+    "type": "minecraft:composite",
+    "models": [
+      {
+        "type": "minecraft:special",
+        "model": {
+          "type": "minecraft:player_head"
+        },
+        "base": "minecraft:item/template_skull"
+      },
+      {
+        "type": "minecraft:condition",
+        "property": "minecraft:custom_model_data",
+        "on_true": {
+          "type": "minecraft:model",
+          "model": "botc-mc:item/living_token"
+        },
+        "on_false": {
+          "type": "minecraft:condition",
+          "property": "minecraft:custom_model_data",
+          "index": 1,
+          "on_true": {
+            "type": "minecraft:model",
+            "model": "botc-mc:item/deadvote_token"
+          },
+          "on_false": {
+            "type": "minecraft:model",
+            "model": "botc-mc:item/dead_token"
+          }
+        }
+      }
+    ]
+  }
+}

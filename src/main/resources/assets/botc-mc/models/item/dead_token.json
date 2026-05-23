@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:item/generated",
+  "display": {
+    "gui": {
+      "translation": [0, 0, -5],
+      "scale": [0.9, 0.9, 0.9]
+    }
+  },
+  "textures": {
+    "layer0": "minecraft:block/oxidized_copper"
+  }
+}

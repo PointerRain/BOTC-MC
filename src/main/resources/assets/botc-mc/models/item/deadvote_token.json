@@ -1,0 +1,6 @@
+{
+  "parent": "botc-mc:item/dead_token",
+  "textures": {
+    "layer0": "minecraft:block/oxidized_copper_bulb"
+  }
+}

@@ -1,7 +1,11 @@
 package golden.botc_mc.botc_mc;
 
-import golden.botc_mc.botc_mc.game.Character;
+import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
+import golden.botc_mc.botc_mc.game.CharacterLoader;
+import golden.botc_mc.botc_mc.game.NightType;
+import golden.botc_mc.botc_mc.game.botcCharacter;
 import golden.botc_mc.botc_mc.game.Script;
+import golden.botc_mc.botc_mc.game.botcActive;
 import golden.botc_mc.botc_mc.game.botcCommands;
 import golden.botc_mc.botc_mc.game.botcConfig;
 import golden.botc_mc.botc_mc.game.botcWaiting;
@@ -18,13 +22,17 @@ import net.minecraft.resource.Resource;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.ResourceType;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import xyz.nucleoid.plasmid.api.game.GameType;
+import xyz.nucleoid.plasmid.api.util.PlayerRef;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -48,6 +56,8 @@ public class botc implements ModInitializer {
 
     private VoiceRegionTask voiceRegionTask;
     private static volatile boolean REGIONS_MATERIALIZED = false;
+
+    private static final List<botcActive> activeGames = new ArrayList<>();
 
     /**
      * Explicit no-arg constructor. Present to provide a documented construction point for
@@ -103,13 +113,23 @@ public class botc implements ModInitializer {
 
             @Override
             public void reload(ResourceManager manager) {
+
+                Resource firstNight = manager.getResource(Identifier.of(
+                        "botc-mc:character_data/first_night.json")).orElse(null);
+                CharacterLoader.registerNightOrder(NightType.FIRST, firstNight);
+
+                Resource otherNight = manager.getResource(Identifier.of(
+                        "botc-mc:character_data/other_night.json")).orElse(null);
+                CharacterLoader.registerNightOrder(NightType.OTHER, otherNight);
+
                 Resource baseCharacters = manager.getResource(Identifier.of("botc-mc:character_data/base_characters" +
                         ".json")).orElse(null);
+//                baseCharacters = null;
+                CharacterLoader.registerBaseCharacters(baseCharacters);
                 if (baseCharacters != null) {
-                    golden.botc_mc.botc_mc.game.Character.registerBaseCharacters(baseCharacters);
-                    // Log some character data to verify loading
-                    LOGGER.debug(new golden.botc_mc.botc_mc.game.Character("washerwoman"));
-                    LOGGER.debug(new Character("pithag"));
+                    // Log some botcCharacter data to verify loading
+                    LOGGER.debug(new botcCharacter("washerwoman"));
+                    LOGGER.debug(new botcCharacter("pithag"));
                 } else {
                     LOGGER.error("Error reading base_characters.json");
                 }
@@ -120,8 +140,6 @@ public class botc implements ModInitializer {
                     manager.getResource(id).ifPresent(script -> scripts.put(String.valueOf(id), Script.fromResource(script)));
                 }
                 LOGGER.info("Loaded {} scripts", scripts.size());
-                LOGGER.debug(scripts.get("botc-mc:scripts/trouble_brewing.json"));
-                LOGGER.debug(scripts.get("botc-mc:scripts/separation_church_state.json").getJinxes());
             }
         });
 
@@ -160,6 +178,9 @@ public class botc implements ModInitializer {
                 LOGGER.warn("Deferred region materialization error: {}", t.toString());
             }
         });
+
+        // Register mod assets for resource pack serving
+        PolymerResourcePackUtils.addModAssets(ID);
     }
 
     private static volatile boolean PRELOADED = false;
@@ -201,5 +222,46 @@ public class botc implements ModInitializer {
                 preload.invoke(plugin);
             } catch (Throwable ignored) {}
         } catch (Throwable ignored) {}
+    }
+
+
+    /**
+     * Add the active game to the list of active games
+     * TODO: There is probably a preexisting way to manage active games in Plasmid
+     */
+    public static void addGame(botcActive game) {
+        LOGGER.info("Adding the game " + game);
+        activeGames.add(game);
+    }
+    /**
+     * Remove the active game from the list of active games
+     * TODO: There is probably a preexisting way to manage active games in Plasmid
+     */
+    public static void removeGame(botcActive game) {
+        LOGGER.info("Removing the game " + game);
+        activeGames.remove(game);
+    }
+
+    /**
+     * Get the list of active games
+     * @return The list of active games
+     */
+    public static List<botcActive> getActiveGames() {
+        return activeGames;
+    }
+
+    /**
+     * Get the active game that the given player is in
+     * @param player The player to get the active game for
+     * @return The active game, or null if the player is not in an active game
+     */
+    public static botcActive getActiveGameFromPlayer(ServerPlayerEntity player) {
+        for (botcActive activeGame : activeGames) {
+            if (activeGame.getSeatManager().getSeatFromPlayer(player) != null ||
+                    activeGame.getParticipants().containsKey(PlayerRef.of(player))) {
+                return activeGame;
+            }
+        }
+        return null;
     }
 }

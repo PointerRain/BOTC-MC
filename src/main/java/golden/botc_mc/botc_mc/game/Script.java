@@ -11,22 +11,20 @@ import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.Objects;
 
 /**
  * Represents a script in the BOTC game, containing meta information and a list of characters.
  */
-public record Script(Meta meta, List<Character> characters) {
+public record Script(Meta meta, List<botcCharacter> characters) {
     /**
      * Represents an empty script with no characters and default meta information.
      */
@@ -36,10 +34,12 @@ public record Script(Meta meta, List<Character> characters) {
      */
     public static final Script MISSING = null;
 
+    // TODO: Remap baseCharacters when loading script to have updated loric and fabled characters.
+
     public Script(String name, String author, String logo, boolean hideTitle, String background, String almanac,
                   String flavor, List<String> bootlegger, List<String> firstNight, List<String> otherNight,
                   int[] colour,
-                  List<Character> characters) {
+                  List<botcCharacter> characters) {
         this(new Meta(
                 "_meta",
                 name,
@@ -93,16 +93,37 @@ public record Script(Meta meta, List<Character> characters) {
                 botc.LOGGER.error("Script with ID '{}' not found.", scriptId);
             }
         }
-        if (scriptData == null || Character.baseCharacters == null) {
+        if (scriptData == null || CharacterLoader.baseCharacters == null) {
+            botc.LOGGER.error("Script data or base characters not loaded yet, returning script data as is.");
             return scriptData;
         }
-        for (Character character : scriptData.characters) {
-            Character fullCharacter = Character.fromPartialCharacter(character);
-            // Replace character in the script's character list
+        for (botcCharacter character : scriptData.characters) {
+            botcCharacter fullCharacter = CharacterLoader.fromPartialCharacter(character);
+            // Replace botcCharacter in the script's botcCharacter list
             int index = scriptData.characters.indexOf(character);
             scriptData.characters.set(index, fullCharacter);
         }
         return scriptData;
+    }
+
+    /**
+     * Get a botcCharacter from the script by its ID.
+     * @param id The ID of the botcCharacter to retrieve.
+     * @return The botcCharacter object if found, otherwise a base botcCharacter or botcCharacter.EMPTY.
+     */
+    public botcCharacter getCharacter(String id) {
+        // Try to find botcCharacter by ID
+        for (botcCharacter botcCharacter : this.characters) {
+            if (botcCharacter.id().equals(id)) {
+                return botcCharacter;
+            }
+        }
+        // Find botcCharacter from all base characters as fallback
+        botcCharacter baseBotcCharacter = new botcCharacter(id);
+        return switch (baseBotcCharacter.team()) {
+            case FABLED, LORIC, TRAVELLER -> baseBotcCharacter;
+            default -> null;
+        };
     }
 
     /**
@@ -142,31 +163,26 @@ public record Script(Meta meta, List<Character> characters) {
     }
 
     /**
+     * Helper method to convert a list of character IDs from a list of strings into a list of NightActions,
+     * filtering out any invalid entries.
+     * @param nightList The list of character IDs for the night order.
+     * @return The list of NightActions corresponding to the character IDs, in the order they appear in the list.
+     */
+    private List<NightAction> nightOrderFromSuperlist(List<String> nightList) {
+        return nightList.stream()
+                .map(s -> NightAction.nightActionFromScript(this, s))
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    /**
      * Get the order of actions for the first night.
      * @param isTeensy Whether the game is in teensy mode.
      * @return The list of NightActions in the order they act on the first night.
      */
     public List<NightAction> firstNightOrder(boolean isTeensy) {
-        ArrayList<NightAction> order = new ArrayList<>();
-        if (meta.firstNight != null && !meta.firstNight.isEmpty()) {
-            // Use predefined first night order from meta
-            meta.firstNight.forEach(s -> order.add(NightAction.firstNightAction(this, s)));
-        } else {
-            // Sort characters by firstNight value
-            characters.stream()
-                    .filter(c -> c.firstNight() > 0 && c.firstNightReminder() != null && !c.firstNightReminder().isEmpty())
-                    .sorted(Comparator.comparingInt(Character::firstNight))
-                    .map(NightAction::firstNightAction)
-                    .forEach(order::add);
-            if (!isTeensy) {
-                order.addFirst(NightAction.DEMONINFO);
-                order.addFirst(NightAction.MINIONINFO);
-            }
-            order.addFirst(NightAction.DUSK);
-            order.add(NightAction.DAWN);
-        }
-
-        return order;
+        return nightOrderFromSuperlist(meta.firstNight() != null && !meta.firstNight().isEmpty() ? meta.firstNight()
+                : CharacterLoader.firstNightOrder);
     }
 
     /**
@@ -182,37 +198,23 @@ public record Script(Meta meta, List<Character> characters) {
      * @return The list of NightActions in the order they act on nights other than the first.
      */
     public List<NightAction> otherNightOrder() {
-        List<NightAction> order = new ArrayList<>();
-        if (meta.otherNight != null && !meta.otherNight.isEmpty()) {
-            // Use predefined other night order from meta
-            meta.otherNight.forEach(s -> order.add(NightAction.otherNightAction(this, s)));
-        } else {
-            // Sort characters by otherNight value
-            characters.stream()
-                    .filter(c -> c.otherNight() > 0 && c.otherNightReminder() != null && !c.otherNightReminder().isEmpty())
-                    .sorted(Comparator.comparingInt(Character::otherNight))
-                    .map(NightAction::otherNightAction)
-                    .forEach(order::add);
-            order.addFirst(NightAction.DUSK);
-            order.add(NightAction.DAWN);
-        }
-
-        return order;
+        return nightOrderFromSuperlist(meta.otherNight() != null && !meta.otherNight().isEmpty() ? meta.otherNight()
+                : CharacterLoader.otherNightOrder);
     }
 
     /**
-     * Get jinxes on the script for a specific character.
-     * Note: This doesn't include jinxes where the character is the secondary target.
+     * Get jinxes on the script for a specific botcCharacter.
+     * Note: This doesn't include jinxes where the botcCharacter is the secondary target.
      * This prevents duplicate entries when listing all jinxes.
-     * @param character The character.
-     * @return The list of jinxes for the character.
+     * @param botcCharacter The botcCharacter.
+     * @return The list of jinxes for the botcCharacter.
      */
-    public List<Jinx> getJinxesForCharacter(Character character) {
+    public List<Jinx> getJinxesForCharacter(botcCharacter botcCharacter) {
         List<Jinx> jinxes = new ArrayList<>();
-        if (character.jinxes() == null || character.jinxes().isEmpty()) {
+        if (botcCharacter.jinxes() == null || botcCharacter.jinxes().isEmpty()) {
             return jinxes;
         }
-        for (Jinx jinx : character.jinxes()) {
+        for (Jinx jinx : botcCharacter.jinxes()) {
             if (jinx == null || jinx.id() == null) {
                 continue;
             }
@@ -229,11 +231,11 @@ public record Script(Meta meta, List<Character> characters) {
      * Get all jinxes in the script.
      * @return The list of all jinxes.
      */
-    public Map<Character, List<Jinx>> getJinxes() {
-        HashMap<Character, List<Jinx>> allJinxes = new HashMap<>();
-        for (Character character : characters) {
-            List<Jinx> characterJinxes = getJinxesForCharacter(character);
-            if (!characterJinxes.isEmpty()) allJinxes.put(character, characterJinxes);
+    public Map<botcCharacter, List<Jinx>> getJinxes() {
+        HashMap<botcCharacter, List<Jinx>> allJinxes = new HashMap<>();
+        for (botcCharacter botcCharacter : characters) {
+            List<Jinx> characterJinxes = getJinxesForCharacter(botcCharacter);
+            if (!characterJinxes.isEmpty()) allJinxes.put(botcCharacter, characterJinxes);
         }
         return allJinxes;
     }
@@ -241,26 +243,32 @@ public record Script(Meta meta, List<Character> characters) {
     /**
      * Get all characters belonging to a specific team.
      * @param team The team to filter characters by.
+     * @param seeAll Whether to include all characters or only characters on the script.
      * @return A list of characters belonging to the specified team.
      */
-    public List<Character> getCharactersByTeam(Team team) {
-        List<Character> teamCharacters = new ArrayList<>();
-        for (Character character : characters) {
-            if (character.team().equals(team)) {
-                teamCharacters.add(character);
+    public List<botcCharacter> getCharactersByTeam(Team team, boolean seeAll) {
+        LinkedHashSet<botcCharacter> teamCharacters = new LinkedHashSet<>();
+        characters.stream()
+                .filter(c -> c.team().equals(team))
+                .forEach(teamCharacters::add);
+        if (seeAll) {
+            for (botcCharacter botcCharacter : CharacterLoader.baseCharacters) {
+                if (botcCharacter.team().equals(team)) {
+                    teamCharacters.add(botcCharacter);
+                }
             }
         }
-        return teamCharacters;
+        return teamCharacters.stream().toList();
     }
 
-    @Override
-    public @NotNull String toString() {
-        return "Script[name='" + meta.name + "', author='" + meta.author + "', logo='" + meta.logo +
-                "', hideTitle=" + meta.hideTitle + ", background='" + meta.background + "', almanac='" + meta.almanac +
-                "', bootlegger=" + meta.bootlegger + ", firstNight=" + meta.firstNight +
-                ", otherNight=" + meta.otherNight + ", color=" + Arrays.toString(meta.colour) +
-                ", characters=[" + characters.size() + " characters]]";
-    }
+//    @Override
+//    public @NotNull String toString() {
+//        return "Script[name='" + meta.name + "', author='" + meta.author + "', logo='" + meta.logo +
+//                "', hideTitle=" + meta.hideTitle + ", background='" + meta.background + "', almanac='" + meta.almanac +
+//                "', bootlegger=" + meta.bootlegger + ", firstNight=" + meta.firstNight +
+//                ", otherNight=" + meta.otherNight + ", color=" + Arrays.toString(meta.colour) +
+//                ", characters=[" + characters.size() + " characters]]";
+//    }
 
     /**
      * Meta information that appears as the first element in array script files.
@@ -296,8 +304,8 @@ public record Script(Meta meta, List<Character> characters) {
     }
 
     /**
-     * Represents a jinx applied to a character.
-     * Contains the ID of the target character and the rule change for the jinx.
+     * Represents a jinx applied to a botcCharacter.
+     * Contains the ID of the target botcCharacter and the rule change for the jinx.
      */
     public record Jinx(String id, String reason) {
         public static final Codec<Jinx> CODEC = RecordCodecBuilder.create(instance -> instance.group(
@@ -306,16 +314,16 @@ public record Script(Meta meta, List<Character> characters) {
         ).apply(instance, Jinx::new));
 
         /**
-         * Get a formatted * character with hover text containing the Jinx information.
+         * Get a formatted * botcCharacter with hover text containing the Jinx information.
          * @return The formatted text of the "jinx star".
          */
         public MutableText jinxStar() {
             MutableText jinxText = Text.empty();
-            jinxText.append(new Character(this.id()).toFormattedText(false));
-            jinxText.append(Text.literal("\n"));
+            jinxText.append(new botcCharacter(this.id()).toFormattedText(false, false, true, false));
+            jinxText.append(Text.of("\n"));
             jinxText.append(Text.literal(this.reason()).setStyle(Style.EMPTY.withItalic(true).withColor(Formatting.GRAY)));
             HoverEvent hover = new HoverEvent.ShowText(jinxText);
-            return Text.literal("*")
+            return Text.translatable("book.botc-mc.jinx_star")
                             .styled(style -> style
                                     .withColor(Team.FABLED.getColour(false))
                                     .withBold(false).withUnderline(false)

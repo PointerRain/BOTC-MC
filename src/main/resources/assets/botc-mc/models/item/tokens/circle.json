@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "botc-mc:item/token_base",
+    "layer1": "botc-mc:item/tokens/circle",
+    "layer2": "botc-mc:item/token_overlay"
+  }
+}

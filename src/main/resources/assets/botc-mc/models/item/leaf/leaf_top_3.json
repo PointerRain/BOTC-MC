@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "botc-mc:item/leaf/leaf_top_3"
+  }
+}

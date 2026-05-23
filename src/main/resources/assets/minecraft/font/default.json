@@ -1,0 +1,20 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "botc-mc:font/token_atlas.png",
+      "ascent": 8,
+      "height": 10,
+      "chars": [
+        "\ueb07\ueb08\ueb09\ueb0a\ueb0b\ueb0c",
+        "\ueb0d\ueb0e\ueb0f\ueb10\ueb11\ueb12",
+        "\ueb13\ueb14\ueb15\ueb16\ueb17\ueb18",
+        "\ueb19\ueb1a\ueb1b\ueb1c\ueb1d\ueb1e",
+        "\ueb1f\ueb20\ueb21\ueb22\ueb23\ueb24",
+        "\ueb25\ueb26\ueb27\ueb28\ueb29\ueb2a",
+        "\ueb2b\ueb2c\ueb2d\ueb2e\ueb2f\ueb30",
+        "\ueb31\ueb32\ueb33\ueb34\ueb35\u0000"
+      ]
+    }
+  ]
+}

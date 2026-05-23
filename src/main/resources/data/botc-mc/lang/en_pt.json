@@ -1,0 +1,63 @@
+{
+  "team.botc-mc.townsfolk": "Crewmate",
+  "team.botc-mc.outsider": "Stowaway",
+  "team.botc-mc.minion": "Scallywag",
+  "team.botc-mc.demon": "Beast o' the Sea",
+  "team.botc-mc.traveller": "Landlubber",
+  "team.botc-mc.fabled": "Captain o' Legend",
+  "team.botc-mc.loric": "Great Tale o' the Sea",
+  "team.botc-mc.alignment.good": "Good'un",
+  "team.botc-mc.alignment.evil": "Evil'un",
+  "team.botc-mc.alignment.npc": "Legend",
+  "team.botc-mc.alignment.neutral": "Neutral",
+  "character.botc.empty.name": "Naught",
+  "character.botc.empty.ability": "No Trade",
+  "character.botc-mc.unknown": "Unknown",
+  "character.botc-mc.storyteller": "Captain",
+
+  "book.botc-mc.bootlegger": "Counterfeiter",
+  "book.botc-mc.jinxes": "Jinxes",
+  "book.botc-mc.jinx_star": "*",
+  "book.botc-mc.player_count": "Matey Count",
+  "book.botc-mc.night_order.first": "New Moon Order",
+  "book.botc-mc.night_order.other": "Waxing Moons Order",
+
+  "book.botc-mc.script.no_title": "Ledger",
+
+  "gui.botc-mc.grimoire.title": "Map",
+  "gui.botc-mc.see_all": "See All",
+
+  "gui.botc-mc.selection": "Pick an Item",
+  "gui.botc-mc.selection.character": "Pick a Station",
+  "gui.botc-mc.selection.character.non_travellers": "See All",
+  "gui.botc-mc.selection.character.travellers": "Travellers",
+  "gui.botc-mc.selection.reminder": "Pick a Memberin' Mark",
+  "gui.botc-mc.selection.reminder.see_all": "See All",
+  "gui.botc-mc.selection.reminder.in_play": "See Aboard",
+  "gui.botc-mc.reminder.custom": "Yer own scrawlings",
+
+  "gui.botc-mc.seat.unoccupied": "(Unoccupied)",
+  "gui.botc-mc.seat.occupied": "(Occupied)",
+
+  "gui.botc-mc.add_reminder": "Add memberin' mark",
+  "gui.botc-mc.kill": "Kill",
+  "gui.botc-mc.revive": "Revive",
+  "gui.botc-mc.remove_ghost_vote": "Take Dead Man's Treasure",
+  "gui.botc-mc.return_ghost_vote": "Give Back Dead Man's Treasure",
+  "gui.botc-mc.empty_seat": "Empty Cabin",
+  "gui.botc-mc.promote": "Promote to Captain",
+  "gui.botc-mc.step_up": "Become the Captain",
+  "gui.botc-mc.step_down": "Give up the Captain's Hat",
+  "gui.botc-mc.edit_grim": "Edit Map",
+  "gui.botc-mc.add_npc": "Parley a Legend",
+
+  "gui.botc-mc.seats.add_before": "Add Before",
+  "gui.botc-mc.seats.add_after": "Add After",
+  "gui.botc-mc.seats.move_left": "Budge Left",
+  "gui.botc-mc.seats.move_right": "Budge Right",
+  "gui.botc-mc.seats.remove": "Remove Cabin",
+  "gui.botc-mc.seats.add": "Add Cabin",
+  "gui.botc-mc.seats.shuffle": "All Change Cabins",
+
+  "gui.botc-mc.unseated_warning": "Ye don't have a cabin assigned!"
+}
