@@ -51,7 +51,7 @@ public class RoleAssignment {
      */
     public static void sendCharacter(ServerPlayerEntity player, botcCharacter character) {
 
-        MutableText titleText = Text.literal("You are the").formatted(character.team().getColour(false), Formatting.BOLD);
+        MutableText titleText = Text.translatable("gui.botc-mc.role_announcement").formatted(character.team().getColour(false), Formatting.BOLD);
         TitleUtil.showSubtitle(player, titleText, 10, CHARACTER_REVEAL_DELAY_TICKS-20, 5);
 
         CompletableFuture.delayedExecutor(CHARACTER_REVEAL_DELAY_TICKS * 50L, TimeUnit.MILLISECONDS)
