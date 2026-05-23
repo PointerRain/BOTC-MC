@@ -1,8 +1,11 @@
-package golden.botc_mc.botc_mc.game.gui;
+package golden.botc_mc.botc_mc.game.gui.selection;
 
 import golden.botc_mc.botc_mc.game.Script;
 import golden.botc_mc.botc_mc.game.Team;
 import golden.botc_mc.botc_mc.game.botcCharacter;
+import golden.botc_mc.botc_mc.game.gui.ButtonBuilder;
+import golden.botc_mc.botc_mc.game.gui.ButtonIcon;
+import golden.botc_mc.botc_mc.game.items.TokenItemStack;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
@@ -10,12 +13,13 @@ import net.minecraft.text.Text;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
  * Selection GUI for player characters.
  */
-public class PlayerCharacterSelectGUI extends AbstractSelectionGUI<botcCharacter> {
+public class PlayerCharacterSelectGUI extends AbstractSingleSelectGUI<botcCharacter> {
     private final boolean seeTravellers;
     protected final Script script;
 
@@ -29,7 +33,7 @@ public class PlayerCharacterSelectGUI extends AbstractSelectionGUI<botcCharacter
      * @param page The current page number (0-indexed).
      */
     public PlayerCharacterSelectGUI(ServerPlayerEntity player, Script script,
-                                    Function<botcCharacter, ?> onSelectCharacter, Runnable onCancel,
+                                    Consumer<botcCharacter> onSelectCharacter, Runnable onCancel,
                                     boolean seeTravellers, int page) {
 
         super(player, getRoles(script, !seeTravellers ? List.of(

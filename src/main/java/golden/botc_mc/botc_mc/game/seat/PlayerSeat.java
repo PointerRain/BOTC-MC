@@ -123,6 +123,7 @@ public class PlayerSeat extends Seat {
     public void clearCharacter() {
         super.clearCharacter();
         this.alignment = Team.Alignment.NEUTRAL;
+        this.clearReminders();
     }
 
     public void addReminderToken(String reminder) {

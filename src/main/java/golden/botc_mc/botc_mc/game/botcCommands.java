@@ -6,8 +6,9 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.exceptions.InvalidAlignmentException;
 import golden.botc_mc.botc_mc.game.exceptions.InvalidSeatException;
+import golden.botc_mc.botc_mc.game.gui.selection.BagSelectionGUI;
 import golden.botc_mc.botc_mc.game.gui.GrimoireGUI;
-import golden.botc_mc.botc_mc.game.gui.TokenItemStack;
+import golden.botc_mc.botc_mc.game.items.TokenItemStack;
 import golden.botc_mc.botc_mc.game.map.Map;
 import golden.botc_mc.botc_mc.game.seat.PlayerSeat;
 import golden.botc_mc.botc_mc.game.seat.Seat;
@@ -27,6 +28,7 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.TreeMap;
 
+import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
 
 /**
@@ -574,6 +576,27 @@ public final class botcCommands {
                 return 1;
             }));
 
+            root.then(literal("bag").executes(ctx -> {
+                ServerPlayerEntity player = ctx.getSource().getPlayer();
+                if (player == null) {
+                    ctx.getSource().sendError(Text.translatable("commands.botc-mc.non-player"));
+                    return 0;
+                }
+                botcActive activeGame = botc.getActiveGameFromPlayer(player);
+                if (activeGame == null) {
+                    ctx.getSource().sendError(Text.translatable("commands.botc-mc.no_game"));
+                    return 0;
+                }
+                BagSelectionGUI gui = new BagSelectionGUI(player, activeGame.getScript(), activeGame.getSeatManager(), List.of(),
+                        selectedItems -> {
+                            botc.LOGGER.info("Selected {}", selectedItems);
+                            activeGame.getSeatManager().assignCharacters(selectedItems);
+                        },
+                        null, 0);
+                gui.open();
+                return 1;
+            }));
+
             root.then(literal("script").then(CommandManager.argument("script", IdentifierArgumentType.identifier())
                             .executes(ctx -> {
                                 ServerCommandSource src = ctx.getSource();
@@ -622,6 +645,25 @@ public final class botcCommands {
                     }
 
                 })));
+
+            root.then(literal("pop").then(argument("character", StringArgumentType.word()).executes(ctx -> {
+                ServerCommandSource src = ctx.getSource();
+                if (!(src.getEntity() instanceof ServerPlayerEntity serverPlayerEntity)) {
+                    src.sendFeedback(() -> Text.literal("This command may only be used by players."), false);
+                    return 0;
+                }
+
+                String characterId = StringArgumentType.getString(ctx, "character");
+
+                botcCharacter character = new botcCharacter(characterId);
+                botc.LOGGER.info("Attempting to pop character: {}", character);
+                if (character.team() == null) {
+                    src.sendError(Text.literal("There is no character with this id"));
+                }
+                RoleAssignment.sendCharacter(serverPlayerEntity, character);
+
+                return 1;
+            })));
 
             dispatcher.register(root);
         });

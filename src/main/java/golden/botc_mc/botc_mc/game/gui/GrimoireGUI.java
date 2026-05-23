@@ -9,6 +9,11 @@ import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.Script;
 import golden.botc_mc.botc_mc.game.botcCharacter;
 import golden.botc_mc.botc_mc.game.botcSeatManager;
+import golden.botc_mc.botc_mc.game.gui.selection.BagSelectionGUI;
+import golden.botc_mc.botc_mc.game.gui.selection.NPCCharacterSelectGUI;
+import golden.botc_mc.botc_mc.game.gui.selection.PlayerCharacterSelectGUI;
+import golden.botc_mc.botc_mc.game.gui.selection.ReminderSelectGUI;
+import golden.botc_mc.botc_mc.game.items.TokenItemStack;
 import golden.botc_mc.botc_mc.game.seat.PlayerSeat;
 import golden.botc_mc.botc_mc.game.seat.StorytellerSeat;
 import net.minecraft.component.DataComponentTypes;
@@ -134,7 +139,7 @@ public class GrimoireGUI extends LayeredGui {
         botc.LOGGER.info("Showing popout for seat {} at offset {}.", seatNumber, offset);
         this.playerPopoutView = this.addLayer(new SeatPopoutLayer(this, seat, seatNumber), offset,
                 this.getHeight() - 3);
-        this.playerMenuView = this.addLayer(new SeatMenuLayer(this, seat), 0, this.getHeight() - 1);
+        this.playerMenuView = this.addLayer(new PlayerSeatMenuLayer(this, seat), 0, this.getHeight() - 1);
         this.markDirty();
     }
 
@@ -146,7 +151,7 @@ public class GrimoireGUI extends LayeredGui {
         clearInventorySection();
         botc.LOGGER.info("Showing menu for storyteller seat.");
         this.playerPopoutView = this.addLayer(new SeatPopoutLayer(this, seat), 3, this.getHeight() - 3);
-        this.playerMenuView = this.addLayer(new SeatMenuLayer(this, seat), 0, this.getHeight() - 1);
+        this.playerMenuView = this.addLayer(new StorytellerSeatMenuLayer(this, seat), 0, this.getHeight() - 1);
         this.markDirty();
     }
 
@@ -176,7 +181,6 @@ public class GrimoireGUI extends LayeredGui {
         PlayerCharacterSelectGUI gui = new PlayerCharacterSelectGUI(this.getPlayer(), script, (c) -> {
             seat.setCharacter(c);
             this.reopen(seat);
-            return null;
         }, () -> this.reopen(seat), false, 0);
         gui.open();
     }
@@ -189,7 +193,6 @@ public class GrimoireGUI extends LayeredGui {
         PlayerCharacterSelectGUI gui = new PlayerCharacterSelectGUI(this.getPlayer(), script, (c) -> {
             seat.setCharacter(c);
             this.reopen(seat);
-            return null;
         }, () -> this.reopen(seat), false, 0);
         gui.open();
     }
@@ -260,7 +263,6 @@ public class GrimoireGUI extends LayeredGui {
                     seat.removeReminder(n);
                     seat.addReminderToken(token);
                     this.reopen(seat);
-                    return null;
                 });
                 String[] existingLines = reminders.get(n).reminder().split("\n", 4);
                 for (int lineIndex = 0; lineIndex < existingLines.length; lineIndex++) {
@@ -281,7 +283,6 @@ public class GrimoireGUI extends LayeredGui {
         ReminderSelectGUI gui = new ReminderSelectGUI(this.getPlayer(), script, seatManager, (token) -> {
             seat.addReminderToken(token);
             this.reopen(seat);
-            return null;
         }, () -> this.reopen(seat), false, 0);
         gui.open();
     }
@@ -294,16 +295,32 @@ public class GrimoireGUI extends LayeredGui {
                 (c) -> {
                     seatManager.addNPC(c);
                     this.reopen();
-                    return null;
                 }, this::reopen, 0);
         gui.open();
     }
 
     /**
-     * Opens the grimoire resizing GUI to edit the layout of the grimoire.
+     * Opens the grimoire resizing GUI to edit the player count and seat order.
      */
     public void editGrimoire() {
         ResizeGrimGUI gui = new ResizeGrimGUI(this.getPlayer(), this.seatManager);
+        gui.open();
+    }
+
+    /**
+     * Opens the role selection gui to select and distribute characters.
+     */
+    public void buildBag() {
+        BagSelectionGUI gui = new BagSelectionGUI(this.getPlayer(), this.script, this.seatManager, seatManager.getPartialSelection(),
+            selectedItems -> {
+                botc.LOGGER.info("Selected {}", selectedItems);
+                this.seatManager.assignCharacters(selectedItems);
+                this.seatManager.clearPartialSelection();
+            },
+            selectedItems -> {
+                this.seatManager.setPartialSelection(selectedItems);
+                this.reopen();
+            }, 0);
         gui.open();
     }
 

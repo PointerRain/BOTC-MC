@@ -1,9 +1,10 @@
-package golden.botc_mc.botc_mc.game.gui;
+package golden.botc_mc.botc_mc.game.gui.selection;
 
 import golden.botc_mc.botc_mc.game.Script;
 import golden.botc_mc.botc_mc.game.Team;
 import golden.botc_mc.botc_mc.game.botcCharacter;
 import golden.botc_mc.botc_mc.game.botcSeatManager;
+import golden.botc_mc.botc_mc.game.items.TokenItemStack;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
@@ -11,12 +12,13 @@ import net.minecraft.text.Text;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
  * Selection GUI for NPC characters.
  */
-public class NPCCharacterSelectGUI extends AbstractSelectionGUI<botcCharacter> {
+public class NPCCharacterSelectGUI extends AbstractSingleSelectGUI<botcCharacter> {
     protected final Script script;
     protected final botcSeatManager seatManager;
 
@@ -30,7 +32,7 @@ public class NPCCharacterSelectGUI extends AbstractSelectionGUI<botcCharacter> {
      * @param page The current page number (0-indexed).
      */
     public NPCCharacterSelectGUI(ServerPlayerEntity player, Script script, botcSeatManager seatManager,
-                                Function<botcCharacter, ?> onSelectCharacter, Runnable onCancel, int page) {
+                                 Consumer<botcCharacter> onSelectCharacter, Runnable onCancel, int page) {
         super(player, getRoles(script, seatManager, List.of(Team.FABLED, Team.LORIC)), onSelectCharacter, onCancel, page);
         this.setTitle(Text.translatable("gui.botc-mc.selection.character"));
 
