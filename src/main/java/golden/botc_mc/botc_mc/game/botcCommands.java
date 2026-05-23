@@ -1,5 +1,6 @@
 package golden.botc_mc.botc_mc.game;
 
+import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -456,37 +457,6 @@ public final class botcCommands {
                     )
             ));
 
-//            root.then(literal("reminder").then(
-//                    literal("remove").then(
-//                            CommandManager.argument("player", EntityArgumentType.player()).then(
-//                                    CommandManager.argument("reminder", StringArgumentType.greedyString())
-//                                            .executes(ctx -> {
-//                                                ServerPlayerEntity player = EntityArgumentType.getPlayer(ctx, "player");
-//                                                botcActive activeGame = botc.getActiveGameFromPlayer(player);
-//                                                if (activeGame == null || player == null) {
-//                                                    ctx.getSource().sendError(Text.literal("Player is not in an " +
-//                                                            "active BOTC game."));
-//                                                    return 0;
-//                                                }
-//                                                PlayerSeat seat =
-//                                                        activeGame.getSeatManager().getPlayerSeatFromPlayer(player);
-//                                                if (seat == null) {
-//                                                    ctx.getSource().sendError(Text.literal("Player has no seat " +
-//                                                            "assigned."));
-//                                                    return 0;
-//                                                }
-//                                                String reminderText = StringArgumentType.getString(ctx, "reminder");
-//                                                if (seat.hasReminder(reminderText)) {
-//                                                    seat.removeReminder(reminderText);
-//                                                    ctx.getSource().sendFeedback(() -> Text.literal("Removed reminder" +
-//                                                            " for player " + player.getName().getString() + ": " + reminderText), true);
-//                                                    return 1;
-//                                                } else {
-//                                                    ctx.getSource().sendError(Text.literal("Reminder not found for " +
-//                                                            "player " + player.getName().getString() + ": " + reminderText));
-//                                                    return 0;
-//                                                }
-//                                            })))));
             root.then(literal("npc")
                     .then(literal("add")
                             .then(CommandManager.argument("npc", StringArgumentType.word())
@@ -583,20 +553,37 @@ public final class botcCommands {
                 return 1;
             }));
 
-            // /botc bell — ring the bell and send return-to-town-square message
-            root.then(literal("bell").executes(ctx -> {
+            // /botc gong — strike the gong and send return-to-town-square message
+            root.then(literal("gong").executes(ctx -> {
                 botcActive game = botcActive.activeGame;
                 if (game == null) {
                     ctx.getSource().sendError(Text.literal("No game is currently active."));
                     return 0;
                 }
-                game.ringBell();
-                ctx.getSource().sendFeedback(() -> Text.literal("Bell rung.").formatted(Formatting.GOLD), false);
+                game.strikeGong();
+                ctx.getSource().sendFeedback(() -> Text.literal("Gong struck.").formatted(Formatting.GOLD), false);
                 return 1;
             }));
 
+            // /botc discussion start <seconds>
+            // /botc discussion end|stop
+            LiteralArgumentBuilder<ServerCommandSource> discussion = literal("discussion");
+            discussion.then(literal("start")
+                .then(CommandManager.argument("seconds", IntegerArgumentType.integer(1))
+                    .executes(ctx -> {
+                        int seconds = IntegerArgumentType.getInteger(ctx, "seconds");
+                        return startDiscussionTimer(ctx.getSource(), seconds);
+                    })
+                )
+            );
+            discussion.then(literal("stop")
+                .executes(ctx -> stopDiscussionTimer(ctx.getSource(), false))
+                .then(CommandManager.argument("silent", BoolArgumentType.bool())
+                    .executes(ctx -> stopDiscussionTimer(ctx.getSource(), BoolArgumentType.getBool(ctx, "silent")))));
+            root.then(discussion);
+
             // /botc timer stop
-            // /botc timer start <seconds>
+            // /botc timer start <seconds> [name] [gong]
             LiteralArgumentBuilder<ServerCommandSource> timer = literal("timer");
 
             timer.then(literal("stop").executes(ctx -> {
@@ -611,10 +598,19 @@ public final class botcCommands {
 
             timer.then(literal("start")
                 .then(CommandManager.argument("seconds", IntegerArgumentType.integer(1))
-                    .executes(ctx -> {
-                        int seconds = IntegerArgumentType.getInteger(ctx, "seconds");
-                        return startTimer(ctx.getSource(), seconds);
-                    })
+                    .executes(ctx -> startGenericTimer(ctx.getSource(),
+                            IntegerArgumentType.getInteger(ctx, "seconds"), null, false))
+                    .then(CommandManager.argument("name", StringArgumentType.word())
+                        .executes(ctx -> startGenericTimer(ctx.getSource(),
+                                IntegerArgumentType.getInteger(ctx, "seconds"),
+                                StringArgumentType.getString(ctx, "name"), false))
+                        .then(CommandManager.argument("gong", BoolArgumentType.bool())
+                            .executes(ctx -> startGenericTimer(ctx.getSource(),
+                                    IntegerArgumentType.getInteger(ctx, "seconds"),
+                                    StringArgumentType.getString(ctx, "name"),
+                                    BoolArgumentType.getBool(ctx, "gong")))
+                        )
+                    )
                 )
             );
 
@@ -689,13 +685,41 @@ public final class botcCommands {
         });
     }
 
-    private static int startTimer(ServerCommandSource source, int seconds) {
+    private static int startDiscussionTimer(ServerCommandSource source, int seconds) {
         botcActive game = botcActive.activeGame;
         if (game == null) {
             source.sendError(Text.literal("No game is currently active."));
             return 0;
         }
-        game.startTimer((long) seconds * 20, "Discussion");
+        game.startTimer((long) seconds * 20, "Discussion", true);
+        return 1;
+    }
+
+    private static int stopDiscussionTimer(ServerCommandSource source, boolean silent) {
+        botcActive game = botcActive.activeGame;
+        if (game == null) {
+            source.sendError(Text.literal("No game is currently active."));
+            return 0;
+        }
+        if (!game.isTimerActive()) {
+            source.sendError(Text.literal("No timer is currently running."));
+            return 0;
+        }
+        if (silent) {
+            game.stopTimer();
+        } else {
+            game.stopTimerAndGong();
+        }
+        return 1;
+    }
+
+    private static int startGenericTimer(ServerCommandSource source, int seconds, String name, boolean gong) {
+        botcActive game = botcActive.activeGame;
+        if (game == null) {
+            source.sendError(Text.literal("No game is currently active."));
+            return 0;
+        }
+        game.startTimer((long) seconds * 20, name, gong);
         return 1;
     }
 

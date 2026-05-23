@@ -38,7 +38,9 @@ public record botcTimerBar(BossBarWidget widget) {
                 long secs = clampedTicks / 20;
                 long minutes = secs / 60;
                 long seconds = secs % 60;
-                this.widget.setTitle(Text.literal(timerTitle + " - " + String.format("%02d:%02d", minutes, seconds)));
+                String timeStr = String.format("%02d:%02d", minutes, seconds);
+                String display = (timerTitle == null || timerTitle.isBlank()) ? timeStr : timerTitle + " - " + timeStr;
+                this.widget.setTitle(Text.literal(display));
                 this.widget.setProgress((float) clampedTicks / (float) clampedTotal);
             }
         } else {

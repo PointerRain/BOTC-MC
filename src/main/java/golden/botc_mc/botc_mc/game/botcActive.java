@@ -20,6 +20,7 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.world.GameMode;
+import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.map.Map;
 import golden.botc_mc.botc_mc.game.state.GameLifecycleStatus;
 import xyz.nucleoid.stimuli.event.EventResult;
@@ -56,12 +57,9 @@ public class botcActive {
     private final ServerWorld world;
     private final Script script;
     private GameLifecycleStatus lifecycleStatus = GameLifecycleStatus.STOPPED;
-    private boolean startingLogged = false;
-
     private botcActive(GameSpace gameSpace, ServerWorld world, Map map, GlobalWidgets widgets,
                        Set<PlayerRef> participants, Script script) {
         this.gameSpace = gameSpace;
-        // keep a reference to the world and participants; map/config not stored here to avoid merge artifacts
         this.spawnLogic = new SpawnLogic(world, map);
         this.itemManager = new botcItemManager();
         this.participants = new Object2ObjectOpenHashMap<>();
@@ -128,7 +126,6 @@ public class botcActive {
         for (var participant : this.gameSpace.getPlayers().participants()) this.spawnParticipant(participant);
         for (var spectator : this.gameSpace.getPlayers().spectators()) this.spawnSpectator(spectator);
         this.stageManager.attachContext(this.gameSpace);
-        this.stageManager.markPlayersPresent(!this.gameSpace.getPlayers().participants().isEmpty());
         this.stageManager.onOpen(this.world.getTime());
 
         // Register this active game
@@ -237,7 +234,6 @@ public class botcActive {
             }
         }
 
-        // TODO tick logic per state
     }
 
     /** Broadcast the result of a finished game (placeholder win logic). */
@@ -269,14 +265,9 @@ public class botcActive {
 
     /** One-time logging hook when the game transitions from STARTING to RUNNING. */
     private void handleGameStarting() {
-        if (startingLogged) {
-            return; // Already logged starting logic
-        }
-        startingLogged = true;
         // Print a concise console line when the game begins
         int participantCount = this.gameSpace.getPlayers().participants().size();
         LOG.info("Game STARTING at tick {} with {} participant(s)", this.world.getTime(), participantCount);
-        // giveStarterItems();
         itemManager.giveStarterItems(this.gameSpace, this.script);
     }
 
@@ -319,19 +310,29 @@ public class botcActive {
     /**
      * Start a storyteller countdown timer.
      * @param durationTicks duration in ticks
-     * @param title display title
+     * @param title display title (null/blank = no label)
+     * @param strikeGong whether to strike the gong when the timer expires
      */
-    public void startTimer(long durationTicks, String title) {
-        this.stageManager.startTimer(this.world.getTime(), durationTicks, title);
+    public void startTimer(long durationTicks, String title, boolean strikeGong) {
+        this.stageManager.startTimer(this.world.getTime(), durationTicks, title, strikeGong);
     }
 
-    /** Stop the current timer without ringing the bell. */
+    public boolean isTimerActive() {
+        return this.stageManager.isTimerActive();
+    }
+
+    /** Stop the current timer without striking the gong. */
     public void stopTimer() {
         this.stageManager.stopTimer();
     }
 
-    /** Ring the bell and broadcast the return-to-town-square message. */
-    public void ringBell() {
-        this.stageManager.ringBell(this.gameSpace);
+    /** Stop the current timer and strike the gong. */
+    public void stopTimerAndGong() {
+        this.stageManager.stopTimerAndGong(this.gameSpace);
+    }
+
+    /** Strike the gong and broadcast the return-to-town-square message. */
+    public void strikeGong() {
+        this.stageManager.strikeGong(this.gameSpace);
     }
 }
