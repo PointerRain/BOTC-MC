@@ -42,9 +42,6 @@ import org.slf4j.LoggerFactory;
 public class botcActive {
     private static final Logger LOG = LoggerFactory.getLogger("botc-mc");
 
-    /** Currently running game session; null when no game is active. */
-    public static botcActive activeGame = null;
-
     /** Plasmid game space hosting the session. */
     public final GameSpace gameSpace;
 
@@ -122,7 +119,6 @@ public class botcActive {
 
     /** Game open hook: spawn existing participants/spectators and initialize the state machine. */
     private void onOpen() {
-        botcActive.activeGame = this;
         for (var participant : this.gameSpace.getPlayers().participants()) this.spawnParticipant(participant);
         for (var spectator : this.gameSpace.getPlayers().spectators()) this.spawnSpectator(spectator);
         this.stageManager.attachContext(this.gameSpace);
@@ -134,7 +130,6 @@ public class botcActive {
 
     /** Game close hook; placeholder for teardown logic (voice region cleanup, etc.). */
     private void onClose() {
-        botcActive.activeGame = null;
         int participantsCount = this.gameSpace.getPlayers().participants().size();
         int spectatorsCount = this.gameSpace.getPlayers().spectators().size();
         LOG.info("[BOTC:CLOSE] Closing game lifecycle={} participants={} spectators={}", this.lifecycleStatus, participantsCount, spectatorsCount);
@@ -229,8 +224,6 @@ public class botcActive {
             // Notify unseated players every 70 ticks
             for (ServerPlayerEntity participant : this.gameSpace.getPlayers().participants()) {
                 if (seatManager.getSeatFromPlayer(participant) == null) {
-//                    OverlayMessageS2CPacket packet = new OverlayMessageS2CPacket(Text.translatable("gui.botc-mc.unseated_warning"));
-//                    participant.networkHandler.sendPacket(packet);
                     TitleUtil.showActionBar(participant, Text.translatable("gui.botc-mc.unseated_warning"));
                 }
             }
