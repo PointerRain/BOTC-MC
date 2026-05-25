@@ -25,13 +25,14 @@ public class VotingMain {
     static VoteResult currentNomination;
 
     public static void nominate(ServerPlayerEntity nominator, ServerPlayerEntity nominee) {
-        currentNomination = VoteResult.unfinishedVote(nominator, nominee);
         if (BotcGameStateManager.get() != BotcGameState.NOMINATION) return;
-
+        
+        currentNomination = VoteResult.unfinishedVote(nominator, nominee);
     }
 
     public static void distributeVotingItems(MinecraftServer server) {
         if (BotcGameStateManager.get() != BotcGameState.VOTING) return;
+        
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
             ItemStack NO = new ItemStack(Items.RED_CONCRETE, 1);
             ItemStack YES = new ItemStack(Items.LIME_CONCRETE, 1);
@@ -42,6 +43,7 @@ public class VotingMain {
 
     public static void Votestart(MinecraftServer server) {
         if (BotcGameStateManager.get() != BotcGameState.VOTING) return;
+        
         int voteCount = 0;
 
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
