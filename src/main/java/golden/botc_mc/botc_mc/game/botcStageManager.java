@@ -20,6 +20,7 @@ import net.minecraft.world.GameMode;
 import xyz.nucleoid.plasmid.api.game.GameSpace;
 import xyz.nucleoid.plasmid.api.game.player.PlayerSet;
 import net.minecraft.server.network.ServerPlayerEntity;
+import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 
 /**
  * Manages game state transitions and the storyteller timer.
@@ -200,6 +201,7 @@ public class botcStageManager {
             DustParticleEffect goldDust = new DustParticleEffect(0xFFD700, 2.0f);
             for (ServerPlayerEntity player : players) {
                 if (player.isSpectator()) continue;
+                if (!PolymerResourcePackUtils.hasMainPack(player)) continue;
 
                 ItemStack bellItem = new ItemStack(Items.BELL);
                 bellItem.set(DataComponentTypes.DEATH_PROTECTION, new DeathProtectionComponent(java.util.List.of()));
