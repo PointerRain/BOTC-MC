@@ -6,7 +6,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import org.apache.logging.log4j.core.jmx.Server;
-
+import golden.botc_mc.botc_mc.game.BotcGameState;
 import java.util.List;
 
 /**
@@ -26,9 +26,12 @@ public class VotingMain {
 
     public static void nominate(ServerPlayerEntity nominator, ServerPlayerEntity nominee) {
         currentNomination = VoteResult.unfinishedVote(nominator, nominee);
+        if (BotcGameStateManager.get() != BotcGameState.NOMINATION) return;
+
     }
 
     public static void distributeVotingItems(MinecraftServer server) {
+        if (BotcGameStateManager.get() != BotcGameState.VOTING) return;
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
             ItemStack NO = new ItemStack(Items.RED_CONCRETE, 1);
             ItemStack YES = new ItemStack(Items.LIME_CONCRETE, 1);
@@ -38,6 +41,7 @@ public class VotingMain {
     }
 
     public static void Votestart(MinecraftServer server) {
+        if (BotcGameStateManager.get() != BotcGameState.VOTING) return;
         int voteCount = 0;
 
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
