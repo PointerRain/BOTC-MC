@@ -7,6 +7,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import org.apache.logging.log4j.core.jmx.Server;
 import golden.botc_mc.botc_mc.game.BotcGameState;
+import golden.botc_mc.botc_mc.game.seat.Seat;
 import java.util.List;
 
 /**
