@@ -13,6 +13,8 @@ public enum BotcGameState {
     DAY_DISCUSSION,
     /** Nomination voting window. */
     NOMINATION,
+    /** Vote stage */
+    VOTING,
     /** Execution (final vote + resolution). */
     EXECUTION,
     /** Night phase where night abilities resolve. */
