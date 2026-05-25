@@ -1,0 +1,63 @@
+package golden.botc_mc.botc_mc.game;
+
+import golden.botc_mc.botc_mc.TitleUtil;
+import golden.botc_mc.botc_mc.botc;
+import golden.botc_mc.botc_mc.game.items.TokenItemStack;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.DeathProtectionComponent;
+import net.minecraft.item.ItemStack;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.MutableText;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.Hand;
+
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
+public class RoleAssignment {
+
+    private static final int CHARACTER_REVEAL_DELAY_TICKS = 80; // 4 seconds at 20 ticks per second
+
+    /**
+     * Show a totem pop effect to a player with a custom item.
+     * @param player The player to show the totem effect to.
+     * @param item The item to show as the effect.
+     */
+    public static void showTotemEffect(ServerPlayerEntity player, ItemStack item) {
+        DeathProtectionComponent deathProtectionComponent = new DeathProtectionComponent(List.of());
+        item.set(DataComponentTypes.DEATH_PROTECTION, deathProtectionComponent);
+
+        botc.LOGGER.info("Triggering pop with item: {}", item);
+
+        // Store the item in the player's offhand to restore later
+        ItemStack previousOffhand = player.getOffHandStack();
+        // Set the offhand item to the pop item stack
+        player.setStackInHand(Hand.OFF_HAND, item);
+        // Send the item update to the client to ensure it sees the new offhand item before the pop effect
+        player.currentScreenHandler.sendContentUpdates();
+        // Trigger the totem pop effect
+        player.getWorld().sendEntityStatus(player, (byte) 35);
+        // Restore the player's original offhand item after the pop effect
+        player.setStackInHand(Hand.OFF_HAND, previousOffhand);
+        player.currentScreenHandler.sendContentUpdates();
+    }
+
+    /**
+     * Send a character reveal announcement to a player.
+     * @param player The player to send the announcement to.
+     * @param character The character to send the announcement to.
+     */
+    public static void sendCharacter(ServerPlayerEntity player, botcCharacter character) {
+
+        MutableText titleText = Text.translatable("gui.botc-mc.role_announcement").formatted(character.team().getColour(false), Formatting.BOLD);
+        TitleUtil.showSubtitle(player, titleText, 10, CHARACTER_REVEAL_DELAY_TICKS-20, 5);
+
+        CompletableFuture.delayedExecutor(CHARACTER_REVEAL_DELAY_TICKS * 50L, TimeUnit.MILLISECONDS)
+                .execute(() -> {
+                    showTotemEffect(player, TokenItemStack.of(character));
+                    TitleUtil.showTitle(player, character.toFormattedText(false, true, false, false), 20, 140, 40);
+                });
+    }
+}

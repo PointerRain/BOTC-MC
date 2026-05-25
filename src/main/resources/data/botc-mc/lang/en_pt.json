@@ -59,5 +59,6 @@
   "gui.botc-mc.seats.add": "Add Cabin",
   "gui.botc-mc.seats.shuffle": "All Change Cabins",
 
-  "gui.botc-mc.unseated_warning": "Ye don't have a cabin assigned!"
+  "gui.botc-mc.unseated_warning": "Ye don't have a cabin assigned!",
+  "gui.botc-mc.role_announcement": "Ye be the"
 }

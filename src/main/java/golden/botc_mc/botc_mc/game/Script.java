@@ -15,6 +15,7 @@ import net.minecraft.util.Formatting;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -127,12 +128,21 @@ public record Script(Meta meta, List<botcCharacter> characters) {
     }
 
     /**
+     * Returns whether the script has an associated colour.
+     * A script has a colour if it is not null and has length 3.
+     * @return Whether the script has an associated colour.
+     */
+    public boolean hasColour() {
+        return !(meta.colour == null || meta.colour.length < 3);
+    }
+
+    /**
      * Convert the script's colour array to an integer representation.
      * @return The integer representation of the colour.
      * NOTE: Returns 0xFFFFFF (white) if colour is not defined.
      */
     public int colourInt() {
-        if (meta.colour == null || meta.colour.length < 3) {
+        if (!hasColour()) {
             return 0xFFFFFF; // Default to white
         }
         int r = meta.colour[0];
@@ -261,6 +271,17 @@ public record Script(Meta meta, List<botcCharacter> characters) {
         return teamCharacters.stream().toList();
     }
 
+    /**
+     * Checks if the script is homebrew.
+     * A script is homebrew if the bootlegger field is not empty, or if the Bootlegger is in characters list.
+     * @return Whether the script is homebrew.
+     */
+    public boolean isHomebrew() {
+        return (this.meta.bootlegger() != null && !this.meta.bootlegger().isEmpty())
+                || characters.stream().anyMatch(c -> c.id().equals("bootlegger"))
+                || characters.stream().anyMatch(c -> !Arrays.asList(CharacterLoader.baseCharacters).contains(c));
+    }
+
 //    @Override
 //    public @NotNull String toString() {
 //        return "Script[name='" + meta.name + "', author='" + meta.author + "', logo='" + meta.logo +
@@ -330,5 +351,4 @@ public record Script(Meta meta, List<botcCharacter> characters) {
                                     .withHoverEvent(hover));
         }
     }
-
 }

@@ -1,7 +1,10 @@
 package golden.botc_mc.botc_mc.game.gui;
 
+import golden.botc_mc.botc_mc.game.items.BundleItemStack;
+import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.util.DyeColor;
 
 /**
  * Enum representing different button icons for GUI elements.
@@ -28,7 +31,10 @@ public enum ButtonIcon {
     DEMOTE,
     TELEPORT,
     MORE,
-    LESS;
+    LESS,
+    BAG,
+    SILENT,
+    ANNOUNCE;
 
     ItemStack toItemStack() {
         return switch (this) {
@@ -56,6 +62,19 @@ public enum ButtonIcon {
 
             case MORE -> new ItemStack(Items.PAPER);
             case LESS -> new ItemStack(Items.PAPER);
+
+            case BAG -> BundleItemStack.of((DyeColor) null);
+
+            case SILENT -> {
+                ItemStack item = new ItemStack(Items.MUSIC_DISC_5);
+                item.remove(DataComponentTypes.JUKEBOX_PLAYABLE);
+                yield item;
+            }
+            case ANNOUNCE -> {
+                ItemStack item = new ItemStack(Items.MUSIC_DISC_TEARS);
+                item.remove(DataComponentTypes.JUKEBOX_PLAYABLE);
+                yield item;
+            }
 
             default -> new ItemStack(Items.PAPER); // Fallback
         };

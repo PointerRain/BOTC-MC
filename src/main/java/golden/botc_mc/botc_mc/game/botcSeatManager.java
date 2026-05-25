@@ -1,5 +1,6 @@
 package golden.botc_mc.botc_mc.game;
 
+import golden.botc_mc.botc_mc.botc;
 import golden.botc_mc.botc_mc.game.exceptions.InvalidSeatException;
 import golden.botc_mc.botc_mc.game.seat.PlayerSeat;
 import golden.botc_mc.botc_mc.game.seat.Seat;
@@ -9,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 import static java.lang.Math.floorMod;
@@ -18,9 +20,34 @@ public class botcSeatManager {
     private final List<StorytellerSeat> storytellerSeats = new ArrayList<>();
     private final List<botcCharacter> npcCharacters = new ArrayList<>();
 
+    private List<botcCharacter> partialSelection = new ArrayList<>();
+
     public static final int MIN_PLAYERS = 4;
     public static final int MAX_PLAYERS = 18;
+    public static final int ROLES_MAX = 15;
     public static final int MAX_STORYTELLERS = 3;
+
+    /**
+     * Role counts for each player count.
+     * Order is Townsfolk, Outsider, Minion, Demon
+     * Below 5 players is not supported.
+     * Above 15 players extra players are Travellers.
+     */
+    private static final HashMap<Integer, int[]> COUNTS = new HashMap<>();
+    static {
+        COUNTS.put(4, new int[]{3, 0, 0, 1});
+        COUNTS.put(5, new int[]{3, 0, 1, 1});
+        COUNTS.put(6, new int[]{3, 1, 1, 1});
+        COUNTS.put(7, new int[]{5, 0, 1, 1});
+        COUNTS.put(8, new int[]{5, 1, 1, 1});
+        COUNTS.put(9, new int[]{5, 2, 1, 1});
+        COUNTS.put(10, new int[]{7, 0, 2, 1});
+        COUNTS.put(11, new int[]{7, 1, 2, 1});
+        COUNTS.put(12, new int[]{7, 2, 2, 1});
+        COUNTS.put(13, new int[]{9, 0, 3, 1});
+        COUNTS.put(14, new int[]{9, 1, 3, 1});
+        COUNTS.put(15, new int[]{9, 2, 3, 1});
+    }
 
     // Constructor for default 8 player seats
     public botcSeatManager() {
@@ -355,6 +382,145 @@ public class botcSeatManager {
         }
         PlayerSeat seat = this.playerSeats.remove(from - 1);
         this.playerSeats.add(to - 1, seat);
+    }
+
+    /**
+     * Randomly assigns characters to player seats.
+     * Characters are assigned in random order, but seats are assigned in their current order.
+     * Travellers are skipped.
+     * If characters is less than number of assignable seats then not all seats will be assigned a character.
+     * If characters is more than number of assignable seats then not all characters will be used.
+     * Shows a popup for players who are assigned a character.
+     * @param characters The list of characters to assign to players.
+     */
+    public void assignCharacters(List<botcCharacter> characters) {
+        // Assign characters to players in random order.
+        List<botcCharacter> shuffledCharacters = new ArrayList<>(characters);
+        Collections.shuffle(shuffledCharacters);
+        for (PlayerSeat seat : this.playerSeats) {
+            if (shuffledCharacters.isEmpty()) {
+                break; // No more characters to assign
+            }
+            if (seat.getCharacter() != botcCharacter.EMPTY && seat.getCharacter().team() == Team.TRAVELLER) {
+                RoleAssignment.sendCharacter(seat.getPlayerEntity(), seat.getCharacter());
+            }
+            botcCharacter character = shuffledCharacters.removeFirst();
+            seat.clearCharacter();
+            seat.setCharacter(character);
+            if (seat.hasPlayerEntity()) {
+                RoleAssignment.sendCharacter(seat.getPlayerEntity(), character);
+            }
+        }
+    }
+
+    /**
+     * Silently assigns character to players that do not have a role, and not duplicating roles already in play.
+     * First assigns roles that already exist in the grimoire.
+     * Then assigns roles to players with no role.
+     * Then assigns roles to players who already have roles.
+     * This is useful for fixing mistakes, gardener, tor, or simply assigning roles without popups.
+     * @param characters The characters to assign.
+     */
+    public void partialAssignCharacters(List<botcCharacter> characters) {
+        List<botcCharacter> toAssign = new ArrayList<>(characters);
+        // Consume characters already assigned
+        List<PlayerSeat> assigned = new ArrayList<>(List.of());
+        for (PlayerSeat seat : this.playerSeats) {
+            if (seat.getCharacter() != botcCharacter.EMPTY && toAssign.remove(seat.getCharacter())) {
+                assigned.add(seat);
+            }
+        }
+        List<PlayerSeat> shuffledSeats =  new ArrayList<>(this.playerSeats);
+        Collections.shuffle(shuffledSeats);
+        for (PlayerSeat seat : shuffledSeats) {
+            if (toAssign.isEmpty()) {
+                return; // No more characters to assign
+            }
+            if (seat.getCharacter() == botcCharacter.EMPTY) {
+                seat.clearCharacter();
+                seat.setCharacter(toAssign.removeFirst());
+                assigned.add(seat);
+            }
+        }
+        // Assign to present seats
+        for (PlayerSeat seat : shuffledSeats) {
+            if (toAssign.isEmpty()) {
+                return; // No more characters to assign
+            }
+            if (assigned.contains(seat)) {
+                continue;
+            }
+            if (seat.getCharacter() != botcCharacter.EMPTY && seat.getCharacter().team() == Team.TRAVELLER) {
+                continue;
+            }
+            seat.clearCharacter();
+            seat.setCharacter(toAssign.removeFirst());
+        }
+        if (!toAssign.isEmpty()) {
+            botc.LOGGER.error("Characters were left over after partially assigning roles!");
+        }
+    }
+
+    /**
+     * Announce characters to players who have characters assigned.
+     * Shows a popup and text.
+     */
+    public void announceCharacters() {
+        for (PlayerSeat seat : this.playerSeats) {
+            if (seat.hasPlayerEntity() && seat.getCharacter() != botcCharacter.EMPTY) {
+                RoleAssignment.sendCharacter(seat.getPlayerEntity(), seat.getCharacter());
+            }
+        }
+    }
+
+    /**
+     * Clear the entire grimoire of characters, reminders, and alignments.
+     */
+    public void clearCharacters() {
+        for (PlayerSeat seat : this.playerSeats) {
+            seat.clearCharacter();
+            seat.clearReminders();
+        }
+        for (StorytellerSeat seat : this.storytellerSeats) {
+            seat.clearCharacter();
+        }
+    }
+
+    /**
+     * Get role counts for a certain player count.
+     * Above 15 returns counts for 15 players.
+     * Below 4 players will return null.
+     * @param players The player count to get the roles count for.
+     * @return Roles count array in order Townsfolk, Outsiders, Minions, Demons
+     */
+    public static int[] getRoleCount(int players) {
+        if (players > 15) {
+            return COUNTS.get(15);
+        }
+        return COUNTS.get(players);
+    }
+
+    /**
+     * Save partial character selection during role bag selection.
+     * @param characters The characters to save.
+     */
+    public void setPartialSelection(List<botcCharacter> characters) {
+        this.partialSelection = characters;
+    }
+
+    /**
+     * Get the saved partial role selection.
+     * @return The partial selection.
+     */
+    public List<botcCharacter> getPartialSelection() {
+        return this.partialSelection;
+    }
+
+    /**
+     * Clear the saved partial role selection.
+     */
+    public void clearPartialSelection() {
+        this.partialSelection.clear();
     }
 
     @Override

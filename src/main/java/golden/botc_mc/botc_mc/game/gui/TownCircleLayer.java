@@ -5,6 +5,8 @@ import eu.pb4.sgui.api.elements.GuiElement;
 import eu.pb4.sgui.api.elements.GuiElementInterface;
 import eu.pb4.sgui.api.gui.layered.Layer;
 import golden.botc_mc.botc_mc.game.botcCharacter;
+import golden.botc_mc.botc_mc.game.items.PlayerHeadItemStack;
+import golden.botc_mc.botc_mc.game.items.TokenItemStack;
 import golden.botc_mc.botc_mc.game.seat.PlayerSeat;
 import net.minecraft.item.ItemStack;
 
