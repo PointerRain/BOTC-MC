@@ -533,9 +533,11 @@ public final class botcCommands {
 
             // /botc advance — move to next phase (SETUP -> NIGHT 1 -> DAY 1 -> ...)
             root.then(literal("advance").executes(ctx -> {
-                botcActive game = botcActive.activeGame;
+                ServerPlayerEntity player = ctx.getSource().getPlayer();
+                if (player == null) { ctx.getSource().sendError(Text.translatable("commands.botc-mc.non-player")); return 0; }
+                botcActive game = botc.getActiveGameFromPlayer(player);
                 if (game == null) {
-                    ctx.getSource().sendError(Text.literal("No game is currently active."));
+                    ctx.getSource().sendError(Text.translatable("commands.botc-mc.no_game"));
                     return 0;
                 }
                 game.advancePhase();
@@ -545,9 +547,11 @@ public final class botcCommands {
 
             // /botc end — end the game immediately
             root.then(literal("end").executes(ctx -> {
-                botcActive game = botcActive.activeGame;
+                ServerPlayerEntity player = ctx.getSource().getPlayer();
+                if (player == null) { ctx.getSource().sendError(Text.translatable("commands.botc-mc.non-player")); return 0; }
+                botcActive game = botc.getActiveGameFromPlayer(player);
                 if (game == null) {
-                    ctx.getSource().sendError(Text.literal("No game is currently active."));
+                    ctx.getSource().sendError(Text.translatable("commands.botc-mc.no_game"));
                     return 0;
                 }
                 game.endGame();
@@ -557,9 +561,11 @@ public final class botcCommands {
 
             // /botc gong — strike the gong and send return-to-town-square message
             root.then(literal("gong").executes(ctx -> {
-                botcActive game = botcActive.activeGame;
+                ServerPlayerEntity player = ctx.getSource().getPlayer();
+                if (player == null) { ctx.getSource().sendError(Text.translatable("commands.botc-mc.non-player")); return 0; }
+                botcActive game = botc.getActiveGameFromPlayer(player);
                 if (game == null) {
-                    ctx.getSource().sendError(Text.literal("No game is currently active."));
+                    ctx.getSource().sendError(Text.translatable("commands.botc-mc.no_game"));
                     return 0;
                 }
                 game.strikeGong();
@@ -589,9 +595,11 @@ public final class botcCommands {
             LiteralArgumentBuilder<ServerCommandSource> timer = literal("timer");
 
             timer.then(literal("stop").executes(ctx -> {
-                botcActive game = botcActive.activeGame;
+                ServerPlayerEntity player = ctx.getSource().getPlayer();
+                if (player == null) { ctx.getSource().sendError(Text.translatable("commands.botc-mc.non-player")); return 0; }
+                botcActive game = botc.getActiveGameFromPlayer(player);
                 if (game == null) {
-                    ctx.getSource().sendError(Text.literal("No game is currently active."));
+                    ctx.getSource().sendError(Text.translatable("commands.botc-mc.no_game"));
                     return 0;
                 }
                 game.stopTimer();
@@ -728,9 +736,11 @@ public final class botcCommands {
     }
 
     private static int startDiscussionTimer(ServerCommandSource source, int seconds) {
-        botcActive game = botcActive.activeGame;
+        ServerPlayerEntity player = source.getPlayer();
+        if (player == null) { source.sendError(Text.translatable("commands.botc-mc.non-player")); return 0; }
+        botcActive game = botc.getActiveGameFromPlayer(player);
         if (game == null) {
-            source.sendError(Text.literal("No game is currently active."));
+            source.sendError(Text.translatable("commands.botc-mc.no_game"));
             return 0;
         }
         game.startTimer((long) seconds * 20, "Discussion", true);
@@ -738,9 +748,11 @@ public final class botcCommands {
     }
 
     private static int stopDiscussionTimer(ServerCommandSource source, boolean silent) {
-        botcActive game = botcActive.activeGame;
+        ServerPlayerEntity player = source.getPlayer();
+        if (player == null) { source.sendError(Text.translatable("commands.botc-mc.non-player")); return 0; }
+        botcActive game = botc.getActiveGameFromPlayer(player);
         if (game == null) {
-            source.sendError(Text.literal("No game is currently active."));
+            source.sendError(Text.translatable("commands.botc-mc.no_game"));
             return 0;
         }
         if (!game.isTimerActive()) {
@@ -756,9 +768,11 @@ public final class botcCommands {
     }
 
     private static int startGenericTimer(ServerCommandSource source, int seconds, String name, boolean gong) {
-        botcActive game = botcActive.activeGame;
+        ServerPlayerEntity player = source.getPlayer();
+        if (player == null) { source.sendError(Text.translatable("commands.botc-mc.non-player")); return 0; }
+        botcActive game = botc.getActiveGameFromPlayer(player);
         if (game == null) {
-            source.sendError(Text.literal("No game is currently active."));
+            source.sendError(Text.translatable("commands.botc-mc.no_game"));
             return 0;
         }
         game.startTimer((long) seconds * 20, name, gong);
