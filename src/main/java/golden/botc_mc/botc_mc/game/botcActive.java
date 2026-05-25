@@ -61,7 +61,6 @@ public class botcActive {
     private botcActive(GameSpace gameSpace, ServerWorld world, Map map, GlobalWidgets widgets,
                        Set<PlayerRef> participants, Script script) {
         this.gameSpace = gameSpace;
-        // keep a reference to the world and participants; map/config not stored here to avoid merge artifacts
         this.spawnLogic = new SpawnLogic(world, map);
         this.itemManager = new botcItemManager();
         this.participants = new Object2ObjectOpenHashMap<>();
@@ -275,7 +274,6 @@ public class botcActive {
         // Print a concise console line when the game begins
         int participantCount = this.gameSpace.getPlayers().participants().size();
         LOG.info("Game STARTING at tick {} with {} participant(s)", this.world.getTime(), participantCount);
-        // giveStarterItems();
         itemManager.giveStarterItems(this.gameSpace, this.script);
     }
 
