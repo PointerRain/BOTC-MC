@@ -227,9 +227,6 @@ public class botcActive {
         );
 
         if ((time % 70) == 0 && time >= 200) {
-            long ticksInState = this.stageManager.getTicksInState();
-            botc.LOGGER.debug("State {} ticksInState={}", this.stageManager.getCurrentState(), ticksInState);
-
             // Notify unseated players every 70 ticks
             for (ServerPlayerEntity participant : this.gameSpace.getPlayers().participants()) {
                 if (seatManager.getSeatFromPlayer(participant) == null) {
