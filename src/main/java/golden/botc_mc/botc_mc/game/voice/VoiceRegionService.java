@@ -91,7 +91,7 @@ public final class VoiceRegionService {
             Path target = configPathForMap(mapId);
             boolean needs = !Files.exists(target) || Files.size(target)==0;
             if (!needs) {
-                String raw = new String(Files.readAllBytes(target));
+                String raw = Files.readString(target);
                 String trimmed = raw.trim();
                 if (trimmed.isEmpty() || trimmed.equals("{}") || trimmed.equals("[]")) needs = true;
             }
@@ -128,7 +128,7 @@ public final class VoiceRegionService {
             inner.addProperty("description", desc == null ? "BOTC overrides" : desc);
             pack.add("pack", inner);
             Files.createDirectories(base);
-            Files.write(packMeta, new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(pack).getBytes());
+            Files.writeString(packMeta, new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(pack));
         } catch (Throwable t) {
             golden.botc_mc.botc_mc.botc.LOGGER.debug("ensureOverridesPackMeta error {}", t.toString());
         }

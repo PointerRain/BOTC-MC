@@ -197,29 +197,9 @@ public class VoiceRegionManager {
 
     // --- internal logging helpers -------------------------------------------------
     private String ctx() { return mapId == null ? "GLOBAL" : mapId.toString(); }
-    private static String fmt(String pattern, Object... args) {
-        if (pattern == null) return "";
-        StringBuilder sb = new StringBuilder(pattern.length() + 32);
-        int argIndex = 0;
-        for (int i = 0; i < pattern.length(); i++) {
-            char c = pattern.charAt(i);
-            if (c == '{' && i + 1 < pattern.length() && pattern.charAt(i + 1) == '}') {
-                if (argIndex < args.length) {
-                    Object a = args[argIndex++];
-                    sb.append(a == null ? "null" : a);
-                } else {
-                    sb.append("{}");
-                }
-                i++; // skip closing brace
-            } else {
-                sb.append(c);
-            }
-        }
-        return sb.toString();
-    }
-    private void logLoad(String code, String fmtPattern, Object... args) { String msg = "[VRM:" + code + ":" + ctx() + "] " + fmt(fmtPattern, args); golden.botc_mc.botc_mc.botc.LOGGER.info(msg); }
-    private void logDebug(String code, String fmtPattern, Object... args) { String msg = "[VRM:" + code + ":" + ctx() + "] " + fmt(fmtPattern, args); golden.botc_mc.botc_mc.botc.LOGGER.debug(msg); }
-    private void logWarn(String code, String fmtPattern, Object... args) { String msg = "[VRM:" + code + ":" + ctx() + "] " + fmt(fmtPattern, args); golden.botc_mc.botc_mc.botc.LOGGER.warn(msg); }
+    private void logLoad(String code, String pattern, Object... args)  { golden.botc_mc.botc_mc.botc.LOGGER.info("[VRM:" + code + ":" + ctx() + "] " + pattern, args); }
+    private void logDebug(String code, String pattern, Object... args) { golden.botc_mc.botc_mc.botc.LOGGER.debug("[VRM:" + code + ":" + ctx() + "] " + pattern, args); }
+    private void logWarn(String code, String pattern, Object... args)  { golden.botc_mc.botc_mc.botc.LOGGER.warn("[VRM:" + code + ":" + ctx() + "] " + pattern, args); }
 
     // --- parsing and loading ----------------------------------------------------
     /**
@@ -253,7 +233,7 @@ public class VoiceRegionManager {
         try {
             // Priority 1: explicit per-map config file (run/config/botc/voice/..)
             if (Files.exists(configPath)) {
-                String s = new String(Files.readAllBytes(configPath));
+                String s = Files.readString(configPath);
                 if (tryParseAndImport(s)) return;
             }
 
@@ -262,7 +242,7 @@ public class VoiceRegionManager {
                 // Try datapack override file next
                 Path override = VoiceRegionService.datapackOverrideGameFile(mapId);
                 if (Files.exists(override)) {
-                    String s = new String(Files.readAllBytes(override));
+                    String s = Files.readString(override);
                     JsonObject obj = gson.fromJson(s, JsonObject.class);
                     JsonObject voiceSection = obj != null && obj.has("voice") && obj.get("voice").isJsonObject() ? obj.getAsJsonObject("voice") : obj;
                     if (parseRegionsFromVoiceSection(voiceSection)) { logLoad("OVERRIDE", "Loaded override regions count={}", regions.size()); }
@@ -390,14 +370,14 @@ public class VoiceRegionManager {
         if (configPath.getParent() != null) Files.createDirectories(configPath.getParent());
         JsonObject root = new JsonObject();
         if (Files.exists(configPath)) {
-            String raw = new String(Files.readAllBytes(configPath));
+            String raw = Files.readString(configPath);
             if (raw.trim().startsWith("{")) {
                 try { root = JsonParser.parseString(raw).getAsJsonObject(); } catch (Throwable ignored) {}
             }
         }
         JsonObject voiceSection = buildVoiceSection(root);
         root.add("voice", voiceSection);
-        Files.write(configPath, gson.toJson(root).getBytes());
+        Files.writeString(configPath, gson.toJson(root));
         logDebug("SAVE-CONFIG", "Wrote per-map config regions={}", regions.size());
     }
 
@@ -413,8 +393,7 @@ public class VoiceRegionManager {
         Files.createDirectories(target.getParent());
         JsonObject obj = null;
         if (Files.exists(target)) {
-            String existing = new String(Files.readAllBytes(target));
-            obj = gson.fromJson(existing, JsonObject.class);
+            obj = gson.fromJson(Files.readString(target), JsonObject.class);
         } else {
             try {
                 Identifier resourceId = Identifier.of(mapId.getNamespace(), "plasmid/game/" + mapId.getPath() + ".json");
@@ -429,7 +408,7 @@ public class VoiceRegionManager {
         if (obj == null) obj = new JsonObject();
         JsonObject voiceSection = buildVoiceSection(obj);
         obj.add("voice", voiceSection);
-        Files.write(target, gson.toJson(obj).getBytes());
+        Files.writeString(target, gson.toJson(obj));
         VoiceRegionService.ensureOverridesPackMeta(datapackBase, "BOTC overrides datapack");
         logDebug("SAVE-OVERRIDE", "Wrote override datapack regions={}", regions.size());
     }

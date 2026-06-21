@@ -9,12 +9,14 @@ import golden.botc_mc.botc_mc.game.botcActive;
 import golden.botc_mc.botc_mc.game.botcCommands;
 import golden.botc_mc.botc_mc.game.botcConfig;
 import golden.botc_mc.botc_mc.game.botcWaiting;
+import golden.botc_mc.botc_mc.game.voice.VoiceOrchestrator;
+import golden.botc_mc.botc_mc.game.voice.VoiceRegionCommands;
 import golden.botc_mc.botc_mc.game.voice.VoiceRegionManager;
 import golden.botc_mc.botc_mc.game.voice.VoiceRegionService;
 import golden.botc_mc.botc_mc.game.voice.VoiceRegionTask;
-import golden.botc_mc.botc_mc.game.voice.VoicechatPlugin;
-import golden.botc_mc.botc_mc.game.voice.SvcBridge;
+import golden.botc_mc.botc_mc.game.voice.VoiceService;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
@@ -29,7 +31,6 @@ import org.apache.logging.log4j.Logger;
 import xyz.nucleoid.plasmid.api.game.GameType;
 import xyz.nucleoid.plasmid.api.util.PlayerRef;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -57,7 +58,8 @@ public class botc implements ModInitializer {
     public static final Map<String, Script> scripts = new HashMap<>();
 
     private VoiceRegionTask voiceRegionTask;
-    private static volatile boolean REGIONS_MATERIALIZED = false;
+    private static volatile boolean VOICE_PRELOADED = false;
+    private static volatile Identifier MATERIALIZED_MAP = null;
 
     private static final List<botcActive> activeGames = new ArrayList<>();
 
@@ -147,85 +149,42 @@ public class botc implements ModInitializer {
 
         // Initialize voice region system
         VoiceRegionManager voiceRegionManager = new VoiceRegionManager(VoiceRegionService.botcConfigRoot().resolve("voice/global.json"));
-
-        try {
-            Class<?> cmdCls = Class.forName("golden.botc_mc.botc_mc.game.voice.VoiceRegionCommands");
-            Method reg = cmdCls.getMethod("register", VoiceRegionManager.class);
-            reg.invoke(null, voiceRegionManager);
-            LOGGER.info("Registered VoiceRegionCommands via reflection");
-        } catch (Throwable t) {
-            LOGGER.warn("Failed to register VoiceRegionCommands reflectively: {}", t.toString());
-        }
-
+        VoiceRegionCommands.register(voiceRegionManager);
         voiceRegionTask = new VoiceRegionTask(null, voiceRegionManager);
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {
-            try { preloadOnce(server); } catch (Throwable ignored) {}
-            if (voiceRegionTask != null) {
-                try { voiceRegionTask.setServer(server); } catch (Throwable ignored) {}
-                try { voiceRegionTask.run(); } catch (Throwable ex) { LOGGER.warn("VoiceRegionTask tick error: {}", ex.toString()); }
+            voiceRegionTask.setServer(server);
+            try { voiceRegionTask.run(); } catch (Throwable ex) { LOGGER.warn("VoiceRegionTask tick error: {}", ex.toString()); }
+
+            // One-time preload of persistent groups once SVC becomes available
+            if (!VOICE_PRELOADED && VoiceService.isAvailable()) {
+                VOICE_PRELOADED = true;
+                try { VoiceOrchestrator.getInstance(server).preload(); } catch (Throwable t) { LOGGER.warn("Voice preload error: {}", t.toString()); }
             }
-            // Deferred region materialization: ensure map-based regions create/open groups once voice chat available
-            try {
-                if (!REGIONS_MATERIALIZED && SvcBridge.isAvailableRuntime()) {
-                    VoiceRegionManager active = VoiceRegionService.getActiveManager();
-                    if (active != null) {
-                        VoicechatPlugin plugin = VoicechatPlugin.getInstance(server);
-                        plugin.onMapOpen(active.getMapId()); // reuse logic; it will materialize regions
-                        REGIONS_MATERIALIZED = true;
-                        LOGGER.info("Deferred voice region materialization complete for map {}", active.getMapId());
-                    }
+            // Materialize voice regions whenever SVC is available and the active map has changed
+            if (VoiceService.isAvailable()) {
+                VoiceRegionManager active = VoiceRegionService.getActiveManager();
+                if (active != null && !active.getMapId().equals(MATERIALIZED_MAP)) {
+                    try {
+                        VoiceOrchestrator.getInstance(server).onMapOpen(active.getMapId());
+                        MATERIALIZED_MAP = active.getMapId();
+                        LOGGER.info("Voice region materialization complete for map {}", active.getMapId());
+                    } catch (Throwable t) { LOGGER.warn("Voice region materialization error: {}", t.toString()); }
                 }
-            } catch (Throwable t) {
-                LOGGER.warn("Deferred region materialization error: {}", t.toString());
             }
+        });
+
+        // Reset voice state on server stop so a restart re-initializes cleanly
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+            VOICE_PRELOADED = false;
+            MATERIALIZED_MAP = null;
+            VoiceService.reset();
+            VoiceOrchestrator.reset();
         });
 
         // Register mod assets for resource pack serving
         PolymerResourcePackUtils.addModAssets(ID);
     }
-
-    private static volatile boolean PRELOADED = false;
-    /**
-     * One-time preload hook: attempts to initialize voice chat integration reflectively if the mod is present.
-     * Silently disables voice features if detection fails.
-     * @param server the active Minecraft server instance
-     */
-    private static void preloadOnce(MinecraftServer server) {
-        if (PRELOADED) return;
-        try {
-            Class<?> bridgeCls = Class.forName("golden.botc_mc.botc_mc.game.voice.SvcBridge");
-            Method avail = bridgeCls.getMethod("isAvailableRuntime");
-            Object available = avail.invoke(null);
-            if (!(available instanceof Boolean) || !((Boolean) available)) {
-                PRELOADED = true; // do not spam per-tick
-                return;
-            }
-            tryInitVoiceReflective(server);
-            PRELOADED = true;
-        } catch (Throwable t) {
-            // keep silent; voice is optional
-            PRELOADED = true;
-        }
-    }
-
-    /**
-     * Attempt to initialize the VoicechatPlugin singleton reflectively without hard dependency linkage.
-     * @param server server used to scope plugin instance
-     */
-    private static void tryInitVoiceReflective(MinecraftServer server) {
-        try {
-            Class<?> pluginCls = Class.forName("golden.botc_mc.botc_mc.game.voice.VoicechatPlugin");
-            java.lang.reflect.Method getInstance = pluginCls.getMethod("getInstance", MinecraftServer.class);
-            Object plugin = getInstance.invoke(null, server);
-            // Call preload() if present
-            try {
-                java.lang.reflect.Method preload = pluginCls.getMethod("preload");
-                preload.invoke(plugin);
-            } catch (Throwable ignored) {}
-        } catch (Throwable ignored) {}
-    }
-
 
     /**
      * Add the active game to the list of active games

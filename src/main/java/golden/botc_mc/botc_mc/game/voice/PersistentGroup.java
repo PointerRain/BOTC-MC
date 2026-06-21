@@ -13,7 +13,6 @@ import java.util.UUID;
 public final class PersistentGroup {
     /** Runtime Simple Voice Chat assigned UUID for the group (nullable until created). */
     private UUID voicechatId;
-    private static final String DEFAULT_TYPE = "NORMAL";
 
     // Group display name (may be empty). Made final for immutability; deserialized via adapter.
     private final String name;
@@ -45,6 +44,6 @@ public final class PersistentGroup {
 
     @Override
     public String toString() {
-        return "PersistentGroup[name=" + getName() + ",id=" + voicechatId + ",type=" + DEFAULT_TYPE + "]";
+        return "PersistentGroup[name=" + getName() + ",id=" + voicechatId + "]";
     }
 }

@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
+import golden.botc_mc.botc_mc.botc;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Identifier;
 
@@ -38,8 +39,6 @@ import java.util.List;
  * </ul>
  */
 public class VoiceGroupManager {
-    private static final org.apache.logging.log4j.Logger LOGGER = org.apache.logging.log4j.LogManager.getLogger("botc.VoiceGroupManager");
-
     private final Identifier mapId;
     private final MinecraftServer server; // optional alternative for embedded read
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -78,7 +77,7 @@ public class VoiceGroupManager {
             if (mapId != null) {
                 Path override = Paths.get("run", "world", "datapacks", "botc_overrides", "data", mapId.getNamespace(), "plasmid", "game", mapId.getPath() + ".json");
                 if (Files.exists(override)) {
-                    String s = new String(Files.readAllBytes(override));
+                    String s = Files.readString(override);
                     JsonObject obj = gson.fromJson(s, JsonObject.class);
                     if (obj != null) {
                         JsonObject voiceSection = obj.has("voice") && obj.get("voice").isJsonObject() ? obj.getAsJsonObject("voice") : obj;
@@ -112,11 +111,11 @@ public class VoiceGroupManager {
                         }
                     }
                 } catch (Exception ex) {
-                    LOGGER.debug("VoiceGroupManager: failed to read embedded map game json: {}", ex.toString());
+                    botc.LOGGER.debug("VoiceGroupManager: failed to read embedded map game json: {}", ex.toString());
                 }
             }
         } catch (Exception ex) {
-            LOGGER.warn("VoiceGroupManager load failed: {}", ex.toString());
+            botc.LOGGER.warn("VoiceGroupManager load failed: {}", ex.toString());
         }
     }
 }

@@ -12,6 +12,9 @@
   "entrypoints": {
     "main": [
       "golden.botc_mc.botc_mc.botc"
+    ],
+    "voicechat": [
+      "golden.botc_mc.botc_mc.game.voice.BotcVoicechatPlugin"
     ]
   },
   "depends": {
@@ -19,5 +22,8 @@
     "fabric-api": "*",
     "minecraft": ">=1.21.4",
     "plasmid": ">=0.6.2"
+  },
+  "suggests": {
+    "voicechat": "*"
   }
 }

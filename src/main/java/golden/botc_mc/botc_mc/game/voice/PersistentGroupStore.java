@@ -11,9 +11,11 @@ import com.google.gson.reflect.TypeToken;
 import golden.botc_mc.botc_mc.botc;
 
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.Reader;
+import java.io.Writer;
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
@@ -24,7 +26,6 @@ import java.util.*;
  * should attempt to keep alive across restarts. Key behaviors:
  * <ul>
  *   <li>Stores data as JSON at {@code gameDir/config/botc/config/botc-persistent-groups.json}.</li>
- *   <li>Maintains an in-memory list and a UUID → group cache for quick lookups by Simple Voice Chat id.</li>
  *   <li>All mutating methods are {@code synchronized} to provide basic thread-safety.</li>
  * </ul>
  */
@@ -32,7 +33,6 @@ public class PersistentGroupStore {
     private final File file;
     private final Gson gson;
     private final List<PersistentGroup> groups = new ArrayList<>();
-    private final Map<UUID, PersistentGroup> cache = new HashMap<>();
 
     /** Construct an empty store for persistent voice groups. */
     public PersistentGroupStore() {
@@ -92,11 +92,10 @@ public class PersistentGroupStore {
         try {
             if (!file.exists()) return;
             Type listType = new TypeToken<List<PersistentGroup>>(){}.getType();
-            try (FileReader fr = new FileReader(file)) {
+            try (Reader fr = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8)) {
                 List<PersistentGroup> loaded = gson.fromJson(fr, listType);
                 if (loaded != null) {
                     groups.clear(); groups.addAll(loaded);
-                    rebuildCache();
                 }
             }
         } catch (Throwable t) {
@@ -109,21 +108,10 @@ public class PersistentGroupStore {
      * logged but do not propagate as exceptions to callers.
      */
     public synchronized void save() {
-        try (FileWriter fw = new FileWriter(file)) {
+        try (Writer fw = Files.newBufferedWriter(file.toPath(), StandardCharsets.UTF_8)) {
             gson.toJson(groups, fw);
         } catch (Throwable t) {
             botc.LOGGER.warn("PersistentGroupStore save failed: {}", t.toString());
-        }
-    }
-
-    /**
-     * Rebuild the UUID → {@link PersistentGroup} index from the current list. This is used after
-     * load and after bulk modifications to ensure lookups stay in sync.
-     */
-    private void rebuildCache() {
-        cache.clear();
-        for (PersistentGroup g : groups) {
-            if (g.getVoicechatId() != null) cache.put(g.getVoicechatId(), g);
         }
     }
 
@@ -135,19 +123,13 @@ public class PersistentGroupStore {
     }
 
     /**
-     * Cache a runtime voice chat UUID against the persistent group instance and persist change.
+     * Record the runtime voice chat UUID assigned to a persistent group and persist the change.
      * @param id assigned voice chat group UUID (ignored if null)
      * @param g persistent group descriptor (ignored if null)
      */
-    public synchronized void cacheGroup(java.util.UUID id, PersistentGroup g) {
+    public synchronized void recordVoiceId(java.util.UUID id, PersistentGroup g) {
         if (id == null || g == null) return;
         g.setVoicechatId(id);
-        cache.put(id, g);
         save();
     }
-    /** Lookup a group by runtime voice UUID.
-     * @param id voice chat UUID
-     * @return matching persistent group or null if not cached
-     */
-    public synchronized PersistentGroup getByVoiceId(java.util.UUID id) { return cache.get(id); }
 }

@@ -37,11 +37,10 @@ public final class VoiceRegionCommands {
             LiteralArgumentBuilder<ServerCommandSource> botcRoot = literal("botc");
             LiteralArgumentBuilder<ServerCommandSource> voiceRoot = literal("voice").requires(src -> src.hasPermissionLevel(2));
 
-            VoiceRegionManager mgrOrFallback = VoiceRegionService.getActiveManager();
-            final VoiceRegionManager mgr = (mgrOrFallback != null) ? mgrOrFallback : fallback;
+            final VoiceRegionManager mgr = fallback;
 
             // Info: /botc voice info
-            voiceRoot.then(literal("info").requires(src -> src.hasPermissionLevel(2)).executes(ctx -> {
+            voiceRoot.then(literal("info").executes(ctx -> {
                 VoiceRegionManager active = VoiceRegionService.getActiveManager();
                 VoiceRegionManager used = active != null ? active : mgr;
                 StringBuilder sb = new StringBuilder();
@@ -57,7 +56,7 @@ public final class VoiceRegionCommands {
             }));
 
             // Reload: /botc voice reload
-            voiceRoot.then(literal("reload").requires(src -> src.hasPermissionLevel(2)).executes(ctx -> {
+            voiceRoot.then(literal("reload").executes(ctx -> {
                 VoiceRegionManager active = VoiceRegionService.getActiveManager();
                 VoiceRegionManager used = active != null ? active : mgr;
                 int before = used.list().size();

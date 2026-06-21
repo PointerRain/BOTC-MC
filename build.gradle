@@ -20,6 +20,10 @@ repositories {
         name = "Nucleoid"
         url = "https://maven.nucleoid.xyz/"
     }
+    maven {
+        name = "maxhenkel"
+        url = "https://maven.maxhenkel.de/repository/public"
+    }
 }
 
 dependencies {
@@ -36,6 +40,9 @@ dependencies {
 
     // Polymer
     modImplementation "eu.pb4:polymer-autohost:${project.polymer_version}"
+
+    // Simple Voice Chat (optional - compile-only, mod is not required at runtime)
+    modCompileOnly "de.maxhenkel.voicechat:voicechat-api:2.6.19"
 }
 
 processResources {
