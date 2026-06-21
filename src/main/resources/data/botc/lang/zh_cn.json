@@ -628,7 +628,6 @@
   "character.botc.tinker.name": "修补匠",
   "character.botc.tinker.other": "修补匠可能死亡。:reminder:",
   "character.botc.tor.ability": "玩家不知道自己的角色和阵营。当他们死亡时才会得知这些信息。",
-  "character.botc.tor.first": "如果一名玩家在白天死亡，私下告诉他角色和阵营。如果一名玩家在夜晚死亡，唤醒他并向他依次展示“你是”信息标记，他的角色标记，“你是”信息标记和竖起或倒置的大拇指。",
   "character.botc.tor.flavor": "雷鸣是我的言语，闪电是我的剑。我是永恒的守门者，吞噬一切妄闯禁域的愚者。我的圣志昭然：净化尘世的污虫，将其困缚于星光织成的网中，在那天与地交汇的山巅，守望永恒的真理。",
   "character.botc.tor.name": "遗忘之门",
   "character.botc.towncrier.ability": "每个夜晚*，你会得知在今天白天时是否有爪牙发起过提名。",
