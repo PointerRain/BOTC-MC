@@ -1,22 +1,18 @@
 package golden.botc_mc.botc_mc.game;
 
+import golden.botc_mc.botc_mc.TitleUtil;
 import golden.botc_mc.botc_mc.game.state.BotcGameState;
 import golden.botc_mc.botc_mc.game.state.BotcStateContext;
 import golden.botc_mc.botc_mc.game.state.BotcStateMachine;
 import golden.botc_mc.botc_mc.game.state.GameLifecycleStatus;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.DeathProtectionComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.network.packet.s2c.play.EntityStatusS2CPacket;
 import net.minecraft.network.packet.s2c.play.ParticleS2CPacket;
 import net.minecraft.particle.DustParticleEffect;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.Hand;
-import net.minecraft.world.GameMode;
 import xyz.nucleoid.plasmid.api.game.GameSpace;
 import xyz.nucleoid.plasmid.api.game.player.PlayerSet;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -203,15 +199,7 @@ public class botcStageManager {
                 if (player.isSpectator()) continue;
                 if (!PolymerResourcePackUtils.hasMainPack(player)) continue;
 
-                ItemStack bellItem = new ItemStack(Items.BELL);
-                bellItem.set(DataComponentTypes.DEATH_PROTECTION, new DeathProtectionComponent(java.util.List.of()));
-
-                ItemStack previousOffhand = player.getOffHandStack();
-                player.setStackInHand(Hand.OFF_HAND, bellItem);
-                player.currentScreenHandler.sendContentUpdates();
-                player.networkHandler.sendPacket(new EntityStatusS2CPacket(player, (byte) 35));
-                player.setStackInHand(Hand.OFF_HAND, previousOffhand);
-                player.currentScreenHandler.sendContentUpdates();
+                TitleUtil.showTotemEffect(player, new ItemStack(Items.BELL));
 
                 player.networkHandler.sendPacket(new ParticleS2CPacket(
                     goldDust, true, true,
