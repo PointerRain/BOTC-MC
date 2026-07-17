@@ -239,7 +239,7 @@ public class botcStageManager {
 
         if (this.pendingTitleAt > 0 && time >= this.pendingTitleAt) {
             space.getPlayers().showTitle(
-                Text.literal("Gather at the town square, townsfolk!").formatted(Formatting.GOLD), 80);
+                Text.translatable("gui.botc-mc.gong").formatted(Formatting.GOLD), 80);
             this.pendingTitleAt = -1;
         }
 
